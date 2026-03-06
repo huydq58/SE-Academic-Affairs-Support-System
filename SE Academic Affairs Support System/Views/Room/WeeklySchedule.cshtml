@@ -1,0 +1,205 @@
+﻿@model SE_Academic_Affairs_Support_System.Models.ScheduleViewModel
+
+@{
+    ViewData["Title"] = "Lịch Đặt Phòng Hàng Tuần";
+    string GetVietnameseDay(DayOfWeek day)
+    {
+        return day switch
+        {
+            DayOfWeek.Monday => "Thứ 2",
+            DayOfWeek.Tuesday => "Thứ 3",
+            DayOfWeek.Wednesday => "Thứ 4",
+            DayOfWeek.Thursday => "Thứ 5",
+            DayOfWeek.Friday => "Thứ 6",
+            DayOfWeek.Saturday => "Thứ 7",
+            DayOfWeek.Sunday => "Chủ Nhật",
+            _ => ""
+        };
+    }
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+        <h3 class="text-primary fw-bold text-uppercase mb-0 text-center text-md-start">
+            Lịch Đặt Phòng
+        </h3>
+
+        <div class="d-flex align-items-center gap-2 gap-md-3 bg-white px-3 px-md-4 py-2 rounded-pill shadow-sm border w-100 w-md-auto justify-content-between">
+            <a href="@Url.Action("WeeklySchedule", new { roomId = Model.Rooms.FirstOrDefault()?.RoomID, selectedDate = Model.WeekStartDate.AddDays(-7).ToString("yyyy-MM-dd") })" class="btn btn-sm btn-outline-secondary rounded-circle">
+                <i class="bi bi-chevron-left">&lt;</i>
+            </a>
+
+            <h6 class="mb-0 text-dark fw-semibold px-1 text-center" style="font-size: 0.9rem;">
+                @Model.WeekStartDate.ToString("dd/MM") - @Model.WeekEndDate.ToString("dd/MM/yyyy")
+            </h6>
+
+            <a href="@Url.Action("WeeklySchedule", new { roomId = Model.Rooms.FirstOrDefault()?.RoomID, selectedDate = Model.WeekStartDate.AddDays(7).ToString("yyyy-MM-dd") })" class="btn btn-sm btn-outline-secondary rounded-circle">
+                <i class="bi bi-chevron-right">&gt;</i>
+            </a>
+        </div>
+    </div>
+
+    @foreach (var room in Model.Rooms)
+    {
+        <div class="card shadow-sm border-0 rounded-4 mb-5 overflow-hidden">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0 fw-bold">
+                    <i class="bi bi-door-open-fill me-2"></i> @room.RoomName
+                </h5>
+            </div>
+
+            <div class="card-body p-0 d-none d-lg-block">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover mb-0 text-center align-middle" style="table-layout: fixed; min-width: 1000px;">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 100px;" class="bg-light">Khung giờ</th>
+                                @foreach (var day in Model.DaysInWeek)
+                                {
+                                    bool isPast = day.Date < DateTime.Today;
+                                    bool isToday = day.Date == DateTime.Today;
+
+                                    <th class="@(isToday ? "bg-warning bg-opacity-25" : isPast ? "bg-secondary bg-opacity-10" : "")">
+                                        <div class="fw-bold @(isPast && !isToday ? "text-muted" : "text-dark")">@GetVietnameseDay(day.DayOfWeek)</div>
+                                        <div class="text-muted small">@day.ToString("dd/MM")</div>
+                                    </th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var slot in Model.TimeSlots)
+                            {
+                                <tr>
+                                    <td class="fw-bold bg-light">
+                                        <div>@slot.SlotName</div>
+                                        <div class="small text-muted fw-normal">@slot.DisplayTime</div>
+                                    </td>
+                                    @foreach (var day in Model.DaysInWeek)
+                                    {
+                                        bool isPast = day.Date < DateTime.Today;
+                                        // CHỈ LẤY NHỮNG ĐƠN CÓ STATUS = "Approved"
+                                        var booking = Model.WeeklyBookings.FirstOrDefault(b => b.RoomId == room.RoomID && b.SlotId == slot.SlotId && b.BookingDate.Date == day.Date && b.Status == "Approved");
+
+                                        <td class="@(isPast ? "bg-secondary bg-opacity-10" : "")">
+                                            @if (booking == null)
+                                            {
+                                                if (isPast)
+                                                {
+                                                    <div class="d-block p-3 rounded text-muted" style="cursor: not-allowed; background-color: #f8f9fa;">
+                                                        <i class="bi bi-clock-history"></i> Đã qua
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <a href="@Url.Action("CreateBooking", "Room", new { roomId = room.RoomID, slotId = slot.SlotId, date = day.ToString("yyyy-MM-dd") })"
+                                                       class="text-decoration-none d-block p-3 rounded bg-success bg-opacity-10 text-success fw-semibold hover-book">
+                                                        + Trống
+                                                    </a>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <div class="p-2 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25 @(isPast ? "opacity-75" : "")">
+                                                    <span class="badge bg-danger mb-1">Đã đặt</span>
+                                                    <div class="fw-bold text-dark small text-truncate">@booking.User.FullName</div>
+                                                </div>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card-body p-2 d-block d-lg-none bg-light">
+                <div class="accordion" id="accordionMobile-@room.RoomID">
+                    @{
+                        int dayIndex = 0;
+                    }
+                    @foreach (var day in Model.DaysInWeek)
+                    {
+                        var isToday = day.Date == DateTime.Today;
+                        var isPast = day.Date < DateTime.Today;
+
+                        <div class="accordion-item border-0 mb-2 shadow-sm rounded overflow-hidden">
+                            <h2 class="accordion-header" id="heading-@room.RoomID-@dayIndex">
+                                <button class="accordion-button @(isToday ? "" : "collapsed") fw-bold @(isToday ? "bg-warning bg-opacity-25 text-dark" : "") @(isPast ? "text-muted bg-secondary bg-opacity-10" : "")" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@room.RoomID-@dayIndex">
+                                    <i class="bi bi-calendar-event me-2 @(isPast ? "text-secondary" : "text-primary")"></i>
+                                    @GetVietnameseDay(day.DayOfWeek) - @day.ToString("dd/MM")
+                                    @if (isToday)
+                                    {
+                                        <span class="badge bg-danger ms-2">Hôm nay</span>
+                                    }
+                                    @if (isPast)
+                                    {
+                                        <span class="badge bg-secondary ms-2 fw-normal">Đã qua</span>
+                                    }
+                                </button>
+                            </h2>
+                            <div id="collapse-@room.RoomID-@dayIndex" class="accordion-collapse collapse @(isToday ? "show" : "")" data-bs-parent="#accordionMobile-@room.RoomID">
+                                <div class="accordion-body p-2 bg-white">
+
+                                    @foreach (var slot in Model.TimeSlots)
+                                    {
+                                        // CHỈ LẤY NHỮNG ĐƠN CÓ STATUS = "Approved"
+                                        var booking = Model.WeeklyBookings.FirstOrDefault(b => b.RoomId == room.RoomID && b.SlotId == slot.SlotId && b.BookingDate.Date == day.Date && b.Status == "Approved");
+
+                                        <div class="d-flex justify-content-between align-items-center p-2 mb-2 border rounded @(booking == null ? (isPast ? "bg-secondary bg-opacity-10" : "bg-success bg-opacity-10") : "bg-danger bg-opacity-10")">
+                                            <div class="w-50">
+                                                <div class="fw-bold @(isPast ? "text-secondary" : "text-dark")">@slot.SlotName</div>
+                                                <div class="small text-muted">@slot.DisplayTime</div>
+                                            </div>
+
+                                            <div class="w-50 text-end">
+                                                @if (booking == null)
+                                                {
+                                                    if (isPast)
+                                                    {
+                                                        <span class="badge text-secondary bg-light border w-100 py-2">Đã qua</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <a href="@Url.Action("CreateBooking", "Room", new { roomId = room.RoomID, slotId = slot.SlotId, date = day.ToString("yyyy-MM-dd") })" class="btn btn-sm btn-success w-100 rounded-pill">
+                                                            Đặt ngay
+                                                        </a>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">Đã đặt</span>
+                                                    <div class="small fw-bold text-truncate mt-1 @(isPast ? "text-secondary" : "")">@booking.User.FullName</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        dayIndex++;
+                    }
+                </div>
+            </div>
+
+        </div>
+    }
+</div>
+
+<style>
+    .hover-book {
+        transition: all 0.2s ease-in-out;
+    }
+
+        .hover-book:hover {
+            background-color: #198754 !important;
+            color: white !important;
+            transform: scale(0.95);
+        }
+
+    @@media (min-width: 768px) {
+        .w-md-auto {
+            width: auto !important;
+        }
+    }
+</style>

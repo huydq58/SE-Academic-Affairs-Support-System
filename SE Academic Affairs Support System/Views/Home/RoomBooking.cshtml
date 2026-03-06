@@ -1,0 +1,131 @@
+﻿@model SE_Academic_Affairs_Support_System.Models.ScheduleViewModel
+
+@{
+    ViewData["Title"] = "Lịch Đặt Phòng Hàng Tuần";
+    // Hàm phụ trợ để dịch DayOfWeek sang tiếng Việt
+    string GetVietnameseDay(DayOfWeek day)
+    {
+        return day switch
+        {
+            DayOfWeek.Monday => "Thứ 2",
+            DayOfWeek.Tuesday => "Thứ 3",
+            DayOfWeek.Wednesday => "Thứ 4",
+            DayOfWeek.Thursday => "Thứ 5",
+            DayOfWeek.Friday => "Thứ 6",
+            DayOfWeek.Saturday => "Thứ 7",
+            DayOfWeek.Sunday => "Chủ Nhật",
+            _ => ""
+        };
+    }
+}
+    
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="text-primary fw-bold text-uppercase mb-0">
+            Lịch Đặt Phòng
+        </h3>
+        <div class="d-flex align-items-center gap-3 bg-white px-4 py-2 rounded-pill shadow-sm border">
+            <a href="@Url.Action("WeeklySchedule", new { selectedDate = Model.WeekStartDate.AddDays(-7).ToString("yyyy-MM-dd") })" class="btn btn-sm btn-outline-secondary rounded-circle">
+                <i class="bi bi-chevron-left">&lt;</i>
+            </a>
+
+            <h5 class="mb-0 text-dark fw-semibold px-2">
+                Tuần: @Model.WeekStartDate.ToString("dd/MM/yyyy") - @Model.WeekEndDate.ToString("dd/MM/yyyy")
+            </h5>
+
+            <a href="@Url.Action("WeeklySchedule", new { selectedDate = Model.WeekStartDate.AddDays(7).ToString("yyyy-MM-dd") })" class="btn btn-sm btn-outline-secondary rounded-circle">
+                <i class="bi bi-chevron-right">&gt;</i>
+            </a>
+        </div>
+    </div>
+
+    @foreach (var room in Model.Rooms)
+    {
+        <div class="card shadow-sm border-0 rounded-4 mb-5 overflow-hidden">
+
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover mb-0 text-center align-middle" style="table-layout: fixed; min-width: 1000px;">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 100px;" class="bg-light">Khung giờ</th>
+                                @foreach (var day in Model.DaysInWeek)
+                                {
+                                    <th class="@(day.Date == DateTime.Today ? "bg-warning bg-opacity-25" : "")">
+                                        <div class="fw-bold text-dark">@GetVietnameseDay(day.DayOfWeek)</div>
+                                        <div class="text-muted small">@day.ToString("dd/MM")</div>
+                                    </th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var slot in Model.TimeSlots)
+                            {
+                                <tr>
+                                    @* <td class="fw-bold bg-light">
+                                        <div>@slot.SlotName</div>
+                                        <div class="small text-muted fw-normal">@slot.DisplayTime</div>
+                                    </td> *@
+
+                                    @foreach (var day in Model.DaysInWeek)
+                                    {
+                                        // LOGIC TRỌNG TÂM: Tìm xem ô này có ai đặt chưa?
+                                        var booking = Model.WeeklyBookings.FirstOrDefault(b =>
+                                        b.RoomId == room.RoomID &&
+                                        b.SlotId == slot.SlotId &&
+                                        b.BookingDate.Date == day.Date);
+
+                                        <td>
+                                            @if (booking == null)
+                                            {
+                                                <a href="@Url.Action("CreateBooking", "Room", new { roomId = room.RoomID, slotId = slot.SlotId, date = day.ToString("yyyy-MM-dd") })"
+                                                   class="text-decoration-none d-block p-3 rounded bg-success bg-opacity-10 text-success fw-semibold hover-book">
+                                                    + Trống
+                                                </a>
+                                            }
+                                            else if (booking.Status == "Approved")
+                                            {
+                                                <div class="p-2 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25">
+                                                    <span class="badge bg-danger mb-1">Đã đặt</span>
+                                                    <div class="fw-bold text-dark small text-truncate" title="@booking.User.FullName">
+                                                        @booking.User.FullName
+                                                    </div>
+                                                    <div class="text-muted small text-truncate" title="@booking.Purpose">
+                                                        @booking.Purpose
+                                                    </div>
+                                                </div>
+                                            }
+                                            else if (booking.Status == "Pending")
+                                            {
+                                                <div class="p-2 rounded bg-warning bg-opacity-10 border border-warning border-opacity-50">
+                                                    <span class="badge bg-warning text-dark mb-1">Đang chờ duyệt</span>
+                                                    <div class="fw-bold text-dark small text-truncate">
+                                                        @booking.User.FullName
+                                                    </div>
+                                                </div>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    /* Hiệu ứng khi di chuột vào ô trống */
+    .hover-book {
+        transition: all 0.2s ease-in-out;
+    }
+
+        .hover-book:hover {
+            background-color: #198754 !important; /* Màu xanh success của Bootstrap */
+            color: white !important;
+            transform: scale(0.95);
+        }
+</style>

@@ -1,0 +1,80 @@
+﻿@model SE_Academic_Affairs_Support_System.ViewModels.CreateBookingViewModel
+
+@{
+    ViewData["Title"] = "Gửi Yêu Cầu Đặt Phòng";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-success text-white py-3 text-center rounded-top-4">
+                    <h4 class="mb-0 fw-bold"><i class="bi bi-journal-plus me-2"></i> Phiếu Yêu Cầu Đặt Phòng</h4>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger rounded-3" role="alert">
+                            <div asp-validation-summary="All" class="text-danger mb-0"></div>
+                        </div>
+                    }
+
+                    <form asp-action="CreateBooking" method="post">
+                        <input type="hidden" asp-for="RoomId" />
+                        <input type="hidden" asp-for="SlotId" />
+                        <input type="hidden" asp-for="BookingDate" />
+                        <input type="hidden" asp-for="RoomName" />
+                        <input type="hidden" asp-for="SlotName" />
+                        <input type="hidden" asp-for="SlotTime" />
+
+                        <div class="bg-light p-3 rounded-3 mb-4 border">
+                            <h6 class="text-muted mb-3 text-uppercase fw-bold fs-7">Thông tin đăng ký</h6>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <span class="text-muted small d-block">Phòng:</span>
+                                    <span class="fw-bold text-primary fs-5">@Model.RoomName</span>
+                                </div>
+                                <div class="col-6">
+                                    <span class="text-muted small d-block">Ngày đặt:</span>
+                                    <span class="fw-bold text-dark fs-5">@Model.BookingDate.ToString("dd/MM/yyyy")</span>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <span class="text-muted small d-block">Ca học:</span>
+                                    <span class="badge bg-secondary p-2 fs-6">@Model.SlotName (@Model.SlotTime)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="PhoneNumber" class="form-control" placeholder="09xxxxxxx" />
+                            <label asp-for="PhoneNumber">Số điện thoại liên hệ <span class="text-danger">*</span></label>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-4">
+                            <textarea asp-for="Purpose" class="form-control" placeholder="Nhập lý do" style="height: 100px"></textarea>
+                            <label asp-for="Purpose">Mục đích sử dụng (Học bù, Seminar...) <span class="text-danger">*</span></label>
+                            <span asp-validation-for="Purpose" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg rounded-pill fw-bold shadow-sm">
+                                <i class="bi bi-send-fill me-2"></i> Gửi Yêu Cầu
+                            </button>
+                            <a href="@Url.Action("WeeklySchedule", new { roomId = Model.RoomId, selectedDate = Model.BookingDate.ToString("yyyy-MM-dd") })" class="btn btn-light rounded-pill text-muted mt-2">
+                                Hủy & Quay lại lịch
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

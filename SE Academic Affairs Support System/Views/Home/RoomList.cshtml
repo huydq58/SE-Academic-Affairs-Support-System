@@ -1,0 +1,58 @@
+﻿@model IEnumerable<RoomModel>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="text-primary fw-bold text-uppercase mb-0">Danh sách phòng học</h3>
+
+        <div class="input-group w-auto shadow-sm">
+            <input type="text" class="form-control" placeholder="Tìm tên phòng...">
+            <button class="btn btn-outline-primary" type="button">Tìm</button>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+
+        @foreach (var room in Model)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm border-0 custom-card-hover rounded-4 overflow-hidden">
+
+                    <div class="card-header bg-primary bg-opacity-10 border-bottom-0 py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold text-primary">@room.RoomName</h5>
+
+                    </div>
+
+
+                    <div class="card-footer bg-white border-top-0 pt-0 pb-3 px-3 text-center">
+                        <a href="@Url.Action("WeeklySchedule", "Room", new { roomId = room.RoomID })"
+                           class="btn btn-primary w-100 fw-semibold rounded-pill transition-btn">
+                            Xem Lịch / Đặt Phòng
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
+
+<style>
+    /* Hiệu ứng nảy lên cho toàn bộ thẻ khi di chuột */
+    .custom-card-hover {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .custom-card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 1rem 3rem rgba(0,0,0,.175) !important;
+        }
+
+    /* Hiệu ứng sáng lên của nút bấm trong thẻ */
+    .transition-btn {
+        transition: background-color 0.2s, transform 0.2s;
+    }
+
+        .transition-btn:hover {
+            transform: scale(1.03);
+        }
+</style>
