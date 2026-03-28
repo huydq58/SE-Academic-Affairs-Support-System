@@ -17,6 +17,7 @@ namespace SE_Academic_Affairs_Support_System.Models
         public string PasswordHash { get; set; } // BCrypt hash
 
 
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 

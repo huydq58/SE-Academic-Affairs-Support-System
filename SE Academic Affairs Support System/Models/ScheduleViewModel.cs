@@ -4,6 +4,7 @@
     {
         public DateTime WeekStartDate { get; set; } 
         public DateTime WeekEndDate { get; set; } 
+        public string UserName { get; set; }
 
         public List<DateTime> DaysInWeek { get; set; }
 

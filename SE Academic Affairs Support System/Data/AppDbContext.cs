@@ -12,6 +12,8 @@ namespace SE_Academic_Affairs_Support_System.Data
         public DbSet<RoomModel> Rooms { get; set; }
         public DbSet<TimeSlot> TimeSlots { get; set; }
         public DbSet<RoomBooking> RoomBookings { get; set; }
+        public DbSet<Device> Devices{ get; set; }
+        public DbSet<DeviceRequest> DeviceRequests{ get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

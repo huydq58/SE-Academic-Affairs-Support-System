@@ -1,0 +1,92 @@
+@* ===== Create.cshtml ===== *@
+@* Đặt tại Views/Device/Create.cshtml *@
+
+@model SE_Academic_Affairs_Support_System.Models.Device
+@{
+    ViewData["Title"] = "Thêm thiết bị mới";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root { --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;--accent:#4f8ef7;--green:#22c55e;--red:#ef4444;--text:#e8eaf6;--muted:#7c83a8;--radius:12px; }
+    * { box-sizing:border-box;margin:0;padding:0; }
+    body { background:var(--bg);color:var(--text);font-family:'Be Vietnam Pro',sans-serif; }
+    .page { padding:28px 32px;max-width:680px;margin:0 auto; }
+    .page-header { display:flex;align-items:center;gap:12px;margin-bottom:28px;flex-wrap:wrap; }
+    .back-link { color:var(--muted);font-size:13px;text-decoration:none;display:flex;align-items:center;gap:5px; }
+    .back-link:hover { color:var(--text); }
+    h1 { font-size:22px;font-weight:700; }
+    .card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px; }
+    .form-group { margin-bottom:20px; }
+    .form-group label { display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:0.4px; }
+    .form-group input, .form-group select, .form-group textarea {
+        width:100%;background:var(--surface2);border:1px solid var(--border);
+        color:var(--text);border-radius:8px;padding:10px 14px;
+        font-family:'Be Vietnam Pro',sans-serif;font-size:14px;transition:border-color 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none;border-color:var(--accent); }
+    .form-group textarea { resize:vertical; }
+    .form-group .field-note { font-size:11px;color:var(--muted);margin-top:5px; }
+    .validation-error { font-size:12px;color:#fca5a5;margin-top:5px; }
+    .form-row { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+    .form-actions { display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:20px;border-top:1px solid var(--border); }
+    .btn { display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.18s;text-decoration:none;font-family:'Be Vietnam Pro',sans-serif; }
+    .btn-primary { background:var(--accent);color:#fff; }
+    .btn-primary:hover { background:#3a7de8; }
+    .btn-outline { background:transparent;color:var(--text);border:1.5px solid var(--border); }
+    .btn-outline:hover { border-color:var(--accent);color:var(--accent); }
+</style>
+
+<div class="page">
+    <div class="page-header">
+        <a href="/Device/Index" class="back-link">← Quay lại</a>
+        <h1>＋ Thêm thiết bị mới</h1>
+    </div>
+
+    <div class="card">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label asp-for="DeviceName">Tên thiết bị *</label>
+                    <input asp-for="DeviceName" placeholder="VD: Máy chiếu Panasonic 01" />
+                    <span asp-validation-for="DeviceName" class="validation-error"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Category">Loại thiết bị</label>
+                    <input asp-for="Category" placeholder="VD: Máy chiếu, Âm thanh, Dây cáp..." />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label asp-for="Condition">Tình trạng ban đầu</label>
+                    <select asp-for="Condition">
+                        <option value="Good">✅ Tốt</option>
+                        <option value="Broken">🔴 Hỏng</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label asp-for="ImageUrl">Hình ảnh (URL)</label>
+                    <input asp-for="ImageUrl" placeholder="https://..." />
+                    <div class="field-note">URL ảnh minh hoạ thiết bị (tuỳ chọn)</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Description">Mô tả / Thông số kỹ thuật</label>
+                <textarea asp-for="Description" rows="3" placeholder="VD: Độ phân giải Full HD, kết nối HDMI/VGA, công suất 3000 lumen..."></textarea>
+            </div>
+
+            <div class="form-actions">
+                <a href="/Device/Index" class="btn btn-outline">Hủy</a>
+                <button type="submit" class="btn btn-primary">＋ Thêm thiết bị</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

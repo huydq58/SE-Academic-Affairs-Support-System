@@ -1,0 +1,462 @@
+@model List<SE_Academic_Affairs_Support_System.Models.Device>
+@{
+    ViewData["Title"] = "Quản lý Thiết bị";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --bg: #0f1117;
+        --surface: #1a1d27;
+        --surface2: #22263a;
+        --border: #2e3350;
+        --accent: #4f8ef7;
+        --green: #22c55e;
+        --yellow: #f59e0b;
+        --red: #ef4444;
+        --orange: #f97316;
+        --text: #e8eaf6;
+        --muted: #7c83a8;
+        --radius: 12px;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Be Vietnam Pro', sans-serif;
+        min-height: 100vh;
+    }
+
+    .dm-page {
+        padding: 28px 32px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* ── HEADER ── */
+    .dm-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 28px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .dm-header-left h1 {
+        font-size: 26px;
+        font-weight: 700;
+    }
+
+    .dm-header-left p {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 4px;
+    }
+
+    .dm-header-right {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 18px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.18s;
+        text-decoration: none;
+        color: var(--text);
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    .btn-outline {
+        background: transparent;
+        border: 1.5px solid var(--border);
+    }
+
+        .btn-outline:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+    .btn-danger {
+        background: #ef44441a;
+        color: var(--red);
+        border: 1px solid #ef444444;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+
+        .btn-danger:hover {
+            background: var(--red);
+            color: #fff;
+        }
+
+    .badge-pending {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f59e0b22;
+        color: var(--yellow);
+        border: 1px solid #f59e0b44;
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    /* ── ALERTS ── */
+    .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .alert-success {
+        background: #22c55e1a;
+        border: 1px solid #22c55e44;
+        color: #86efac;
+    }
+
+    .alert-error {
+        background: #ef44441a;
+        border: 1px solid #ef444444;
+        color: #fca5a5;
+    }
+
+    /* ── STATS CARDS ── */
+    .dm-stats {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .stat-card {
+        flex: 1;
+        min-width: 140px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 20px;
+    }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-top: 4px;
+            font-family: 'Space Mono', monospace;
+        }
+
+    /* ── FILTERS ── */
+    .dm-filters {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+        .filter-group label {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .filter-group select {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 7px;
+            padding: 7px 12px;
+            font-size: 13px;
+            outline: none;
+        }
+
+    /* ── TABLE ── */
+    .dm-table-wrap {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: auto;
+    }
+
+    .dm-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+        .dm-table th {
+            padding: 14px 16px;
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .dm-table td {
+            padding: 14px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .dm-table tbody tr:hover {
+            background: var(--surface2);
+        }
+
+    /* ── BADGES & TAGS ── */
+    .status-badge {
+        display: inline-flex;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-green {
+        background: #22c55e1a;
+        color: #86efac;
+        border: 1px solid #22c55e33;
+    }
+
+    .badge-blue {
+        background: #4f8ef71a;
+        color: #93c5fd;
+        border: 1px solid #4f8ef733;
+    }
+
+    .badge-orange {
+        background: #f973161a;
+        color: #fdba74;
+        border: 1px solid #f9731633;
+    }
+
+    .badge-red {
+        background: #ef44441a;
+        color: #fca5a5;
+        border: 1px solid #ef444433;
+    }
+
+    .category-tag {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        color: var(--muted);
+    }
+
+    /* ── ACTION BUTTONS ── */
+    .action-group {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+    }
+
+    .btn-action {
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text);
+        transition: 0.2s;
+    }
+
+        .btn-action:hover {
+            background: var(--surface2);
+        }
+</style>
+
+<div class="dm-page">
+    <div class="dm-header">
+        <div class="dm-header-left">
+            <h1 style="color: black;">Quản lý Thiết bị</h1>
+            <p>Kiểm soát kho, theo dõi tình trạng và cập nhật thiết bị</p>
+        </div>
+        <div class="dm-header-right">
+            @if ((int)(ViewBag.PendingCount ?? 0) > 0)
+            {
+                <a href="/Device/BorrowRequests" class="badge-pending">@ViewBag.PendingCount yêu cầu chờ duyệt</a>
+            }
+            <a href="/Device/BorrowRequests" class="btn btn-outline">📋 Yêu cầu mượn</a>
+            <a href="/Device/Create" class="btn btn-primary">＋ Thêm mới</a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">✅ @TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-error">⚠️ @TempData["Error"]</div>
+    }
+
+    <div class="dm-stats">
+        <div class="stat-card"><div class="label">Sẵn sàng</div><div class="value" style="color:var(--green)">@Model.Count(d => d.Status == "Available")</div></div>
+        <div class="stat-card"><div class="label">Đang mượn</div><div class="value" style="color:var(--accent)">@Model.Count(d => d.Status == "Borrowing")</div></div>
+        <div class="stat-card"><div class="label">Đã trả</div><div class="value" style="color:var(--orange)">@Model.Count(d => d.Status == "Returned")</div></div>
+        <div class="stat-card"><div class="label">Đang hỏng</div><div class="value" style="color:var(--red)">@Model.Count(d => d.Condition == "Broken")</div></div>
+        <div class="stat-card"><div class="label">Tổng cộng</div><div class="value">@Model.Count</div></div>
+    </div>
+
+    <form method="get" action="/Device/Index">
+        <div class="dm-filters">
+            <div class="filter-group">
+                <label>Trạng thái</label>
+                <select name="filterStatus" onchange="this.form.submit()">
+                    <option value="">Tất cả</option>
+                    <option value="Available" selected="@(ViewBag.FilterStatus == "Available")">Sẵn sàng</option>
+                    <option value="Borrowing" selected="@(ViewBag.FilterStatus == "Borrowing")">Đang mượn</option>
+                    <option value="Returned" selected="@(ViewBag.FilterStatus == "Returned")">Đã trả</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Tình trạng</label>
+                <select name="filterCondition" onchange="this.form.submit()">
+                    <option value="">Tất cả</option>
+                    <option value="Good" selected="@(ViewBag.FilterCondition == "Good")">Tốt</option>
+                    <option value="Broken" selected="@(ViewBag.FilterCondition == "Broken")">Hỏng</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Loại</label>
+                <select name="filterCategory" onchange="this.form.submit()">
+                    <option value="">Tất cả</option>
+                    @foreach (var cat in (List<string>)ViewBag.Categories)
+                    {
+                        <option value="@cat" selected="@(ViewBag.FilterCategory == cat)">@cat</option>
+                    }
+                </select>
+            </div>
+            @if (ViewBag.FilterStatus != null || ViewBag.FilterCategory != null || ViewBag.FilterCondition != null)
+            {
+                <a href="/Device/Index" class="btn btn-outline" style="padding: 7px 12px; font-size: 13px;">✕ Bỏ lọc</a>
+            }
+        </div>
+    </form>
+
+    <div class="dm-table-wrap">
+        <table class="dm-table">
+            <thead>
+                <tr>
+                    <th>Mã TB</th>
+                    <th>Tên thiết bị</th>
+                    <th>Phân loại</th>
+                    <th>Trạng thái</th>
+                    <th>Tình trạng</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in Model)
+                {
+                    <tr>
+                        <td style="font-family:'Space Mono'; color:var(--muted); font-size:13px;">#@d.DeviceId</td>
+                        <td><strong>@d.DeviceName</strong></td>
+                        <td><span class="category-tag">@(string.IsNullOrEmpty(d.Category) ? "Khác" : d.Category)</span></td>
+                        <td>
+                            <span class="status-badge @(d.Status == "Available" ? "badge-green" : d.Status == "Borrowing" ? "badge-blue" : "badge-orange")">
+                                @(d.Status == "Available" ? "Sẵn sàng" : d.Status == "Borrowing" ? "Đang mượn" : "Đã trả")
+                            </span>
+                        </td>
+                        <td>
+                            <form method="post" action="/Device/ChangeCondition/@d.DeviceId" style="margin: 0;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="condition" value="@(d.Condition == "Good" ? "Broken" : "Good")" />
+                                <button type="submit" class="status-badge @(d.Condition == "Good" ? "badge-green" : "badge-red")" style="cursor:pointer; border-width: 1.5px;" title="Click để đổi tình trạng">
+                                    @(d.Condition == "Good" ? "✅ Tốt" : "🔴 Hỏng")
+                                </button>
+                            </form>
+                        </td>
+                        <td>
+                            <div class="action-group">
+                                <a href="/Device/Edit/@d.DeviceId" class="btn-action">✏️ Sửa</a>
+
+                                @if (d.Status == "Borrowing")
+                                {
+                                    <form method="post" action="/Device/MarkReturned/@d.DeviceId" style="margin:0">
+                                        @Html.AntiForgeryToken() <button type="submit" class="btn-action">Nhận trả</button>
+                                    </form>
+                                }
+                                @if (d.Status == "Returned")
+                                {
+                                    <form method="post" action="/Device/MarkAvailable/@d.DeviceId" style="margin:0">
+                                        @Html.AntiForgeryToken() <button type="submit" class="btn-action">Nhập kho</button>
+                                    </form>
+                                }
+
+                                @if (d.Status != "Borrowing")
+                                {
+                                    <button type="button" onclick="confirmDelete(@d.DeviceId, '@d.DeviceName')" class="btn-danger">🗑</button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<form id="deleteForm" method="post" style="display: none;">
+    @Html.AntiForgeryToken()
+</form>
+
+<script>
+    function confirmDelete(id, name) {
+        if (confirm(`⚠️ Bạn có chắc chắn muốn XÓA thiết bị:\n- ${name}\n\nHành động này không thể hoàn tác.`)) {
+            let form = document.getElementById('deleteForm');
+            form.action = '/Device/Delete/' + id;
+            form.submit();
+        }
+    }
+</script>

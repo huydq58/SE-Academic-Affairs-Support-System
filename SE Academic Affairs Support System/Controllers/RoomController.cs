@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AspNetCoreGeneratedDocument;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Models;
 using SE_Academic_Affairs_Support_System.ViewModels;
+using SE_Academic_Affairs_Support_System.Services.Email;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,24 +15,23 @@ namespace SE_Academic_Affairs_Support_System.Controllers
     public class RoomController : Controller
     {
         private readonly AppDbContext _context;
-
+        private readonly IConfiguration _config;
+        private readonly EmailService _emailService;
         public RoomController(AppDbContext context)
         {
             _context = context;
+            _emailService = new EmailService(_config);
+
         }
 
-        // Thêm tham số int roomId vào hàm
         public async Task<IActionResult> WeeklySchedule(int roomId, DateTime? selectedDate)
         {
-            // 1. Xác định tuần cần xem (Mặc định là tuần hiện tại nếu không truyền ngày)
             DateTime currentDate = selectedDate ?? DateTime.Today;
 
-            // Tính toán ra ngày Thứ 2 của tuần đó
             int diff = (7 + (currentDate.DayOfWeek - DayOfWeek.Monday)) % 7;
             DateTime startOfWeek = currentDate.AddDays(-1 * diff).Date;
             DateTime endOfWeek = startOfWeek.AddDays(6).Date;
 
-            // Tạo danh sách 7 ngày để View dễ bề vẽ bảng
             var daysInWeek = new List<DateTime>();
             for (int i = 0; i < 7; i++)
             {
@@ -48,16 +49,11 @@ namespace SE_Academic_Affairs_Support_System.Controllers
 
             var rooms = new List<RoomModel> { targetRoom };
 
-            var timeSlots = await _context.TimeSlots
-                .OrderBy(t => t.StartTime)
-                .ToListAsync();
-
             var bookings = await _context.RoomBookings
-                .Include(b => b.User)
                 .Where(b => b.RoomId == roomId
                          && b.BookingDate >= startOfWeek
                          && b.BookingDate <= endOfWeek
-                         && (b.Status == "Approved" || b.Status == "Pending"))
+                         && (b.Status == "Approved" ))
                 .ToListAsync();
 
             var viewModel = new ScheduleViewModel
@@ -65,116 +61,110 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                 WeekStartDate = startOfWeek,
                 WeekEndDate = endOfWeek,
                 DaysInWeek = daysInWeek,
-                Rooms = rooms, // List này giờ chỉ có 1 phòng duy nhất
-                TimeSlots = timeSlots,
+                Rooms = rooms, 
+
                 WeeklyBookings = bookings
             };
 
             return View(viewModel);
         }
-        // 1. GET: Lấy thông tin từ URL (khi bấm vào ô màu xanh trên lịch) để đổ vào Form
+
         [HttpGet]
-        public async Task<IActionResult> CreateBooking(int roomId, int slotId, DateTime date)
+        public async Task<IActionResult> CreateBooking(int roomId, DateTime date, TimeSpan startTime, TimeSpan endTime)
         {
-            // Chặn người dùng cố tình gõ URL vào ngày Chủ Nhật
-            if (date.DayOfWeek == DayOfWeek.Sunday)
-            {
-                TempData["Error"] = "Hệ thống không nhận đặt phòng vào Chủ Nhật.";
-                return RedirectToAction("WeeklySchedule", new { roomId = roomId });
-            }
-
             var room = await _context.Rooms.FindAsync(roomId);
-            var slot = await _context.TimeSlots.FindAsync(slotId);
-
-            if (room == null || slot == null) return NotFound("Dữ liệu không hợp lệ.");
+            if (room == null) return NotFound();
 
             var model = new CreateBookingViewModel
             {
                 RoomId = roomId,
                 RoomName = room.RoomName,
-                SlotId = slotId,
-                SlotName = slot.SlotName,
-                SlotTime = $"{slot.StartTime:hh\\:mm} - {slot.EndTime:hh\\:mm}",
-                BookingDate = date
+                BookingDate = date,
+                StartTime = startTime,  
+                EndTime = endTime      
             };
 
             return View(model);
         }
 
-        // 2. POST: Xử lý khi người dùng bấm nút "Gửi Yêu Cầu"
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateBooking(CreateBookingViewModel model)
         {
-            if (model.BookingDate.DayOfWeek == DayOfWeek.Sunday)
+
+            if (!ModelState.IsValid)
             {
-                ModelState.AddModelError("", "Hệ thống không nhận đặt phòng vào Chủ Nhật.");
-            }
-            if (model.BookingDate.Date < DateTime.Today)
-            {
-                ModelState.AddModelError("", "Không thể đặt phòng cho các ngày trong quá khứ.");
                 return View(model);
             }
-            if (ModelState.IsValid)
+
+            if (model.EndTime <= model.StartTime)
             {
-                // Kiểm tra xem trong lúc họ đang điền Form, có ai nhanh tay đặt mất chỗ đó không?
-                bool isConflict = await _context.RoomBookings.AnyAsync(b =>
-                    b.RoomId == model.RoomId &&
-                    b.SlotId == model.SlotId &&
-                    b.BookingDate.Date == model.BookingDate.Date &&
-                    ( b.Status == "Approved"));
+                ModelState.AddModelError("", "Giờ kết thúc phải lớn hơn giờ bắt đầu.");
+                return View(model);
+            }
 
-                if (isConflict)
-                {
-                    ModelState.AddModelError("", "Rất tiếc! Khung giờ này vừa có người đặt. Vui lòng chọn giờ khác.");
-                    return View(model); // Trả lại form báo lỗi
-                }
+            bool isConflict = await _context.RoomBookings.AnyAsync(b =>
+                b.RoomId == model.RoomId &&
+                b.BookingDate.Date == model.BookingDate.Date &&
+                b.Status == "Approved" &&
+                (model.StartTime < b.EndTime && model.EndTime > b.StartTime)
+            );
 
-                // Tạo đơn mới
+            if (isConflict)
+            {
+                ModelState.AddModelError("", "Rất tiếc! Khoảng thời gian này đã có người đặt hoặc bị trùng lấn. Vui lòng chọn giờ khác.");
+                return View(model);
+            }
+
+            try
+            {
                 var booking = new RoomBooking
                 {
                     RoomId = model.RoomId,
-                    SlotId = model.SlotId,
                     BookingDate = model.BookingDate,
-                    Purpose = $"{model.Purpose} (SĐT: {model.PhoneNumber})",
-                    UserId = 4,
-
-                    Status = "Pending", 
+                    UserName = model.UserName,
+                    PhoneNumber = model.PhoneNumber,
+                    StartTime = model.StartTime,
+                    EndTime = model.EndTime,
+                    Purpose = model.Purpose ,
+                    Status = "Pending",
                     CreatedAt = DateTime.Now
                 };
 
                 _context.RoomBookings.Add(booking);
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] = "Gửi yêu cầu đặt phòng thành công! Vui lòng chờ Giáo vụ duyệt.";
+
+                TempData["SuccessMessage"] = "Gửi yêu cầu đặt phòng thành công! Vui lòng chờ Giáo vụ duyệt.";
+
+
                 return RedirectToAction("WeeklySchedule", new { roomId = model.RoomId, selectedDate = model.BookingDate.ToString("yyyy-MM-dd") });
             }
+            catch (Exception ex)
+            {
 
-            return View(model);
+                ModelState.AddModelError("", "Đã xảy ra lỗi khi lưu dữ liệu. Vui lòng thử lại sau.");
+                return View(model);
+            }
         }
 
-
-        // 1. GET: Hiển thị danh sách các đơn đang chờ duyệt
         [HttpGet]
         public async Task<IActionResult> PendingBookings()
         {
             var pendingList = await _context.RoomBookings
                 .Include(b => b.Room)
-                .Include(b => b.User) 
                 .Where(b => b.Status == "Pending")
                 .OrderBy(b => b.BookingDate)
-                .ThenBy(b => b.SlotId)
                 .ToListAsync();
 
             return View(pendingList);
         }
 
-        // 2. POST: Xử lý DUYỆT đơn (Chấp nhận)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveBooking(int id)
         {
-            // Giả sử khóa chính của bảng RoomBookings tên là Id (hoặc BookingId, bạn tự đổi lại cho khớp DB nhé)
+            // Tìm đơn đặt phòng theo ID
             var booking = await _context.RoomBookings.FindAsync(id);
             if (booking == null || booking.Status != "Pending")
             {
@@ -184,13 +174,15 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             // 1. Chuyển trạng thái đơn này thành Approved
             booking.Status = "Approved";
 
-            // 2. TÌM VÀ TỪ CHỐI TỰ ĐỘNG các đơn khác trùng ca/ngày/phòng
+
             var conflictingBookings = await _context.RoomBookings
                 .Where(b => b.RoomId == booking.RoomId
-                         && b.SlotId == booking.SlotId
                          && b.BookingDate.Date == booking.BookingDate.Date
                          && b.BookingId != booking.BookingId // Loại trừ đơn vừa duyệt
-                         && b.Status == "Pending")
+                         && b.Status == "Pending"
+
+                         && b.StartTime < booking.EndTime
+                         && b.EndTime > booking.StartTime)
                 .ToListAsync();
 
             foreach (var conflict in conflictingBookings)
@@ -198,10 +190,11 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                 conflict.Status = "Rejected"; // Đổi trạng thái thành Từ chối
             }
 
+           
             await _context.SaveChangesAsync();
-            TempData["Success"] = "Đã duyệt đơn thành công! Các đơn trùng lịch đã tự động bị từ chối.";
+            TempData["Success"] = "Đã duyệt đơn thành công! Các đơn trùng giờ đã tự động bị từ chối.";
 
-            return RedirectToAction(nameof(PendingBookings));
+            return RedirectToAction(nameof(PendingBookings)); // Hoặc thay bằng tên trang danh sách chờ duyệt của bạn
         }
 
         [HttpPost]
@@ -215,10 +208,40 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             }
 
             booking.Status = "Rejected";
+
+
             await _context.SaveChangesAsync();
 
             TempData["Success"] = "Đã từ chối đơn đặt phòng.";
             return RedirectToAction(nameof(PendingBookings));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetBookingsForCalendar(int roomId)
+        {
+            // Lấy các đơn đặt phòng (cả Approved và Pending)
+            var bookings = await _context.RoomBookings
+                .Where(b => b.RoomId == roomId && (b.Status == "Approved" ))
+                .ToListAsync();
+
+            // Chuyển đổi dữ liệu sang định dạng FullCalendar hiểu được
+            var eventList = bookings.Select(b => new
+            {
+                id = b.BookingId,
+                title = b.UserName,
+                purpose = b.Purpose,
+                start = b.BookingDate.Add(b.StartTime).ToString("yyyy-MM-ddTHH:mm:ss"),
+                end = b.BookingDate.Add(b.EndTime).ToString("yyyy-MM-ddTHH:mm:ss"),
+
+
+                // Trạng thái Approved màu đỏ, Pending màu cam/vàng
+                color = b.Status == "Approved" ? "#dc3545" : "#ffc107",
+                textColor = b.Status == "Approved" ? "#ffffff" : "#000000",
+
+                status = b.Status // Truyền thêm dữ liệu phụ để dùng trên View nếu cần
+            });
+
+            return Json(eventList);
         }
     }
 }

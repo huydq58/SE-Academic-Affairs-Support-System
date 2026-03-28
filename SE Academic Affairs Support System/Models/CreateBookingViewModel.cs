@@ -5,13 +5,12 @@ namespace SE_Academic_Affairs_Support_System.ViewModels
 {
     public class CreateBookingViewModel
     {
-        // Các trường này chỉ để hiển thị (Read-only)
         public int RoomId { get; set; }
         public string RoomName { get; set; }
+        public string UserName { get; set; }
 
-        public int SlotId { get; set; }
-        public string SlotName { get; set; }
-        public string SlotTime { get; set; } // Hiển thị giờ cụ thể (VD: 07:00 - 09:15)
+        public TimeSpan StartTime { get; set; }
+        public TimeSpan EndTime { get; set; }
 
         public DateTime BookingDate { get; set; }
 
