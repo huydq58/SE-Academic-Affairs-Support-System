@@ -15,9 +15,10 @@ namespace SE_Academic_Affairs_Support_System
             var builder = WebApplication.CreateBuilder(args);
 
             // 1. Database
+            //builder.Services.AddDbContext<AppDbContext>(options =>
+            //    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
             builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             // 2. Services
             builder.Services.AddScoped<IAppRegistrationService, AppRegistrationService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
