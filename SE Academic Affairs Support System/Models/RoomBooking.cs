@@ -10,6 +10,7 @@ namespace SE_Academic_Affairs_Support_System.Models
         public int RoomId { get; set; }
         public string UserName { get; set; }
 
+        public string UserEmail { get; set; }
         public string PhoneNumber { get; set; }
 
         [DataType(DataType.Date)]

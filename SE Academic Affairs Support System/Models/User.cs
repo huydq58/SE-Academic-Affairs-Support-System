@@ -1,23 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 namespace SE_Academic_Affairs_Support_System.Models
 {
-    public class User
+    public class User : IdentityUser
     {
-        [Key]
-        public int UserId { get; set; }
-
-        [Required]
-        public string FullName { get; set; }
-
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-
-        [Required]
-        public string PasswordHash { get; set; } // BCrypt hash
-
-
-
+        public string? FullName { get; set; }
+        public string? Role { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 

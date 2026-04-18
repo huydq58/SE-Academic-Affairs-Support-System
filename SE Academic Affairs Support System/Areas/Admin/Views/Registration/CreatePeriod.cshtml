@@ -1,0 +1,79 @@
+@model SE_Academic_Affairs_Support_System.ViewModels.PeriodFormViewModel
+@{
+    bool isEdit = Model.Id > 0;
+    ViewData["Title"] = isEdit ? "Chỉnh sửa đợt đăng ký" : "Tạo đợt đăng ký mới";
+    string formAction = isEdit
+        ? Url.Action("EditPeriod")!
+        : Url.Action("CreatePeriod")!;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<div class="container py-4" style="max-width:600px">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Periods">Đợt đăng ký</a></li>
+            <li class="breadcrumb-item active">@ViewData["Title"]</li>
+        </ol>
+    </nav>
+
+    <h2 class="mb-4">
+        <i class="bi bi-calendar-plus text-primary me-2"></i>@ViewData["Title"]
+    </h2>
+
+    <form action="@formAction" method="post">
+        @Html.AntiForgeryToken()
+        @if (isEdit) { <input type="hidden" asp-for="Id" /> }
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label fw-semibold"></label>
+                    <input asp-for="Name" class="form-control"
+                           placeholder="Ví dụ: Đồ án tốt nghiệp – HK1 2025-2026" />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="CourseName" class="form-label fw-semibold"></label>
+                    <input asp-for="CourseName" class="form-control"
+                           placeholder="Ví dụ: Đồ án tốt nghiệp" />
+                    <span asp-validation-for="CourseName" class="text-danger small"></span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label asp-for="StartDate" class="form-label fw-semibold"></label>
+                        <input asp-for="StartDate" type="date" class="form-control" />
+                        <span asp-validation-for="StartDate" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="EndDate" class="form-label fw-semibold"></label>
+                        <input asp-for="EndDate" type="date" class="form-control" />
+                        <span asp-validation-for="EndDate" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                        <label asp-for="IsActive" class="form-check-label fw-semibold">
+                            Kích hoạt đợt đăng ký ngay
+                        </label>
+                    </div>
+                    <div class="form-text">Chỉ một đợt được kích hoạt tại một thời điểm.</div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-save me-1"></i> @(isEdit ? "Lưu thay đổi" : "Tạo đợt")
+                    </button>
+                    <a asp-action="Periods" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

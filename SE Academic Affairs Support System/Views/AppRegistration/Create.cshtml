@@ -1,0 +1,299 @@
+@model AppRegistrationRequest
+
+@{
+    ViewData["Title"] = "Đăng ký phát hành ứng dụng";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --bg: #0f1117;
+        --surface: #1a1d27;
+        --surface2: #22263a;
+        --border: #2e3350;
+        --accent: #4f8ef7;
+        --green: #22c55e;
+        --yellow: #f59e0b;
+        --red: #ef4444;
+        --text: #e8eaf6;
+        --muted: #7c83a8;
+        --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Be Vietnam Pro', sans-serif;
+    }
+
+    .dm-page {
+        padding: 28px 32px;
+        max-width: 760px;
+        margin: 0 auto;
+    }
+
+    /* ── HEADER — giống Catalog ── */
+    .dm-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .dm-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: var(--text);
+    }
+
+    .dm-header p { color: var(--muted); font-size: 15px; }
+
+    /* ── ALERT ── */
+    .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .alert-success {
+        background: #22c55e1a;
+        border: 1px solid #22c55e44;
+        color: #86efac;
+    }
+
+    /* ── CARD ── */
+    .dm-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        margin-bottom: 20px;
+    }
+
+    .dm-card h3 {
+        font-size: 13px;
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 12px;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+        letter-spacing: 0.04em;
+    }
+
+    /* ── FORM ── */
+    .form-group { margin-bottom: 16px; }
+
+    .form-group label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .req { color: var(--red); margin-left: 2px; }
+
+    .badge-opt {
+        display: inline-block;
+        font-size: 11px;
+        padding: 1px 8px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        color: var(--muted);
+        margin-left: 6px;
+        vertical-align: middle;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+
+    .form-control {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: 0.2s;
+        font-family: inherit;
+    }
+
+    .form-control:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15);
+    }
+
+    .form-control.is-invalid { border-color: var(--red); }
+
+    textarea.form-control { resize: vertical; min-height: 90px; }
+
+    .form-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .invalid-msg { font-size: 12px; color: #fca5a5; margin-top: 4px; display: block; }
+
+    .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @@media (max-width: 600px) { .col2 { grid-template-columns: 1fr; } }
+
+    /* ── BUTTONS — giống Catalog ── */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        color: #fff;
+        padding: 10px 28px;
+        font-size: 14px;
+    }
+
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .btn-outline:hover { background: var(--surface2); }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        border-top: 1px solid var(--border);
+        padding-top: 20px;
+        margin-top: 8px;
+    }
+</style>
+
+<div class="dm-page">
+
+    <div class="dm-header">
+        <h1 style="color : black">Đăng ký phát hành ứng dụng</h1>
+        <p>Điền đầy đủ thông tin để gửi yêu cầu duyệt ứng dụng</p>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">✅ @TempData["SuccessMessage"]</div>
+    }
+
+    <form asp-action="Submit" asp-controller="AppRegistration" method="post" novalidate>
+        @Html.AntiForgeryToken()
+
+        <div class="dm-card">
+            <h3>📱 Thông tin ứng dụng</h3>
+
+            <div class="form-group">
+                <label>Tên ứng dụng <span class="req">*</span></label>
+                <input asp-for="AppName"
+                       class="form-control @(ViewData.ModelState["AppName"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                       placeholder="Ví dụ: StudyMate, CampusMap..." />
+                <span asp-validation-for="AppName" class="invalid-msg"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Mô tả ứng dụng <span class="req">*</span></label>
+                <textarea asp-for="AppDescription"
+                          class="form-control @(ViewData.ModelState["AppDescription"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                          placeholder="Mô tả ngắn gọn về chức năng và tính năng chính..."></textarea>
+                <span asp-validation-for="AppDescription" class="invalid-msg"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Mục đích sử dụng <span class="req">*</span></label>
+                <textarea asp-for="Purpose"
+                          class="form-control @(ViewData.ModelState["Purpose"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                          placeholder="Ứng dụng giải quyết vấn đề gì? Đối tượng người dùng là ai?"></textarea>
+                <span asp-validation-for="Purpose" class="invalid-msg"></span>
+            </div>
+        </div>
+
+        <div class="dm-card">
+            <h3>🔗 Liên kết tài nguyên</h3>
+
+            <div class="col2">
+                <div class="form-group">
+                    <label>Link Demo <span class="req">*</span></label>
+                    <input asp-for="DemoLink"
+                           class="form-control @(ViewData.ModelState["DemoLink"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                           placeholder="https://youtube.com/..." />
+                    <span asp-validation-for="DemoLink" class="invalid-msg"></span>
+                    <div class="form-hint">YouTube, video demo hoặc link trực tiếp</div>
+                </div>
+                <div class="form-group">
+                    <label>Link APK <span class="req">*</span></label>
+                    <input asp-for="ApkLink"
+                           class="form-control @(ViewData.ModelState["ApkLink"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                           placeholder="https://drive.google.com/..." />
+                    <span asp-validation-for="ApkLink" class="invalid-msg"></span>
+                    <div class="form-hint">Google Drive, Dropbox...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dm-card">
+            <h3>👤 Thông tin người thực hiện</h3>
+
+            <div class="form-group">
+                <label>Thông tin sinh viên <span class="req">*</span></label>
+                <input asp-for="StudentInfo"
+                       class="form-control @(ViewData.ModelState["StudentInfo"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                       placeholder="Họ tên – MSSV – Khoa/Lớp" />
+                <span asp-validation-for="StudentInfo" class="invalid-msg"></span>
+            </div>
+            <div class="form-group">
+                <label>Email liên hệ <span class="req">*</span></label>
+                <input asp-for="StudentEmail"
+                       class="form-control @(ViewData.ModelState["StudentEmail"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                       placeholder="Email liên hệ" />
+                <span asp-validation-for="StudentEmail" class="invalid-msg"></span>
+            </div>
+            <div class="form-group">
+                <label>Thông tin giảng viên hướng dẫn <span class="badge-opt">Tùy chọn</span></label>
+                <input asp-for="SupervisorInfo" class="form-control"
+                       placeholder="Họ tên – Bộ môn (nếu có)" />
+            </div>
+
+            <div class="form-actions">
+                <a asp-action="Index" asp-controller="AppRegistration" class="btn btn-outline">Hủy</a>
+                <button type="submit" class="btn btn-primary">Gửi yêu cầu →</button>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

@@ -1,0 +1,82 @@
+@* MyTopics.cshtml *@
+@model SE_Academic_Affairs_Support_System.ViewModels.LecturerTopicsViewModel
+@using SE_Academic_Affairs_Support_System.Models
+@{
+    ViewData["Title"] = "Đề tài của tôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="bi bi-bookmarks-fill text-primary me-2"></i>Đề tài của tôi</h2>
+        @if (Model.ActivePeriod != null)
+        {
+            <a asp-action="CreateTopic" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> Tạo đề tài mới
+            </a>
+        }
+    </div>
+
+    <partial name="_Alerts" />
+
+    @if (!Model.Topics.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-journals display-4"></i>
+            <p class="mt-3">Bạn chưa có đề tài nào.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tên đề tài</th>
+                        <th class="text-center">SV đã đăng ký / Tối đa</th>
+                        <th>Đợt</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.Topics)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@t.Title</td>
+                            <td class="text-center">
+                                <span class="badge @(t.RegisteredCount >= t.MaxStudents ? "bg-danger" : "bg-success")">
+                                    @t.RegisteredCount / @t.MaxStudents
+                                </span>
+                            </td>
+                            <td class="small text-muted">@t.PeriodName</td>
+                            <td class="text-center">
+                                @{
+                                    var (cls, lbl) = t.Status switch
+                                    {
+                                        TopicStatus.Open     => ("bg-success", "Mở"),
+                                        TopicStatus.Closed   => ("bg-secondary", "Đóng"),
+                                        TopicStatus.Proposed => ("bg-warning text-dark", "Đề xuất"),
+                                        _                    => ("bg-secondary", "?")
+                                    };
+                                }
+                                <span class="badge @cls">@lbl</span>
+                            </td>
+                            <td class="text-end">
+                                <form asp-action="DeleteTopic" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="topicId" value="@t.TopicId" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                                            onclick="return confirm('Xác nhận xóa đề tài này?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

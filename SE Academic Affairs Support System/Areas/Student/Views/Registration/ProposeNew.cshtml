@@ -1,0 +1,94 @@
+@model SE_Academic_Affairs_Support_System.ViewModels.ProposalViewModel
+@{
+    ViewData["Title"] = Model.ExistingRegistrationId.HasValue
+        ? "Chỉnh sửa đề xuất" : "Đề xuất đề tài mới";
+    bool isRevision = Model.ExistingRegistrationId.HasValue;
+    string formAction = isRevision
+        ? Url.Action("ReviseProposal", new { id = Model.ExistingRegistrationId })!
+        : Url.Action("ProposeNew")!;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+
+<div class="container py-4" style="max-width:720px">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="TopicList">Danh sách đề tài</a></li>
+            <li class="breadcrumb-item active">@ViewData["Title"]</li>
+        </ol>
+    </nav>
+
+    <h2 class="mb-1"><i class="bi bi-pencil-square text-primary me-2"></i>@ViewData["Title"]</h2>
+    <p class="text-muted mb-4">Điền thông tin đề tài bạn muốn thực hiện và chọn giảng viên hướng dẫn.</p>
+
+    <partial name="_Alerts" />
+
+    @if (isRevision && !string.IsNullOrEmpty(Model.PreviousLecturerNote))
+    {
+        <div class="alert alert-warning d-flex align-items-start">
+            <i class="bi bi-exclamation-triangle-fill me-2 mt-1 flex-shrink-0"></i>
+            <div>
+                <strong>Yêu cầu chỉnh sửa từ giảng viên:</strong><br />
+                @Model.PreviousLecturerNote
+            </div>
+        </div>
+    }
+
+    <form action="@formAction" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="RegistrationPeriodId" />
+        @if (isRevision)
+        {
+            <input type="hidden" asp-for="ExistingRegistrationId" />
+        }
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label fw-semibold"></label>
+                    <input asp-for="Title" class="form-control" placeholder="Ví dụ: Xây dựng hệ thống quản lý thư viện trực tuyến" />
+                    <span asp-validation-for="Title" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label fw-semibold"></label>
+                    <textarea asp-for="Description" class="form-control" rows="5"
+                              placeholder="Mô tả mục tiêu, phạm vi và dự kiến kết quả của đề tài..."></textarea>
+                    <span asp-validation-for="Description" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Technologies" class="form-label fw-semibold"></label>
+                    <input asp-for="Technologies" class="form-control"
+                           placeholder="Ví dụ: ASP.NET Core, SQL Server, Bootstrap (phân cách bằng dấu phẩy)" />
+                    <div class="form-text">Không bắt buộc.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="LecturerProfileId" class="form-label fw-semibold"></label>
+                    <select asp-for="LecturerProfileId" class="form-select">
+                        <option value="">-- Chọn giảng viên --</option>
+                        @foreach (var lec in Model.AvailableLecturers)
+                        {
+                            <option value="@lec.Id">@lec.FullName (@lec.LecturerCode)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="LecturerProfileId" class="text-danger small"></span>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-send-fill me-1"></i>
+                        @(isRevision ? "Gửi lại đề xuất" : "Gửi đề xuất")
+                    </button>
+                    <a asp-action="TopicList" class="btn btn-outline-secondary">Hủy</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

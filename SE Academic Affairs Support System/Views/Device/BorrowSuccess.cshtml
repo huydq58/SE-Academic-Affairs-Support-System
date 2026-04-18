@@ -1,185 +1,305 @@
 @model SE_Academic_Affairs_Support_System.Models.DeviceRequest
 @{
     ViewData["Title"] = "Đăng ký thành công";
-    Layout = null;
 }
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Đăng ký thành công</title>
-    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --cream: #faf8f4; --white: #fff; --ink: #1a1714; --ink2: #3d3832;
-            --muted: #8c8479; --border: #e2ddd7; --accent: #c8571b;
-            --green: #2d7d52; --green-light: #e8f5ee;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background: var(--cream); color: var(--ink);
-            font-family: 'DM Sans', sans-serif; min-height: 100vh;
-            display: flex; flex-direction: column;
+
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --bg: #0f1117;
+        --surface: #1a1d27;
+        --surface2: #22263a;
+        --border: #2e3350;
+        --accent: #4f8ef7;
+        --green: #22c55e;
+        --yellow: #f59e0b;
+        --red: #ef4444;
+        --text: #e8eaf6;
+        --muted: #7c83a8;
+        --radius: 12px;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Be Vietnam Pro', sans-serif;
+    }
+
+    .dm-page {
+        padding: 28px 32px;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    /* ── HEADER — giống Catalog ── */
+    .dm-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+        .dm-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text);
         }
 
-        .hero {
-            background: var(--ink); padding: 24px 40px;
-            display: flex; align-items: center; gap: 14px;
-        }
-        .hero-icon { width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .hero h1 { font-family: 'Lora', serif; font-size: 18px; color: #fff; }
-        .hero p { font-size: 12px; color: #9e9891; }
-
-        .page {
-            flex: 1; display: flex; align-items: center; justify-content: center;
-            padding: 48px 24px;
-        }
-        .card {
-            background: var(--white); border-radius: 20px;
-            box-shadow: 0 8px 40px rgba(26,23,20,0.1);
-            padding: 48px 40px; max-width: 520px; width: 100%;
-            text-align: center;
+        .dm-header p {
+            color: var(--muted);
+            font-size: 15px;
         }
 
-        /* Success animation */
-        .success-circle {
-            width: 80px; height: 80px; border-radius: 50%;
-            background: var(--green-light); border: 3px solid var(--green);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 36px; margin: 0 auto 24px;
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
-        }
-        @@keyframes popIn {
-            from { opacity: 0; transform: scale(0.5); }
-            to   { opacity: 1; transform: scale(1); }
+    /* ── SUCCESS CIRCLE ── */
+    .success-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: #22c55e1a;
+        border: 2px solid #22c55e44;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        margin: 0 auto 24px;
+        animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+    }
+
+    @@keyframes popIn {
+        from {
+            opacity: 0;
+            transform: scale(0.5);
         }
 
-        h2 {
-            font-family: 'Lora', serif; font-size: 26px;
-            font-weight: 700; margin-bottom: 8px;
+        to {
+            opacity: 1;
+            transform: scale(1);
         }
-        .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+    }
 
-        /* Request summary card */
-        .summary {
-            background: var(--cream); border-radius: 12px;
-            border: 1px solid var(--border); padding: 20px;
-            text-align: left; margin-bottom: 28px;
-        }
-        .summary-row {
-            display: flex; justify-content: space-between; align-items: flex-start;
-            padding: 8px 0; border-bottom: 1px solid var(--border); gap: 12px;
-        }
-        .summary-row:last-child { border-bottom: none; padding-bottom: 0; }
-        .sr-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
-        .sr-value { font-size: 14px; font-weight: 500; text-align: right; }
-        .sr-value.highlight { color: var(--accent); font-weight: 700; }
+    /* ── STATUS PILL ── */
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #f59e0b11;
+        border: 1px solid #f59e0b33;
+        color: #fde68a;
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 24px;
+    }
 
-        /* Status badge */
-        .status-pill {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: #fff8e6; border: 1px solid #f0d070;
-            color: #7a5c00; border-radius: 20px;
-            padding: 6px 14px; font-size: 13px; font-weight: 600;
-            margin-bottom: 24px;
-        }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #f0c020; animation: blink 1.5s infinite; }
-        @@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--yellow);
+        animation: blink 1.5s infinite;
+        flex-shrink: 0;
+    }
 
-        .info-note {
-            background: #f0f7ff; border: 1px solid #c3daf5;
-            border-radius: 10px; padding: 14px 16px; font-size: 13px;
-            color: #1e4d7b; text-align: left; margin-bottom: 24px;
-            display: flex; gap: 10px; align-items: flex-start;
+    @@keyframes blink {
+        0%, 100% {
+            opacity: 1
         }
 
-        .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-        .btn {
-            padding: 11px 22px; border-radius: 9px; font-size: 14px; font-weight: 600;
-            cursor: pointer; text-decoration: none; border: none;
-            font-family: 'DM Sans', sans-serif; transition: all 0.18s;
-            display: inline-flex; align-items: center; gap: 6px;
+        50% {
+            opacity: 0.3
         }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: #a84614; }
-        .btn-outline { background: transparent; color: var(--ink2); border: 1.5px solid var(--border); }
-        .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    }
 
-        @@media (max-width: 560px) {
-            .card { padding: 32px 20px; }
-            h2 { font-size: 22px; }
+    /* ── CARD & SUMMARY ── */
+    .dm-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        margin-bottom: 20px;
+    }
+
+        .dm-card h3 {
+            font-size: 13px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-weight: 600;
+            letter-spacing: 0.04em;
         }
-    </style>
-</head>
-<body>
 
-<div class="hero">
-    <div class="hero-icon">📦</div>
-    <div>
-        <h1>Mượn Thiết Bị</h1>
-        <p>Hệ thống hỗ trợ học vụ</p>
-    </div>
-</div>
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+        gap: 12px;
+    }
 
-<div class="page">
-    <div class="card">
+        .summary-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+    .sr-label {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        flex-shrink: 0;
+    }
+
+    .sr-value {
+        font-size: 14px;
+        font-weight: 500;
+        text-align: right;
+        color: var(--text);
+        font-family: 'Space Mono', monospace;
+    }
+
+        .sr-value.highlight {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+    /* ── INFO NOTE ── */
+    .info-note {
+        background: #4f8ef711;
+        border: 1px solid #4f8ef733;
+        border-radius: 8px;
+        padding: 14px 16px;
+        font-size: 13px;
+        color: #93c5fd;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+        line-height: 1.6;
+    }
+
+    /* ── BUTTONS — giống Catalog ── */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        color: #fff;
+        padding: 11px 24px;
+        font-size: 14px;
+    }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+    .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 11px 24px;
+        font-size: 14px;
+    }
+
+        .btn-outline:hover {
+            background: var(--surface2);
+        }
+
+    .actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+</style>
+
+<div class="dm-page">
+
+    <div class="dm-header">
         <div class="success-circle">✅</div>
+        <h1>Đăng ký thành công!</h1>
+        <p>Yêu cầu mượn của bạn đã được ghi nhận và đang chờ xét duyệt.</p>
+    </div>
 
-        <h2>Đăng ký thành công!</h2>
-        <p class="subtitle">Yêu cầu mượn của bạn đã được ghi nhận và đang chờ xét duyệt.</p>
-
-        <div class="status-pill">
+    <div style="text-align: center; margin-bottom: 24px;">
+        <span class="status-pill">
             <span class="dot"></span>
             Đang chờ phê duyệt từ phòng thiết bị
-        </div>
+        </span>
+    </div>
 
-        <!-- Summary -->
-        <div class="summary">
-            <div class="summary-row">
-                <span class="sr-label">Mã yêu cầu</span>
-                <span class="sr-value highlight">#@Model.RequestId</span>
-            </div>
-            <div class="summary-row">
-                <span class="sr-label">Thiết bị</span>
-                <span class="sr-value">@Model.Device?.DeviceName</span>
-            </div>
-            @if (!string.IsNullOrEmpty(Model.Device?.Category))
-            {
-                <div class="summary-row">
-                    <span class="sr-label">Loại</span>
-                    <span class="sr-value">@Model.Device.Category</span>
-                </div>
-            }
-            <div class="summary-row">
-                <span class="sr-label">Người đăng ký</span>
-                <span class="sr-value">@Model.BorrowerName</span>
-            </div>
-            <div class="summary-row">
-                <span class="sr-label">Email</span>
-                <span class="sr-value">@Model.BorrowerEmail</span>
-            </div>
-            <div class="summary-row">
-                <span class="sr-label">Mục đích</span>
-                <span class="sr-value">@Model.Purpose</span>
-            </div>
-            <div class="summary-row">
-                <span class="sr-label">Thời gian gửi</span>
-                <span class="sr-value">@Model.RequestDate.ToString("HH:mm — dd/MM/yyyy")</span>
-            </div>
+    <div class="dm-card">
+        <h3>📋 Chi tiết yêu cầu</h3>
+        <div class="summary-row">
+            <span class="sr-label">Mã yêu cầu</span>
+            <span class="sr-value highlight">#@Model.RequestId</span>
         </div>
-
-        <div class="info-note">
-            <span>ℹ️</span>
-            <span>Kết quả duyệt sẽ được thông báo qua email <strong>@Model.BorrowerEmail</strong> trong vòng <strong>1–2 giờ làm việc</strong>. Mang theo MSSV/CCCD khi đến nhận thiết bị.</span>
+        <div class="summary-row">
+            <span class="sr-label">Thiết bị</span>
+            <span class="sr-value">@Model.Device?.DeviceName</span>
         </div>
-
-        <div class="actions">
-            <a href="/Device/BorrowForm" class="btn btn-primary">📋 Đăng ký thêm</a>
-            <a href="/" class="btn btn-outline">🏠 Trang chủ</a>
+        @if (!string.IsNullOrEmpty(Model.Device?.Category))
+        {
+            <div class="summary-row">
+                <span class="sr-label">Loại</span>
+                <span class="sr-value">@Model.Device.Category</span>
+            </div>
+        }
+        <div class="summary-row">
+            <span class="sr-label">Người đăng ký</span>
+            <span class="sr-value">@Model.BorrowerName</span>
+        </div>
+        <div class="summary-row">
+            <span class="sr-label">Email</span>
+            <span class="sr-value">@Model.BorrowerEmail</span>
+        </div>
+        <div class="summary-row">
+            <span class="sr-label">Mục đích</span>
+            <span class="sr-value">@Model.Purpose</span>
+        </div>
+        <div class="summary-row">
+            <span class="sr-label">Thời gian gửi</span>
+            <span class="sr-value">@Model.RequestDate.ToString("HH:mm — dd/MM/yyyy")</span>
         </div>
     </div>
-</div>
 
-</body>
-</html>
+    <div class="info-note">
+        <span>ℹ️</span>
+        <span>Kết quả duyệt sẽ được thông báo qua email <strong>@Model.BorrowerEmail</strong> trong vòng <strong>1–2 giờ làm việc</strong>. Mang theo MSSV/CCCD khi đến nhận thiết bị.</span>
+    </div>
+
+    <div class="actions">
+        <a href="/Device/BorrowForm" class="btn btn-primary">📋 Đăng ký thêm →</a>
+        <a href="/" class="btn btn-outline">🏠 Trang chủ</a>
+    </div>
+
+</div>

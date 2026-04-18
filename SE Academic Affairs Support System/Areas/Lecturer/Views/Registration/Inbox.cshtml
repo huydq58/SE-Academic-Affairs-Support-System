@@ -1,0 +1,133 @@
+@model SE_Academic_Affairs_Support_System.ViewModels.LecturerInboxViewModel
+@using SE_Academic_Affairs_Support_System.Models
+@{
+    ViewData["Title"] = "Hộp thư – Duyệt đề xuất";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="mb-0"><i class="bi bi-inbox-fill text-primary me-2"></i>Hộp thư duyệt đề tài</h2>
+        <a asp-action="MyTopics" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-bookmarks me-1"></i> Quản lý đề tài của tôi
+        </a>
+    </div>
+
+    <partial name="_Alerts" />
+
+    {{!-- Stats --}}
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+            <div class="card border-0 bg-warning bg-opacity-10 text-center py-3">
+                <div class="display-5 fw-bold text-warning">@Model.PendingProposals.Count</div>
+                <div class="text-muted small">Chờ duyệt</div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card border-0 bg-success bg-opacity-10 text-center py-3">
+                <div class="display-5 fw-bold text-success">@Model.TotalApprovedCount</div>
+                <div class="text-muted small">Đã duyệt</div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card border-0 bg-primary bg-opacity-10 text-center py-3">
+                <div class="display-5 fw-bold text-primary">@Model.MaxStudentsAllowed</div>
+                <div class="text-muted small">Chỉ tiêu SV</div>
+            </div>
+        </div>
+    </div>
+
+    {{!-- Pending --}}
+    <h5 class="fw-bold mb-3">
+        <i class="bi bi-hourglass-split text-warning me-1"></i>
+        Đề xuất chờ duyệt
+        <span class="badge bg-warning text-dark ms-1">@Model.PendingProposals.Count</span>
+    </h5>
+
+    @if (!Model.PendingProposals.Any())
+    {
+        <div class="alert alert-light border text-center py-4">
+            <i class="bi bi-check-all fs-4 text-success"></i>
+            <p class="mb-0 mt-2">Không có đề xuất nào đang chờ duyệt.</p>
+        </div>
+    }
+    else
+    {
+        <div class="list-group mb-4">
+            @foreach (var p in Model.PendingProposals)
+            {
+                <div class="list-group-item list-group-item-action p-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <div class="fw-bold">@p.ProposedTitle</div>
+                            <div class="small text-muted mt-1">
+                                <i class="bi bi-person-badge me-1"></i>@p.StudentName
+                                <span class="ms-1 text-secondary">(@p.StudentCode)</span>
+                                &nbsp;·&nbsp;
+                                <i class="bi bi-calendar3 me-1"></i>@p.SubmittedAt.ToString("dd/MM/yyyy HH:mm")
+                                @if (p.RevisionCount > 0)
+                                {
+                                    <span class="ms-2 badge bg-info text-dark">Lần chỉnh sửa @p.RevisionCount</span>
+                                }
+                            </div>
+                            <p class="small mb-0 mt-2 text-truncate" style="max-width:480px">
+                                @p.ProposedDescription
+                            </p>
+                        </div>
+                        <div class="col-md-5 mt-2 mt-md-0 text-md-end">
+                            <a asp-action="Review" asp-route-id="@p.RegistrationId"
+                               class="btn btn-primary btn-sm">
+                                <i class="bi bi-eye me-1"></i> Xem &amp; Duyệt
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    {{!-- Recently actioned --}}
+    @if (Model.RecentlyActioned.Any())
+    {
+        <h5 class="fw-bold mb-3 text-muted">
+            <i class="bi bi-clock-history me-1"></i>Đã xử lý gần đây
+        </h5>
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Sinh viên</th>
+                        <th>Tên đề tài</th>
+                        <th>Đợt</th>
+                        <th>Trạng thái</th>
+                        <th>Cập nhật</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.RecentlyActioned)
+                    {
+                        <tr>
+                            <td>@p.StudentName <span class="text-muted">(@p.StudentCode)</span></td>
+                            <td class="text-truncate" style="max-width:200px">@p.ProposedTitle</td>
+                            <td class="small text-muted">@p.PeriodName</td>
+                            <td>
+                                @{
+                                    var (badgeClass, label) = p.Status switch
+                                    {
+                                        SE_Academic_Affairs_Support_System.Models.RegistrationStatus.APPROVED => ("bg-success", "Đã duyệt"),
+                                        SE_Academic_Affairs_Support_System.Models.RegistrationStatus.REJECTED => ("bg-danger", "Từ chối"),
+                                        SE_Academic_Affairs_Support_System.Models.RegistrationStatus.REVISION_REQUIRED => ("bg-info text-dark", "Yêu cầu sửa"),
+                                        _                                                             => ("bg-secondary", "Khác")
+                                    };
+                                }
+                                <span class="badge @badgeClass">@label</span>
+                            </td>
+                            <td class="small text-muted">@p.UpdatedAt.ToString("dd/MM/yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

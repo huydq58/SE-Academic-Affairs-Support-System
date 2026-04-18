@@ -122,7 +122,11 @@
             </div>
         }
 
-        @foreach (var vm in Model)
+        @foreach (var vm in Model
+                .OrderBy(r => r.Request.Status == "Pending" ? 0 :
+                r.Request.Status == "Approved" ? 1 :
+                r.Request.Status == "Returned" ? 2 : 3)
+                )
         {
             var r   = vm.Request;
             var dev = vm.Device;

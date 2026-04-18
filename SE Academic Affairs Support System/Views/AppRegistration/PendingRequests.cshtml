@@ -1,0 +1,672 @@
+﻿@model IEnumerable<SE_Academic_Affairs_Support_System.Models.AppRegistrationRequest>
+
+@{
+    ViewData["Title"] = "Danh sách Yêu cầu Pending";
+    var total = Model.Count();
+    var pendingCount = Model.Count(x => x.Status == SE_Academic_Affairs_Support_System.Models.RequestStatus.Pending);
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+
+    :root {
+        --bg: #0f1117;
+        --surface: #1a1d27;
+        --surface2: #22263a;
+        --border: #2e3350;
+        --accent: #4f8ef7;
+        --green: #22c55e;
+        --yellow: #f59e0b;
+        --red: #ef4444;
+        --orange: #f97316;
+        --text: #e8eaf6;
+        --muted: #7c83a8;
+        --radius: 12px;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Be Vietnam Pro', sans-serif;
+    }
+
+    .dm-page {
+        padding: 28px 32px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* Header & Search */
+    .dm-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+        .dm-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        /* Đổi màu trắng cho hợp Dark Mode */
+        .dm-header p {
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+    .search-container {
+        width: 100%;
+        max-width: 600px;
+        margin: 20px auto 0;
+        position: relative;
+    }
+
+    .search-input {
+        width: 100%;
+        background: var(--surface);
+        border: 1.5px solid var(--border);
+        color: var(--text);
+        padding: 14px 20px 14px 45px;
+        border-radius: 50px;
+        font-size: 15px;
+        outline: none;
+        transition: 0.2s;
+        font-family: inherit;
+    }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15);
+        }
+
+    .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 18px;
+        color: var(--muted);
+    }
+
+    /* Category Pills (Dùng cho Status) */
+    .cat-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 24px;
+    }
+
+    .cpill {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.2s;
+        user-select: none;
+    }
+
+        .cpill:hover {
+            background: var(--surface2);
+        }
+
+        .cpill.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+    /* Table */
+    .dm-table-wrap {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: auto;
+    }
+
+    .dm-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+        .dm-table th {
+            padding: 16px;
+            font-size: 13px;
+            color: var(--muted);
+            text-transform: uppercase;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .dm-table td {
+            padding: 16px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .dm-table tbody tr {
+            transition: background 0.2s;
+        }
+
+            .dm-table tbody tr:hover {
+                background: var(--surface2);
+            }
+
+            .dm-table tbody tr.hidden {
+                display: none;
+            }
+
+    /* Badges & Elements */
+    .status-badge {
+        display: inline-flex;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-yellow {
+        background: #f59e0b1a;
+        color: #fcd34d;
+        border: 1px solid #f59e0b33;
+    }
+
+    .badge-green {
+        background: #22c55e1a;
+        color: #86efac;
+        border: 1px solid #22c55e33;
+    }
+
+    .badge-blue {
+        background: #4f8ef71a;
+        color: #93c5fd;
+        border: 1px solid #4f8ef733;
+    }
+
+    .device-name-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .device-icon {
+        font-size: 20px;
+        background: var(--surface2);
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+    }
+
+    .device-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .device-code {
+        font-family: 'Space Mono', monospace;
+        font-size: 12px;
+        color: var(--muted);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        color: #fff;
+    }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+    /* CSS mới cho Form chọn Lecturer */
+    .custom-select {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        padding: 8px;
+        border-radius: 6px;
+        outline: none;
+        font-size: 13px;
+        width: 160px;
+    }
+
+        .custom-select:focus {
+            border-color: var(--accent);
+        }
+
+    .lecturer-assigned {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--surface2);
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--muted);
+    }
+
+    .btn-green {
+        background: var(--green);
+        color: #fff;
+    }
+
+        .btn-green:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+    /* Nút bấm màu xanh dương */
+    .btn-blue {
+        background: #3b82f6;
+        color: #fff;
+    }
+
+        .btn-blue:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        width: 90%;
+        max-width: 650px;
+        padding: 24px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 12px;
+    }
+
+        .modal-header h2 {
+            font-size: 20px;
+            color: #fff;
+            margin: 0;
+        }
+
+    .close-btn {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 28px;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+        .close-btn:hover {
+            color: var(--red);
+        }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .detail-row {
+        margin-bottom: 16px;
+    }
+
+        .detail-row.full-width {
+            grid-column: span 2;
+        }
+
+    .detail-label {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 6px;
+        display: block;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .detail-value {
+        color: var(--text);
+        font-size: 14px;
+        background: var(--surface);
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        word-break: break-word;
+        line-height: 1.5;
+    }
+
+    .detail-link {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        margin-right: 12px;
+    }
+
+        .detail-link:hover {
+            text-decoration: underline;
+        }
+</style>
+
+<div class="dm-page">
+    <div class="dm-header">
+        <h1>Quản lý Yêu cầu Đăng ký App</h1>
+        <p>Hiện có <strong>@pendingCount</strong> yêu cầu đang chờ xử lý trên tổng số @total yêu cầu</p>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div style="color: var(--green); margin-top: 10px; font-weight: bold;">✅ @TempData["SuccessMessage"]</div>
+        }
+
+        <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="sInput" class="search-input" placeholder="Tìm tên App, mã request, tên sinh viên..." onkeyup="applyFilter()" autocomplete="off" />
+        </div>
+    </div>
+
+    <div class="cat-pills">
+        <div class="cpill active" onclick="setStatusFilter('', this)">Tất cả</div>
+        <div class="cpill" onclick="setStatusFilter('Pending', this)">⏳ Pending</div>
+        <div class="cpill" onclick="setStatusFilter('Processing', this)">⚙️ Processing</div>
+        <div class="cpill" onclick="setStatusFilter('Approved', this)">✅ Approved</div>
+    </div>
+
+    <div class="dm-table-wrap">
+        <table class="dm-table">
+            <thead>
+                <tr>
+                    <th>Ứng dụng</th>
+                    <th>Sinh viên</th>
+                    <th>Trạng thái</th>
+                    <th style="text-align: right;">Người phụ trách</th>
+                    <th style="text-align: center;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                @if (!Model.Any())
+                {
+                    <tr id="emptyDbRow"><td colspan="4" class="empty-state">Chưa có yêu cầu nào trong hệ thống.</td></tr>
+                }
+
+                @foreach (var item in Model.OrderBy(x =>
+                                x.Status == SE_Academic_Affairs_Support_System.Models.RequestStatus.Pending ? 1 :
+                                x.Status == SE_Academic_Affairs_Support_System.Models.RequestStatus.Processing ? 2 : 3))
+                {
+                    <tr class="request-row"
+                        data-name="@(item.AppName?.ToLower())"
+                        data-status="@(item.Status.ToString())"
+                        data-student="@(item.StudentInfo?.ToLower())"
+                        data-id="@item.RequestId">
+
+                        <td>
+                            <div class="device-name-wrap">
+                                <div class="device-icon">📱</div>
+                                <div class="device-meta">
+                                    <strong>@item.AppName</strong>
+                                    <span class="device-code">#@item.RequestId</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="device-meta">
+                                <span>@item.StudentInfo</span>
+                                <span style="color: var(--muted); font-size: 12px;">@item.StudentEmail</span>
+                            </div>
+                        </td>
+                        <td>
+                            @if (item.Status == SE_Academic_Affairs_Support_System.Models.RequestStatus.Pending)
+                            {
+                                <span class="status-badge badge-yellow">Chờ xử lý</span>
+                            }
+                            else if (item.Status == SE_Academic_Affairs_Support_System.Models.RequestStatus.Processing)
+                            {
+                                <span class="status-badge badge-blue">Đang xử lý</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge badge-green">Đã duyệt</span>
+                            }
+                        </td>
+                        <td style="text-align: right;">
+
+                            @if (string.IsNullOrEmpty(item.AssignedLecturerId))
+                            {
+                                <form asp-action="AssignLecturer" method="post" style="display: inline-flex; gap: 8px; align-items: center; justify-content: flex-end;">
+                                    <input type="hidden" name="requestId" value="@item.RequestId" />
+                                    <select name="lecturerId" class="custom-select" asp-items="ViewBag.LecturerList" required>
+                                        <option value="">-- Chọn Giảng viên --</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary">Gán</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <div class="lecturer-assigned">
+                                    👨‍🏫 @item.AssignedLecturer.FullName
+                                </div>
+
+                            }
+
+                        </td>
+                        <td style="text-align: center;">
+                            <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+                                <button type="button" class="btn btn-blue"
+                                        onclick="showDetails(this)"
+                                        data-reqid="@item.RequestId"
+                                        data-appname="@item.AppName"
+                                        data-desc="@item.AppDescription"
+                                        data-purpose="@item.Purpose"
+                                        data-student="@item.StudentInfo"
+                                        data-email="@item.StudentEmail"
+                                        data-supervisor="@item.SupervisorInfo"
+                                        data-demo="@item.DemoLink"
+                                        data-apk="@item.ApkLink">
+                                    👁️ Chi tiết
+                                </button>
+
+                                @if (item.Status != SE_Academic_Affairs_Support_System.Models.RequestStatus.Approved)
+                                {
+                                    <form asp-action="ApproveRequest" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn duyệt ứng dụng này?');">
+                                        <input type="hidden" name="requestId" value="@item.RequestId" />
+                                        <button type="submit" class="btn btn-green">✅ Duyệt</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                <tr id="emptySearchRow" style="display: none;">
+                    <td colspan="4" class="empty-state">
+                        <div style="font-size: 24px; margin-bottom: 8px;">👻</div>
+                        Không tìm thấy yêu cầu nào phù hợp.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div id="detailModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Chi tiết Yêu cầu <span id="md-reqid" style="color: var(--accent); font-family: 'Space Mono', monospace;"></span></h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+
+            <div style="max-height: 70vh; overflow-y: auto; padding-right: 5px;">
+                <div class="detail-row full-width">
+                    <span class="detail-label">📱 Tên ứng dụng</span>
+                    <div class="detail-value" id="md-appname"></div>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="detail-row">
+                        <span class="detail-label">🎓 Thông tin Sinh viên</span>
+                        <div class="detail-value" id="md-student"></div>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">👨‍🏫 Giảng viên hướng dẫn</span>
+                        <div class="detail-value" id="md-supervisor"></div>
+                    </div>
+                </div>
+
+                <div class="detail-row full-width">
+                    <span class="detail-label">📝 Mô tả ứng dụng</span>
+                    <div class="detail-value" id="md-desc"></div>
+                </div>
+
+                <div class="detail-row full-width">
+                    <span class="detail-label">🎯 Mục đích</span>
+                    <div class="detail-value" id="md-purpose"></div>
+                </div>
+
+                <div class="detail-row full-width">
+                    <span class="detail-label">🔗 Liên kết đính kèm</span>
+                    <div class="detail-value" id="md-links"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let activeStatus = '';
+
+    // Xử lý click chọn Tab Trạng thái
+    function setStatusFilter(status, btn) {
+        activeStatus = status;
+        document.querySelectorAll('.cpill').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilter();
+    }
+
+    // Xử lý bộ lọc Tìm kiếm & Trạng thái
+    function applyFilter() {
+        let q = (document.getElementById('sInput').value || '').toLowerCase().trim();
+        let rows = document.querySelectorAll('.request-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            let matchStatus = !activeStatus || row.dataset.status === activeStatus;
+            let matchSearch = !q
+                || row.dataset.name.includes(q)
+                || row.dataset.id.includes(q)
+                || (row.dataset.student && row.dataset.student.includes(q));
+
+            if (matchStatus && matchSearch) {
+                row.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                row.classList.add('hidden');
+            }
+        });
+
+        let emptyRow = document.getElementById('emptySearchRow');
+        let dbEmptyRow = document.getElementById('emptyDbRow');
+
+        if (emptyRow) {
+            emptyRow.style.display = (visibleCount === 0 && !dbEmptyRow) ? 'table-row' : 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', applyFilter);
+    // Hàm mở Modal và đổ dữ liệu
+    function showDetails(btn) {
+        document.getElementById('md-reqid').innerText = '#' + btn.dataset.reqid;
+        document.getElementById('md-appname').innerText = btn.dataset.appname || 'Không có thông tin';
+        document.getElementById('md-desc').innerText = btn.dataset.desc || 'Không có thông tin';
+        document.getElementById('md-purpose').innerText = btn.dataset.purpose || 'Không có thông tin';
+
+        let studentStr = (btn.dataset.student || 'Không rõ') + '<br><span style="color: var(--muted); font-size: 12px;">✉️ ' + (btn.dataset.email || '') + '</span>';
+        document.getElementById('md-student').innerHTML = studentStr;
+
+        document.getElementById('md-supervisor').innerText = btn.dataset.supervisor || 'Chưa có';
+
+        // Xử lý Links
+        let demoLink = btn.dataset.demo;
+        let apkLink = btn.dataset.apk;
+        let linksHtml = '';
+        if (demoLink) linksHtml += `<a href="${demoLink}" target="_blank" class="detail-link">🌐 Link Demo</a>`;
+        if (apkLink) linksHtml += `<a href="${apkLink}" target="_blank" class="detail-link">📦 Link APK</a>`;
+
+        document.getElementById('md-links').innerHTML = linksHtml || '<span style="color: var(--muted);">Không có liên kết đính kèm</span>';
+
+        // Hiển thị modal
+        document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    // Hàm đóng Modal
+    function closeModal() {
+        document.getElementById('detailModal').style.display = 'none';
+    }
+
+    // Đóng modal khi click ra ngoài vùng xám
+    window.onclick = function(event) {
+        let modal = document.getElementById('detailModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+</script>

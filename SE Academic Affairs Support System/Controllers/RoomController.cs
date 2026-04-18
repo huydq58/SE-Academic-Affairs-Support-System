@@ -1,14 +1,15 @@
-﻿using AspNetCoreGeneratedDocument;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using AspNetCoreGeneratedDocument;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Models;
-using SE_Academic_Affairs_Support_System.ViewModels;
 using SE_Academic_Affairs_Support_System.Services.Email;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using SE_Academic_Affairs_Support_System.ViewModels;
 
 namespace SE_Academic_Affairs_Support_System.Controllers
 {
@@ -23,7 +24,7 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             _emailService = new EmailService(_config);
 
         }
-
+        [AllowAnonymous]
         public async Task<IActionResult> WeeklySchedule(int roomId, DateTime? selectedDate)
         {
             DateTime currentDate = selectedDate ?? DateTime.Today;
@@ -123,6 +124,7 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                     RoomId = model.RoomId,
                     BookingDate = model.BookingDate,
                     UserName = model.UserName,
+                    UserEmail = model.UserEmail,
                     PhoneNumber = model.PhoneNumber,
                     StartTime = model.StartTime,
                     EndTime = model.EndTime,
@@ -147,7 +149,7 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                 return View(model);
             }
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> PendingBookings()
         {
@@ -159,7 +161,7 @@ namespace SE_Academic_Affairs_Support_System.Controllers
 
             return View(pendingList);
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveBooking(int id)
@@ -190,13 +192,13 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                 conflict.Status = "Rejected"; // Đổi trạng thái thành Từ chối
             }
 
-           
+            await _emailService.SendConfirmRoomAsync(booking.UserEmail, booking.UserName, booking.StartTime, booking.EndTime,booking.BookingDate,booking.Purpose);
             await _context.SaveChangesAsync();
             TempData["Success"] = "Đã duyệt đơn thành công! Các đơn trùng giờ đã tự động bị từ chối.";
 
             return RedirectToAction(nameof(PendingBookings)); // Hoặc thay bằng tên trang danh sách chờ duyệt của bạn
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RejectBooking(int id)

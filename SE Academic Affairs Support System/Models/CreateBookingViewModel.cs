@@ -9,6 +9,7 @@ namespace SE_Academic_Affairs_Support_System.ViewModels
         public string RoomName { get; set; }
         public string UserName { get; set; }
 
+        public string UserEmail { get; set; }
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
 

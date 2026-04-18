@@ -177,7 +177,7 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             string autoRejectMsg = conflictingRequests.Any()
                 ? $" Đồng thời tự động từ chối {conflictingRequests.Count} yêu cầu trùng lặp."
                 : "";
-            await _emailService.SendTicketAsync(request.BorrowerEmail,request.BorrowerName);
+            await _emailService.SendConfirmDeviceAsync(request.BorrowerEmail,request.BorrowerName,request);
             TempData["Success"] = $"Đã duyệt yêu cầu mượn của {request.BorrowerName} — {request.Device.DeviceName}.{autoRejectMsg}";
 
             return RedirectToAction(nameof(BorrowRequests));

@@ -1,0 +1,8 @@
+@model SE_Academic_Affairs_Support_System.ViewModels.ProposalViewModel
+@{
+    // ReviseProposal.cshtml – reuse ProposeNew view
+    ViewData["Title"] = "Chỉnh sửa đề xuất";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+@await Html.PartialAsync("ProposeNew", Model)

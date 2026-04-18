@@ -6,7 +6,7 @@
 }
 
 <style>
-    /* Làm đẹp giao diện FullCalendar */
+    /* ===== FullCalendar Events ===== */
     .fc-event {
         border: none !important;
         border-radius: 6px !important;
@@ -16,43 +16,133 @@
         transition: transform 0.2s;
     }
 
-        .fc-event:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
+    .fc-event:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
 
+    /* ===== Toolbar ===== */
     .fc .fc-toolbar-title {
         font-size: 1.4rem !important;
         font-weight: 700;
         text-transform: uppercase;
-        color: #black;
+        color: #000;
     }
 
+    /* ===== Buttons ===== */
     .fc .fc-button-primary {
         background-color: #fff !important;
         color: #0d6efd !important;
-        border: 1px solid #black !important;
+        border: 1px solid #dee2e6 !important;
         border-radius: 6px !important;
         font-weight: 600;
         text-transform: capitalize;
     }
 
-        .fc .fc-button-primary:hover, .fc .fc-button-primary:not(:disabled).fc-button-active {
-            background-color: #0d6efd !important;
-            color: #fff !important;
-        }
+    .fc .fc-button-primary:hover,
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: #0d6efd !important;
+        color: #fff !important;
+    }
+
+    /* ===== Slot hover ===== */
     .fc-timegrid-slot:hover {
         background-color: rgba(25, 135, 84, 0.1) !important;
         cursor: pointer;
-        .fc-day-past, .fc-day-sun
+    }
 
-    {
+    /* ===== Past & Sunday styling ===== */
+    .fc-day-past,
+    .fc-day-sun {
         background-color: #f1f3f5 !important;
     }
 
-    .fc-day-past .fc-timegrid-slot, .fc-day-sun .fc-timegrid-slot {
+    .fc-day-past .fc-timegrid-slot,
+    .fc-day-sun .fc-timegrid-slot {
         cursor: not-allowed !important;
     }
+
+    /* ===== Mobile hint badge ===== */
+    .hint-desktop { display: inline; }
+    .hint-mobile  { display: none; }
+
+    /* ===== Responsive ===== */
+    @@media (max-width: 768px) {
+        /* Layout */
+        .container-fluid {
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+
+        /* Header */
+        .page-header-row {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 10px;
+        }
+
+        .page-header-row h3 {
+            font-size: 1.1rem;
+        }
+
+        .page-header-row .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* Card header */
+        .card-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 8px;
+        }
+
+        .card-header h5 {
+            font-size: 0.95rem;
+        }
+
+        /* Card body padding */
+        .card-body {
+            padding: 12px !important;
+        }
+
+        /* Calendar inner padding */
+        #calendar {
+            padding: 8px !important;
+        }
+
+        /* FullCalendar toolbar shrink */
+        .fc .fc-toolbar {
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 1rem !important;
+        }
+
+        .fc .fc-button {
+            padding: 4px 8px !important;
+            font-size: 0.8rem !important;
+        }
+
+        /* Hint badge */
+        .hint-desktop { display: none; }
+        .hint-mobile  { display: inline; }
+
+        /* Modal */
+        .modal-body {
+            padding: 16px !important;
+        }
+
+        .modal-footer {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .modal-footer .btn {
+            width: 100%;
+        }
     }
 </style>
 
@@ -66,7 +156,7 @@
         </div>
     }
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 page-header-row">
         <h3 class="text-primary fw-bold text-uppercase mb-0">
             <i class="bi bi-calendar-range me-2"></i> Hệ Thống Đặt Phòng
         </h3>
@@ -81,7 +171,13 @@
                 <i class="bi bi-door-open-fill me-2"></i> Lịch phòng: @(currentRoom?.RoomName ?? "Chưa chọn phòng")
             </h5>
             <span class="badge bg-white text-primary px-3 py-2 rounded-pill shadow-sm">
-                <i class="bi bi-hand-index-thumb me-1"></i> Kéo thả chuột để đặt phòng
+                {{-- Desktop: kéo thả; Mobile: nhấn giữ --}}
+                <span class="hint-desktop">
+                    <i class="bi bi-hand-index-thumb me-1"></i> Kéo thả chuột để đặt phòng
+                </span>
+                <span class="hint-mobile">
+                    <i class="bi bi-hand-index-thumb me-1"></i> Nhấn giữ để đặt phòng
+                </span>
             </span>
         </div>
 
@@ -91,6 +187,7 @@
     </div>
 </div>
 
+<!-- Modal: Chi tiết đơn đặt phòng -->
 <div class="modal fade" id="eventDetailModal" tabindex="-1" aria-labelledby="eventDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -129,10 +226,11 @@
             <div class="modal-footer border-top-0 d-flex justify-content-center">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
             </div>
-
         </div>
     </div>
 </div>
+
+<!-- Modal: Xác nhận thời gian -->
 <div class="modal fade" id="confirmSelectionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -144,7 +242,6 @@
             </div>
             <div class="modal-body p-4 text-center">
                 <h5 class="mb-4 text-dark">Bạn muốn đặt phòng trong khoảng thời gian này?</h5>
-
                 <div class="d-inline-block text-start bg-light p-3 rounded-3 border shadow-sm">
                     <div class="mb-2 fs-6">
                         <i class="bi bi-calendar-event text-primary me-2"></i> Thứ:
@@ -164,14 +261,15 @@
                 <button type="button" class="btn btn-light rounded-pill px-4 me-2 border" data-bs-dismiss="modal">Hủy, chọn lại</button>
                 <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" id="btnProceedBooking">Đồng ý, tiếp tục</button>
             </div>
-
+        </div>
     </div>
 </div>
+
 @section Scripts {
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             var calendarEl = document.getElementById('calendar');
             var roomId = @(currentRoom?.RoomID ?? 0);
 
@@ -180,102 +278,101 @@
                 return;
             }
 
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-                        initialView: 'timeGridWeek',
-                        locale: 'vi',
-                        headerToolbar: {
-                            left: 'prev,next today',
-                            center: 'title',
-                            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                        },
-                        slotMinTime: '07:00:00',
-                        slotMaxTime: '17:00:00',
-                        allDaySlot: false,
-                        height: 'auto',
-                        expandRows: true,
+            // Chọn view phù hợp theo màn hình
+            var isMobile = window.innerWidth < 768;
 
-                        // --- 1. CHẶN KÉO THẢ CHUỘT ---
-                        selectAllow: function(selectInfo) {
-                            var now = new Date();
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: isMobile ? 'timeGridDay' : 'timeGridWeek',
+                locale: 'vi',
 
-                            // Chặn không cho quét chuột vào các giờ/ngày trong quá khứ
-                            if (selectInfo.start < now) {
-                                return false;
-                            }
+                // Hỗ trợ nhấn giữ trên mobile để chọn thời gian
+                selectLongPressDelay: 500,
 
-                            // Chặn không cho quét chuột vào Chủ Nhật (Day 0)
-                            if (selectInfo.start.getDay() === 0) {
-                                return false;
-                            }
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: isMobile ? 'timeGridDay,timeGridWeek' : 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
 
-                            return true; // Các giờ hợp lệ thì cho phép kéo thả bình thường
-                        },
+                slotMinTime: '07:00:00',
+                slotMaxTime: '17:00:00',
+                allDaySlot: false,
+                height: 'auto',
+                expandRows: true,
 
-                        selectOverlap: function(event) {
-                            return event.extendedProps.status !== "Approved";
-                        },
+                // Tự động chuyển view khi resize cửa sổ
+                windowResize: function () {
+                    if (window.innerWidth < 768) {
+                        calendar.changeView('timeGridDay');
+                    } else {
+                        calendar.changeView('timeGridWeek');
+                    }
+                },
 
-                        events: '/Room/GetBookingsForCalendar?roomId=' + roomId,
-                        selectable: true,
-                        selectMirror: true,
+                // Chặn chọn quá khứ và Chủ Nhật
+                selectAllow: function (selectInfo) {
+                    var now = new Date();
+                    if (selectInfo.start < now) return false;
+                    if (selectInfo.start.getDay() === 0) return false;
+                    return true;
+                },
 
-            // Bắt sự kiện khi quét chọn thành công
-            select: function(info) {
-                var dateStr = info.startStr.split('T')[0];
-                var startTime = info.startStr.split('T')[1].substring(0, 5);
-                var endTime = info.endStr.split('T')[1].substring(0, 5);
+                selectOverlap: function (event) {
+                    return event.extendedProps.status !== "Approved";
+                },
 
-                // Xử lý Ngày và Thứ
-                var dateObj = new Date(info.startStr);
-                var formattedDate = dateObj.toLocaleDateString('vi-VN');
+                events: '/Room/GetBookingsForCalendar?roomId=' + roomId,
+                selectable: true,
+                selectMirror: true,
 
-                // Mảng chứa tên các thứ trong tuần bằng tiếng Việt
-                var daysOfWeek = ['Chủ Nhật', '2', '3', '4', '5', '6', '7'];
-                var dayName = daysOfWeek[dateObj.getDay()]; // Lấy ra tên thứ dựa vào index của ngày
+                // Bắt sự kiện khi chọn thành công (kéo thả hoặc nhấn giữ)
+                select: function (info) {
+                    var dateStr    = info.startStr.split('T')[0];
+                    var startTime  = info.startStr.split('T')[1].substring(0, 5);
+                    var endTime    = info.endStr.split('T')[1].substring(0, 5);
+                    var dateObj    = new Date(info.startStr);
+                    var formattedDate = dateObj.toLocaleDateString('vi-VN');
+                    var daysOfWeek = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+                    var dayName    = daysOfWeek[dateObj.getDay()];
 
-                // Đổ dữ liệu vào Modal Xác nhận
-                document.getElementById('confirmDay').innerText = dayName; // <-- Truyền thứ vào ID mới
-                document.getElementById('confirmDate').innerText = formattedDate;
-                document.getElementById('confirmTime').innerText = startTime + ' - ' + endTime;
+                    document.getElementById('confirmDay').innerText  = dayName;
+                    document.getElementById('confirmDate').innerText = formattedDate;
+                    document.getElementById('confirmTime').innerText = startTime + ' - ' + endTime;
 
-                // Hiển thị Modal
-                var confirmModal = new bootstrap.Modal(document.getElementById('confirmSelectionModal'));
-                confirmModal.show();
+                    var confirmModal = new bootstrap.Modal(document.getElementById('confirmSelectionModal'));
+                    confirmModal.show();
 
-                // Xử lý khi bấm nút "Đồng ý, tiếp tục"
-                document.getElementById('btnProceedBooking').onclick = function() {
-                    confirmModal.hide();
-                    var url = `/Room/CreateBooking?roomId=${roomId}&date=${dateStr}&startTime=${startTime}&endTime=${endTime}`;
-                    window.location.href = url;
-                };
+                    document.getElementById('btnProceedBooking').onclick = function () {
+                        confirmModal.hide();
+                        window.location.href = `/Room/CreateBooking?roomId=${roomId}&date=${dateStr}&startTime=${startTime}&endTime=${endTime}`;
+                    };
 
-                // Xử lý khi Modal bị đóng
-                document.getElementById('confirmSelectionModal').addEventListener('hidden.bs.modal', function () {
-                    calendar.unselect();
-                }, { once: true });
-            },
-                eventClick: function(info) {
-                    var status = info.event.extendedProps.status;
+                    document.getElementById('confirmSelectionModal').addEventListener('hidden.bs.modal', function () {
+                        calendar.unselect();
+                    }, { once: true });
+                },
+
+                // Bắt sự kiện click vào event đã có
+                eventClick: function (info) {
+                    var status  = info.event.extendedProps.status;
                     var purpose = info.event.extendedProps.purpose || "Không có ghi chú";
-
-                    var startTime = info.event.start.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
-                    var endTime = info.event.end ? info.event.end.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : '';
+                    var startTime  = info.event.start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                    var endTime    = info.event.end ? info.event.end.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
                     var timeString = endTime ? startTime + ' - ' + endTime : startTime;
 
                     document.getElementById('modalUserName').innerText = info.event.title;
-                    document.getElementById('modalTime').innerText = timeString;
-                    document.getElementById('modalPurpose').innerText = purpose;
+                    document.getElementById('modalTime').innerText     = timeString;
+                    document.getElementById('modalPurpose').innerText  = purpose;
 
                     var statusBadge = document.getElementById('modalStatus');
                     if (status === "Approved") {
-                        statusBadge.innerText = "Đã duyệt";
-                        statusBadge.className = "badge bg-success bg-opacity-10 text-success border border-success px-3 py-2";
+                        statusBadge.innerText   = "Đã duyệt";
+                        statusBadge.className   = "badge bg-success bg-opacity-10 text-success border border-success px-3 py-2";
                     } else {
-                        statusBadge.innerText = "Đang chờ duyệt";
-                        statusBadge.className = "badge bg-warning bg-opacity-10 text-warning border border-warning px-3 py-2";
+                        statusBadge.innerText   = "Đang chờ duyệt";
+                        statusBadge.className   = "badge bg-warning bg-opacity-10 text-warning border border-warning px-3 py-2";
                     }
 
-                    // Hiển thị Modal
                     var myModal = new bootstrap.Modal(document.getElementById('eventDetailModal'));
                     myModal.show();
                 }
@@ -283,6 +380,5 @@
 
             calendar.render();
         });
-
     </script>
 }

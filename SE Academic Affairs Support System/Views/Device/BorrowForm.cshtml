@@ -4,7 +4,6 @@
     var availableDevices = ViewBag.AvailableDevices as List<SE_Academic_Affairs_Support_System.Models.Device> ?? new();
     var preSelected = ViewBag.PreSelectedDevice as SE_Academic_Affairs_Support_System.Models.Device;
 
-    // Hàm hỗ trợ render icon theo danh mục
     string Icon(string cat) => cat?.ToLower() switch
     {
         var c when c != null && c.Contains("chiếu") => "📽️",
@@ -54,20 +53,41 @@
         margin: 0 auto;
     }
 
-    /* ── HEADER ── */
+    /* ── HEADER — đồng bộ với Catalog (căn giữa) ── */
     .dm-header {
-        margin-bottom: 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        margin-bottom: 32px;
     }
 
         .dm-header h1 {
-            font-size: 26px;
+            font-size: 28px;
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            color: var(--text); /* bỏ hardcode black */
         }
 
         .dm-header p {
             color: var(--muted);
-            font-size: 14px;
+            font-size: 15px;
+        }
+
+    /* ── BACK LINK ── */
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--muted);
+        text-decoration: none;
+        margin-bottom: 20px;
+        transition: color 0.2s;
+    }
+
+        .back-link:hover {
+            color: var(--text);
         }
 
     /* ── ALERTS ── */
@@ -99,13 +119,11 @@
         gap: 24px;
         align-items: start;
     }
+
     @@media (max-width: 850px) {
-        .dm-grid
-
-    {
-        grid-template-columns: 1fr;
-    }
-
+        .dm-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     /* ── CARDS ── */
@@ -118,7 +136,7 @@
     }
 
         .dm-card h3 {
-            font-size: 15px;
+            font-size: 13px;
             margin-bottom: 18px;
             display: flex;
             align-items: center;
@@ -127,6 +145,8 @@
             padding-bottom: 12px;
             text-transform: uppercase;
             color: var(--muted);
+            font-weight: 600;
+            letter-spacing: 0.04em;
         }
 
     /* ── FORMS ── */
@@ -141,6 +161,7 @@
             color: var(--muted);
             margin-bottom: 6px;
             text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
     .form-control {
@@ -158,6 +179,7 @@
 
         .form-control:focus {
             border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15); /* đồng bộ với search-input focus Catalog */
         }
 
     textarea.form-control {
@@ -183,6 +205,7 @@
             width: 18px;
             height: 18px;
             cursor: pointer;
+            flex-shrink: 0;
         }
 
         .checkbox-group label {
@@ -192,19 +215,19 @@
             cursor: pointer;
         }
 
-    /* ── BUTTONS ── */
+    /* ── BUTTONS — đồng bộ với Catalog ── */
     .btn {
         display: inline-flex;
         justify-content: center;
         align-items: center;
-        gap: 8px;
-        padding: 11px 20px;
+        gap: 6px;
+        padding: 8px 16px;
         border-radius: 8px;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
         cursor: pointer;
         border: none;
-        transition: all 0.2s;
+        transition: 0.2s;
         text-decoration: none;
     }
 
@@ -212,6 +235,8 @@
         background: var(--accent);
         color: #fff;
         width: 100%;
+        padding: 11px 20px;
+        font-size: 14px;
     }
 
         .btn-primary:hover {
@@ -223,13 +248,15 @@
         background: transparent;
         border: 1px solid var(--border);
         color: var(--text);
+        padding: 11px 24px;
+        font-size: 14px;
     }
 
         .btn-outline:hover {
             background: var(--surface2);
         }
 
-    /* ── SIDEBAR ITEMS ── */
+    /* ── SIDEBAR ── */
     .selected-device {
         display: flex;
         gap: 16px;
@@ -251,6 +278,7 @@
         justify-content: center;
         border-radius: 12px;
         border: 1px solid var(--border);
+        flex-shrink: 0;
     }
 
     .selected-info h4 {
@@ -325,11 +353,28 @@
             color: var(--accent);
             text-decoration: none;
         }
+
+    /* ── STATUS BADGE — đồng bộ với Catalog ── */
+    .status-badge {
+        display: inline-flex;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-green {
+        background: #22c55e1a;
+        color: #86efac;
+        border: 1px solid #22c55e33;
+    }
 </style>
 
 <div class="dm-page">
+
     <div class="dm-header">
-        <h1 style="color: black">Đăng ký mượn thiết bị</h1>
+        <h1>Đăng ký mượn thiết bị</h1>
         <p>Điền thông tin bên dưới để gửi yêu cầu đến Phòng Quản lý thiết bị</p>
     </div>
 
@@ -366,15 +411,14 @@
                     <textarea asp-for="Purpose" class="form-control" required placeholder="Vui lòng ghi rõ môn học, sự kiện hoặc lý do cần mượn thiết bị..."></textarea>
                 </div>
 
-
                 <div class="checkbox-group">
                     <input type="checkbox" id="commit" required />
                     <label for="commit">Tôi cam kết bảo quản thiết bị cẩn thận, sử dụng đúng mục đích và hoàn trả đúng thời hạn. Nếu làm hỏng hoặc mất, tôi xin chịu hoàn toàn trách nhiệm bồi thường theo quy định.</label>
                 </div>
 
                 <div style="margin-top: 24px; display: flex; gap: 12px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Gửi yêu cầu mượn</button>
-                    <a href="/Device/Catalog" class="btn btn-outline" style="padding: 11px 24px;">Hủy</a>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Gửi yêu cầu mượn →</button>
+                    <a href="/Device/Catalog" class="btn btn-outline">Hủy</a>
                 </div>
             </form>
         </div>
@@ -391,7 +435,8 @@
                             <p>Mã TB: #@preSelected.DeviceId</p>
                         </div>
                     </div>
-                    <a href="/Device/Catalog" class="btn btn-outline" style="width: 100%; font-size: 13px;">🔄 Đổi thiết bị khác</a>
+                    <span class="status-badge badge-green" style="margin-bottom: 12px;">Sẵn sàng</span>
+                    <a href="/Device/Catalog" class="btn btn-outline" style="width: 100%; font-size: 13px; margin-top: 12px;">🔄 Đổi thiết bị khác</a>
                 }
                 else
                 {

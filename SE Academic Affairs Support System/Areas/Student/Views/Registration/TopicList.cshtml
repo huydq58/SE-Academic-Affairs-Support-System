@@ -1,0 +1,143 @@
+@model SE_Academic_Affairs_Support_System.ViewModels.TopicListViewModel
+@{
+    ViewData["Title"] = "Danh sách đề tài";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-journal-bookmark-fill text-primary me-2"></i>Đăng ký đề tài</h2>
+            <p class="text-muted mb-0">
+                <span class="badge bg-primary">@Model.Period.CourseName</span>
+                &nbsp;@Model.Period.Name &mdash;
+                Hạn đăng ký: <strong>@Model.Period.EndDate.ToString("dd/MM/yyyy")</strong>
+            </p>
+        </div>
+        <a asp-action="ProposeNew" class="btn btn-outline-primary">
+            <i class="bi bi-plus-lg me-1"></i> Đề xuất đề tài mới
+        </a>
+    </div>
+
+    <partial name="_Alerts" />
+
+    {{!-- Filter bar --}}
+    <form method="get" class="row g-2 mb-4">
+        <div class="col-md-5">
+            <input type="text" name="keyword" value="@Model.SearchKeyword"
+                   class="form-control" placeholder="Tìm theo tên đề tài, mô tả..." />
+        </div>
+        <div class="col-md-4">
+            <select name="lecturerId" class="form-select">
+                <option value="">-- Tất cả giảng viên --</option>
+                @foreach (var lec in Model.Lecturers)
+                {
+                    <option value="@lec.Id" selected="@(Model.FilterLecturerId == lec.Id)">
+                        @lec.FullName (@lec.LecturerCode)
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-secondary w-100">
+                <i class="bi bi-search me-1"></i> Lọc
+            </button>
+        </div>
+    </form>
+
+    @if (!Model.Topics.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox display-4"></i>
+            <p class="mt-3">Không tìm thấy đề tài nào phù hợp.</p>
+        </div>
+    }
+
+    <div class="row g-3">
+        @foreach (var topic in Model.Topics)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm border-0 @(topic.CanRegister ? "" : "opacity-75")">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0 fw-bold">@topic.Title</h6>
+                            @if (!topic.CanRegister)
+                            {
+                                <span class="badge bg-secondary ms-2 flex-shrink-0">Hết chỗ</span>
+                            }
+                            else if (topic.AlreadyRegistered)
+                            {
+                                <span class="badge bg-success ms-2 flex-shrink-0">Đã đăng ký</span>
+                            }
+                        </div>
+
+                        <p class="card-text small text-muted" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">
+                            @topic.Description
+                        </p>
+
+                        @if (!string.IsNullOrEmpty(topic.Technologies))
+                        {
+                            <div class="mb-2">
+                                @foreach (var tech in topic.Technologies.Split(','))
+                                {
+                                    <span class="badge bg-light text-dark border me-1">@tech.Trim()</span>
+                                }
+                            </div>
+                        }
+
+                        <div class="d-flex align-items-center text-muted small mb-3">
+                            <i class="bi bi-person-fill me-1"></i>
+                            <span>@topic.LecturerName</span>
+                            <span class="ms-auto">
+                                <i class="bi bi-people-fill me-1"></i>
+                                @topic.RegisteredCount / @topic.MaxStudents SV
+                            </span>
+                        </div>
+
+                        @if (topic.AlreadyRegistered)
+                        {
+                            <button class="btn btn-success btn-sm w-100" disabled>
+                                <i class="bi bi-check-lg me-1"></i> Đã đăng ký
+                            </button>
+                        }
+                        else if (!topic.CanRegister)
+                        {
+                            <button class="btn btn-secondary btn-sm w-100" disabled>Hết chỗ</button>
+                        }
+                        else
+                        {
+                            <form asp-action="Register" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="topicId" value="@topic.TopicId" />
+                                <button type="submit" class="btn btn-primary btn-sm w-100"
+                                        onclick="return confirm('Xác nhận đăng ký đề tài này?')">
+                                    <i class="bi bi-check2-circle me-1"></i> Đăng ký
+                                </button>
+                            </form>
+                        }
+                    </div>
+
+                    @* Slot progress bar *@
+                    <div class="card-footer p-0 border-0">
+                        <div class="progress rounded-0 rounded-bottom" style="height:4px">
+                            @{
+                                int pct = topic.MaxStudents > 0
+                                    ? (int)((double)topic.RegisteredCount / topic.MaxStudents * 100)
+                                    : 100;
+                            }
+                            <div class="progress-bar @(pct >= 100 ? "bg-danger" : "bg-primary")"
+                                 style="width:@pct%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="mt-4">
+        <a asp-action="MyRegistrations" class="btn btn-outline-secondary">
+            <i class="bi bi-list-check me-1"></i> Xem đăng ký của tôi
+        </a>
+    </div>
+</div>

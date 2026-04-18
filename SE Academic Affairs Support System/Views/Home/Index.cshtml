@@ -1,8 +1,26 @@
 ﻿@{
     ViewData["Title"] = "Home Page";
 }
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+
 
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
     <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
 </div>
+@if (SignInManager.IsSignedIn(User))
+{
+    var currentUser = await UserManager.GetUserAsync(User);
+    var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+    var primaryRole = userRoles.FirstOrDefault() ?? "User";
+
+    <div>
+        <p><strong>Họ và tên:</strong> @(currentUser?.FullName ?? "Chưa cập nhật")</p>
+        <p><strong>Tên đăng nhập:</strong> @User.Identity?.Name</p>
+        <p><strong>Vai trò:</strong> @primaryRole</p>
+
+    </div>
+}

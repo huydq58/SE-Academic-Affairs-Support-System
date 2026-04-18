@@ -1,0 +1,73 @@
+@{
+    ViewData["Title"] = "Tạo tài khoản Admin";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-danger text-white text-center py-3">
+                <h5 class="mb-0">⚠️ Công cụ tạo tài khoản</h5>
+                <small class="opacity-75">Chỉ hoạt động trong môi trường Development</small>
+            </div>
+
+            <div class="card-body px-4 py-3">
+
+                @if (ViewBag.Success != null)
+                {
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle-fill me-1"></i> @ViewBag.Success
+                    </div>
+                }
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-circle me-1"></i>
+                        @Html.Raw(ViewBag.Error)
+                    </div>
+                }
+
+                <form asp-action="Create" asp-controller="SeedAdmin" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label class="form-label">Tên đăng nhập <span class="text-danger">*</span></label>
+                        <input type="text" name="username" class="form-control" placeholder="admin" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Họ tên</label>
+                        <input type="text" name="fullname" class="form-control" placeholder="Administrator" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control"
+                               placeholder="Tối thiểu 6 ký tự, có chữ số" required />
+                        <div class="form-text">Yêu cầu: tối thiểu 6 ký tự, có ít nhất 1 chữ số.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Role <span class="text-danger">*</span></label>
+                        <select name="role" class="form-select" required>
+                            <option value="Admin">Admin</option>
+                            <option value="Lecturer">Lecturer</option>
+                            <option value="Student">Student</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger">Tạo tài khoản</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+        <p class="text-center text-muted small mt-3">
+            Sau khi tạo xong, hãy xóa hoặc vô hiệu hóa <code>SeedAdminController</code>.
+        </p>
+
+    </div>
+</div>

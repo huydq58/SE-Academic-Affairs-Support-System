@@ -7,14 +7,26 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SE_Academic_Affairs_Support_System.styles.css" asp-append-version="true" />
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
 </head>
+
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+
+@{
+	    SignInManager.IsSignedIn(User);
+	        UserManager.GetUserName(User);
+}
 <body class="d-flex flex-column min-vh-100 bg-light">
 
     <header>
+
         <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom shadow-sm mb-4 sticky-top">
             <div class="container">
                 <a class="navbar-brand fw-bold text-primary" asp-area="" asp-controller="Home" asp-action="Index">
-                    SE Academic Affairs
+                    SE UIT
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
@@ -30,22 +42,70 @@
                             <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Home" asp-action="RoomList">Đặt phòng</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Room" asp-action="PendingBookings">Duyệt đơn</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Device" asp-action="Index">Quản lý thiết bị</a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Device" asp-action="Catalog">Mượn thiết bị</a>
                         </li>
-                    </ul>
-
-                    <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a class="btn btn-outline-primary fw-bold px-4 rounded-pill" asp-area="" asp-controller="Home" asp-action="login">Đăng nhập</a>
+                            <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="AppRegistration" asp-action="Create">Đăng tải App</a>
                         </li>
+
+                        @if (SignInManager.IsSignedIn(User) && User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Room" asp-action="PendingBookings">Duyệt phòng</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Device" asp-action="Index">Quản lý thiết bị</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Admin" asp-controller="Registration" asp-action="Periods">Periods</a>
+                            </li>
+                        }
+
+                        @if (SignInManager.IsSignedIn(User) && (User.IsInRole("Admin") || User.IsInRole("Lecturer")))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="AppRegistration" asp-action="PendingRequests">Duyệt App</a>
+                            </li>
+                        }
+                        @if (SignInManager.IsSignedIn(User) &&  User.IsInRole("Lecturer"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Lecturer" asp-controller="Registration" asp-action="CreateTopic">CreateTopic</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Lecturer" asp-controller="Registration" asp-action="MyTopics">MyTopics</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Lecturer" asp-controller="Registration" asp-action="Inbox">Inbox</a>
+                            </li>
+                        }
+                        @if (SignInManager.IsSignedIn(User) && User.IsInRole("Student"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Student" asp-controller="Registration" asp-action="TopicList">TopicList</a>
+                            </li>
+                            
+                        }
                     </ul>
 
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="btn btn-outline-primary fw-bold px-4 rounded-pill" asp-area="" asp-controller="Login" asp-action="Logout">Đăng Xuất</a>
+                            </li>
+                        </ul>
+
+                    }
+                    else
+                    {
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="btn btn-outline-primary fw-bold px-4 rounded-pill" asp-area="" asp-controller="Login" asp-action="Index">Đăng nhập</a>
+                            </li>
+                        </ul>
+                    }
                 </div>
             </div>
         </nav>
@@ -79,5 +139,6 @@
     </style>
 
     @await RenderSectionAsync("Scripts", required: false)
+    @await Html.PartialAsync("_SuccessToast")
 </body>
 </html>
