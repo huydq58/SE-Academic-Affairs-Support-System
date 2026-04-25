@@ -52,12 +52,11 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
 
         public async Task SetPeriodActiveAsync(int periodId)
         {
-            // Deactivate all, then activate the chosen one
-            await _db.RegistrationPeriods.ExecuteUpdateAsync(
-                s => s.SetProperty(p => p.IsActive, false));
             var period = await _db.RegistrationPeriods.FindAsync(periodId)
                          ?? throw new InvalidOperationException("Không tìm thấy đợt đăng ký");
+
             period.IsActive = true;
+
             await _db.SaveChangesAsync();
         }
 
@@ -164,10 +163,8 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
 
             var topics = await query.ToListAsync();
 
-            var cards = topics.Select(t =>
-            {
-                int registered = t.Registrations?.Count(r => r.Status == RegistrationStatus.APPROVED) ?? 0;
-                return new TopicCardViewModel
+            var cards = await query
+                .Select(t => new TopicCardViewModel
                 {
                     TopicId = t.Id,
                     Title = t.Title,
@@ -177,11 +174,11 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                     LecturerName = t.Lecturer.User.FullName,
                     LecturerProfileId = t.LecturerProfileId,
                     MaxStudents = t.MaxStudents,
-                    RegisteredCount = registered,
+                    RegisteredCount = t.Registrations
+                        .Count(r => r.Status == RegistrationStatus.APPROVED),
                     AlreadyRegistered = registeredTopicIds.Contains(t.Id)
-                };
-            }).ToList();
-
+                })
+                .ToListAsync();
             var lecturers = await _db.LecturerProfiles
                 .Include(l => l.User)
                 .Select(l => new LecturerSelectItem
@@ -523,7 +520,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                 case "approve":
                     reg.Status = RegistrationStatus.APPROVED;
                     reg.LecturerNote = vm.Note;
-                    reg.Topic.Status = TopicStatus.Open; // keep open record; or set Closed if 1 student only
+                    reg.Topic.Status = TopicStatus.Closed; 
 
                     await _notif.SendAsync(reg.Student.UserId,
                         "Đề xuất đề tài của bạn đã được DUYỆT! Chúc mừng.",

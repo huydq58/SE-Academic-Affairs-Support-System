@@ -28,6 +28,8 @@ namespace SE_Academic_Affairs_Support_System.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+
             // Unique student code
             modelBuilder.Entity<StudentProfile>()
                 .HasIndex(s => s.StudentCode).IsUnique();

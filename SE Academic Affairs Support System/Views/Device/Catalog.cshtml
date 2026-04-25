@@ -249,8 +249,22 @@
         border: none;
         transition: 0.2s;
         text-decoration: none;
+        white-space: nowrap;
     }
 
+    .btn-primary {
+        background: var(--accent);
+        color: #fff;
+    }
+
+        .btn-primary:hover {
+            background: #3a7de8;
+        }
+
+    .btn-disabled {
+        background: var(--surface2);
+        color: var(--muted);
+        cursor: not-allowed;
     }
 
     .empty-state {
@@ -258,7 +272,124 @@
         padding: 40px 20px;
         color: var(--muted);
     }
-</style>
+
+    /* Badge inline trong device-meta — chỉ hiện trên màn hình rất nhỏ */
+    .status-inline {
+        display: none;
+    }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 768px) {
+        .dm-page
+
+    {
+        padding: 16px;
+    }
+
+    .dm-header h1 {
+        font-size: 22px;
+    }
+
+    .dm-header p {
+        font-size: 13px;
+    }
+
+    .search-container {
+        max-width: 100%;
+    }
+
+    .search-input {
+        font-size: 14px;
+        padding: 12px 16px 12px 42px;
+    }
+
+    /* Category pills scroll ngang trên mobile */
+    .cat-pills {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+        .cat-pills::-webkit-scrollbar {
+            display: none;
+        }
+
+    .cpill {
+        flex-shrink: 0;
+        font-size: 12px;
+        padding: 7px 14px;
+    }
+
+    /* Table: ẩn cột Phân loại, giữ 3 cột chính */
+    .dm-table th:nth-child(2),
+    .dm-table td:nth-child(2) {
+        display: none;
+    }
+
+    .dm-table th,
+    .dm-table td {
+        padding: 12px 10px;
+    }
+
+        /* Cột Thao tác: thu nhỏ nút */
+        .dm-table td:last-child {
+            text-align: right;
+        }
+
+    .btn {
+        padding: 7px 12px;
+        font-size: 12px;
+    }
+
+    .device-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+
+    .device-name-wrap {
+        gap: 8px;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .dm-page
+
+    {
+        padding: 12px;
+    }
+
+    .dm-header h1 {
+        font-size: 18px;
+    }
+
+    /* Ẩn thêm cột Tình trạng, hiển thị badge ngay trong tên thiết bị */
+    .dm-table th:nth-child(3),
+    .dm-table td:nth-child(3) {
+        display: none;
+    }
+
+    /* Hiện badge status inline trong device-meta */
+    .status-inline {
+        display: inline-flex;
+        margin-top: 4px;
+    }
+
+    .btn {
+        padding: 6px 10px;
+        font-size: 11px;
+        gap: 3px;
+    }
+
+    .device-code {
+        font-size: 11px;
+    }
+
+    }</style>
 
 <div class="dm-page">
     <div class="dm-header">
@@ -313,6 +444,14 @@
                                 <div class="device-meta">
                                     <strong>@d.DeviceName</strong>
                                     <span class="device-code">#@d.DeviceId</span>
+                                    @if (isAvail)
+                                    {
+                                        <span class="status-badge badge-green status-inline">Sẵn sàng</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge badge-red status-inline">Không khả dụng</span>
+                                    }
                                 </div>
                             </div>
                         </td>
