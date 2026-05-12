@@ -58,11 +58,11 @@
             margin-bottom: 8px;
             color: #fff;
         }
-        /* Đổi màu trắng cho hợp Dark Mode */
-        .dm-header p {
-            color: var(--muted);
-            font-size: 15px;
-        }
+    .dm-header p {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 4px;
+    }
 
     .search-container {
         width: 100%;
@@ -412,15 +412,9 @@
 </style>
 
 <div class="dm-page">
-    <div class="dm-header">
-        <h1>Quản lý Yêu cầu Đăng ký App</h1>
-        <p>Hiện có <strong>@pendingCount</strong> yêu cầu đang chờ xử lý trên tổng số @total yêu cầu</p>
-
-        @if (TempData["SuccessMessage"] != null)
-        {
-            <div style="color: var(--green); margin-top: 10px; font-weight: bold;">✅ @TempData["SuccessMessage"]</div>
-        }
-
+    <div class="dm-header-left">
+        <h1 style="color: black;">Quản lý Yêu cầu Đăng ký App</h1>
+        <p>Kiểm soát kho, theo dõi tình trạng và cập nhật thiết bị</p>
         <div class="search-container">
             <span class="search-icon">🔍</span>
             <input type="text" id="sInput" class="search-input" placeholder="Tìm tên App, mã request, tên sinh viên..." onkeyup="applyFilter()" autocomplete="off" />

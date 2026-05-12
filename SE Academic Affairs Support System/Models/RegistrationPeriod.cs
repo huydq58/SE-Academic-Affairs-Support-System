@@ -19,6 +19,8 @@ namespace SE_Academic_Affairs_Support_System.Models
 
         [Required, MaxLength(100)]
         public string CourseName { get; set; } = string.Empty;
+        [Url(ErrorMessage = "Link Google Sheet không hợp lệ")]
+        public string? GoogleSheetLink { get; set; }
 
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
@@ -26,6 +28,24 @@ namespace SE_Academic_Affairs_Support_System.Models
 
         public ICollection<Topic> Topics { get; set; } = new List<Topic>();
         public ICollection<Registration> Registrations { get; set; } = new List<Registration>();
+
+        public string GetDownloadLink(string format)
+        {
+            if (string.IsNullOrEmpty(GoogleSheetLink)) return "#";
+
+            // Tìm vị trí bắt đầu của ID file (sau /d/) và vị trí kết thúc (trước /edit hoặc /view)
+            try
+            {
+                var parts = GoogleSheetLink.Split('/');
+                var fileId = parts[5]; // Thông thường ID nằm ở vị trí này trong URL chuẩn
+                return $"https://docs.google.com/spreadsheets/d/{fileId}/export?format={format}";
+            }
+            catch
+            {
+                return GoogleSheetLink; // Trả về link gốc nếu parse lỗi
+            }
+        }
+
     }
 
 }

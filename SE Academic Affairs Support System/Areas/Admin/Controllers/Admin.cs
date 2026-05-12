@@ -53,11 +53,12 @@ namespace SE_Academic_Affairs_Support_System.Areas.Admin.Controllers
             var period = periods.FirstOrDefault(p => p.Id == id);
             if (period == null) return NotFound();
 
-            return View(new PeriodFormViewModel
+            return View("CreatePeriod",new PeriodFormViewModel
             {
                 Id = period.Id,
                 Name = period.Name,
                 CourseName = period.CourseName,
+                GoogleSheetLink = period.GoogleSheetLink,
                 StartDate = period.StartDate,
                 EndDate = period.EndDate,
                 IsActive = period.IsActive
@@ -105,5 +106,6 @@ namespace SE_Academic_Affairs_Support_System.Areas.Admin.Controllers
             var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
             return File(bytes, "text/csv", $"danh-sach-do-an-{periodId}.csv");
         }
+
     }
 }

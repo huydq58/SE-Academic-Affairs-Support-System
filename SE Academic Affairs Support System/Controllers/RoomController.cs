@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using AspNetCoreGeneratedDocument;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Models;
 using SE_Academic_Affairs_Support_System.Services.Email;
@@ -18,11 +21,12 @@ namespace SE_Academic_Affairs_Support_System.Controllers
         private readonly AppDbContext _context;
         private readonly IConfiguration _config;
         private readonly EmailService _emailService;
-        public RoomController(AppDbContext context)
+        private readonly UserManager<User> _userManager;
+        public RoomController(AppDbContext context, UserManager<User> userManager)
         {
             _context = context;
             _emailService = new EmailService(_config);
-
+            _userManager = userManager;
         }
         [AllowAnonymous]
         public async Task<IActionResult> WeeklySchedule(int roomId, DateTime? selectedDate)
@@ -71,18 +75,29 @@ namespace SE_Academic_Affairs_Support_System.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> CreateBooking(int roomId, DateTime date, TimeSpan startTime, TimeSpan endTime)
+        [Authorize]
+        public async Task<IActionResult> CreateBooking(int roomId,DateTime date,TimeSpan startTime,TimeSpan endTime)
         {
             var room = await _context.Rooms.FindAsync(roomId);
-            if (room == null) return NotFound();
+
+            if (room == null)
+                return NotFound();
+
+            // Lấy user đang đăng nhập
+            var user = await _userManager.GetUserAsync(User);
 
             var model = new CreateBookingViewModel
             {
                 RoomId = roomId,
                 RoomName = room.RoomName,
                 BookingDate = date,
-                StartTime = startTime,  
-                EndTime = endTime      
+                StartTime = startTime,
+                EndTime = endTime,
+
+                // Autofill
+                UserName = user.FullName,
+                UserEmail = user.Email,
+                PhoneNumber = user.PhoneNumber
             };
 
             return View(model);
@@ -92,11 +107,8 @@ namespace SE_Academic_Affairs_Support_System.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateBooking(CreateBookingViewModel model)
         {
-
             if (!ModelState.IsValid)
-            {
                 return View(model);
-            }
 
             if (model.EndTime <= model.StartTime)
             {
@@ -104,21 +116,29 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                 return View(model);
             }
 
-            bool isConflict = await _context.RoomBookings.AnyAsync(b =>
-                b.RoomId == model.RoomId &&
-                b.BookingDate.Date == model.BookingDate.Date &&
-                b.Status == "Approved" &&
-                (model.StartTime < b.EndTime && model.EndTime > b.StartTime)
-            );
-
-            if (isConflict)
-            {
-                ModelState.AddModelError("", "Rất tiếc! Khoảng thời gian này đã có người đặt hoặc bị trùng lấn. Vui lòng chọn giờ khác.");
-                return View(model);
-            }
+            // Transaction
+            await using var transaction = await _context.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
 
             try
             {
+                // Kiểm tra trùng lịch
+                bool isConflict = await _context.RoomBookings.AnyAsync(b =>
+                    b.RoomId == model.RoomId &&
+                    b.BookingDate.Date == model.BookingDate.Date &&
+                    b.Status == "Approved" &&
+                    model.StartTime < b.EndTime &&
+                    model.EndTime > b.StartTime
+                );
+
+                if (isConflict)
+                {
+                    ModelState.AddModelError("",
+                        "Khoảng thời gian này đã có người đặt.");
+
+                    return View(model);
+                }
+
                 var booking = new RoomBooking
                 {
                     RoomId = model.RoomId,
@@ -128,95 +148,105 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                     PhoneNumber = model.PhoneNumber,
                     StartTime = model.StartTime,
                     EndTime = model.EndTime,
-                    Purpose = model.Purpose ,
-                    Status = "Pending",
+                    Purpose = model.Purpose,
+                    Status = "Approved",
                     CreatedAt = DateTime.Now
                 };
 
                 _context.RoomBookings.Add(booking);
+
                 await _context.SaveChangesAsync();
 
+                // Commit transaction
+                await transaction.CommitAsync();
 
-                TempData["SuccessMessage"] = "Gửi yêu cầu đặt phòng thành công! Vui lòng chờ Giáo vụ duyệt.";
+                TempData["SuccessMessage"] = "Đặt phòng thành công!";
 
-
-                return RedirectToAction("WeeklySchedule", new { roomId = model.RoomId, selectedDate = model.BookingDate.ToString("yyyy-MM-dd") });
+                return RedirectToAction("WeeklySchedule",
+                    new
+                    {
+                        roomId = model.RoomId,
+                        selectedDate = model.BookingDate.ToString("yyyy-MM-dd")
+                    });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
+                await transaction.RollbackAsync();
 
-                ModelState.AddModelError("", "Đã xảy ra lỗi khi lưu dữ liệu. Vui lòng thử lại sau.");
+                ModelState.AddModelError("",
+                    "Có lỗi xảy ra khi đặt phòng.");
+
                 return View(model);
             }
         }
-        [Authorize(Roles = "Admin")]
-        [HttpGet]
-        public async Task<IActionResult> PendingBookings()
-        {
-            var pendingList = await _context.RoomBookings
-                .Include(b => b.Room)
-                .Where(b => b.Status == "Pending")
-                .OrderBy(b => b.BookingDate)
-                .ToListAsync();
+        //[Authorize(Roles = "Admin")]
+        //[HttpGet]
+        //public async Task<IActionResult> PendingBookings()
+        //{
+        //    var pendingList = await _context.RoomBookings
+        //        .Include(b => b.Room)
+        //        .Where(b => b.Status == "Pending")
+        //        .OrderBy(b => b.BookingDate)
+        //        .ToListAsync();
 
-            return View(pendingList);
-        }
-        [Authorize(Roles = "Admin")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ApproveBooking(int id)
-        {
-            // Tìm đơn đặt phòng theo ID
-            var booking = await _context.RoomBookings.FindAsync(id);
-            if (booking == null || booking.Status != "Pending")
-            {
-                return NotFound("Đơn không tồn tại hoặc đã được xử lý.");
-            }
+        //    return View(pendingList);
+        //}
+        //[Authorize(Roles = "Admin")]
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> ApproveBooking(int id)
+        //{
+        //    // Tìm đơn đặt phòng theo ID
+        //    var booking = await _context.RoomBookings.FindAsync(id);
+        //    if (booking == null || booking.Status != "Pending")
+        //    {
+        //        return NotFound("Đơn không tồn tại hoặc đã được xử lý.");
+        //    }
 
-            // 1. Chuyển trạng thái đơn này thành Approved
-            booking.Status = "Approved";
-
-
-            var conflictingBookings = await _context.RoomBookings
-                .Where(b => b.RoomId == booking.RoomId
-                         && b.BookingDate.Date == booking.BookingDate.Date
-                         && b.BookingId != booking.BookingId // Loại trừ đơn vừa duyệt
-                         && b.Status == "Pending"
-
-                         && b.StartTime < booking.EndTime
-                         && b.EndTime > booking.StartTime)
-                .ToListAsync();
-
-            foreach (var conflict in conflictingBookings)
-            {
-                conflict.Status = "Rejected"; // Đổi trạng thái thành Từ chối
-            }
-
-            await _emailService.SendConfirmRoomAsync(booking.UserEmail, booking.UserName, booking.StartTime, booking.EndTime,booking.BookingDate,booking.Purpose);
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "Đã duyệt đơn thành công! Các đơn trùng giờ đã tự động bị từ chối.";
-
-            return RedirectToAction(nameof(PendingBookings)); // Hoặc thay bằng tên trang danh sách chờ duyệt của bạn
-        }
-        [Authorize(Roles = "Admin")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RejectBooking(int id)
-        {
-            var booking = await _context.RoomBookings.FindAsync(id);
-            if (booking == null || booking.Status != "Pending")
-            {
-                return NotFound("Đơn không tồn tại hoặc đã được xử lý.");
-            }
-
-            booking.Status = "Rejected";
+        //    // 1. Chuyển trạng thái đơn này thành Approved
+        //    booking.Status = "Approved";
 
 
-            await _context.SaveChangesAsync();
+        //    var conflictingBookings = await _context.RoomBookings
+        //        .Where(b => b.RoomId == booking.RoomId
+        //                 && b.BookingDate.Date == booking.BookingDate.Date
+        //                 && b.BookingId != booking.BookingId // Loại trừ đơn vừa duyệt
+        //                 && b.Status == "Pending"
 
-            TempData["Success"] = "Đã từ chối đơn đặt phòng.";
-            return RedirectToAction(nameof(PendingBookings));
-        }
+        //                 && b.StartTime < booking.EndTime
+        //                 && b.EndTime > booking.StartTime)
+        //        .ToListAsync();
+
+        //    foreach (var conflict in conflictingBookings)
+        //    {
+        //        conflict.Status = "Rejected"; // Đổi trạng thái thành Từ chối
+        //    }
+
+        //    await _emailService.SendConfirmRoomAsync(booking.UserEmail, booking.UserName, booking.StartTime, booking.EndTime,booking.BookingDate,booking.Purpose);
+        //    await _context.SaveChangesAsync();
+        //    TempData["Success"] = "Đã duyệt đơn thành công! Các đơn trùng giờ đã tự động bị từ chối.";
+
+        //    return RedirectToAction(nameof(PendingBookings)); // Hoặc thay bằng tên trang danh sách chờ duyệt của bạn
+        //}
+        //[Authorize(Roles = "Admin")]
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> RejectBooking(int id)
+        //{
+        //    var booking = await _context.RoomBookings.FindAsync(id);
+        //    if (booking == null || booking.Status != "Pending")
+        //    {
+        //        return NotFound("Đơn không tồn tại hoặc đã được xử lý.");
+        //    }
+
+        //    booking.Status = "Rejected";
+
+
+        //    await _context.SaveChangesAsync();
+
+        //    TempData["Success"] = "Đã từ chối đơn đặt phòng.";
+        //    return RedirectToAction(nameof(PendingBookings));
+        //}
 
         [HttpGet]
         public async Task<IActionResult> GetBookingsForCalendar(int roomId)

@@ -39,7 +39,23 @@
                            placeholder="Ví dụ: Đồ án tốt nghiệp" />
                     <span asp-validation-for="CourseName" class="text-danger small"></span>
                 </div>
+                <div class="mb-3">
+                    <label asp-for="GoogleSheetLink"
+                           class="form-label fw-semibold">
+                        Link Google Sheet
+                    </label>
 
+                    <input asp-for="GoogleSheetLink"
+                           class="form-control"
+                           placeholder="https://docs.google.com/spreadsheets/..." />
+
+                    <span asp-validation-for="GoogleSheetLink"
+                          class="text-danger small"></span>
+
+                    <div class="form-text">
+                        Dùng để lưu bảng đăng ký hoặc theo dõi sinh viên.
+                    </div>
+                </div>
                 <div class="row g-3 mb-3">
                     <div class="col-sm-6">
                         <label asp-for="StartDate" class="form-label fw-semibold"></label>

@@ -6,11 +6,6 @@
     },
     "secrets1": {
       "type": "secrets"
-    },
-    "postgresql1": {
-      "type": "postgresql",
-      "connectionId": "ConnectionStrings:DatabaseConnection1",
-      "dynamicId": null
     }
   }
 }

@@ -172,7 +172,7 @@
         /* Slot time labels */
         .fc .fc-timegrid-slot-label-cushion {
             font-size: 0.68rem !important;
-            padding-right: 3px !important;
+            padding-right: 5px !important;
         }
 
         /* Event text */
@@ -273,12 +273,11 @@
                 <i class="bi bi-door-open-fill me-2"></i> Lịch phòng: @(currentRoom?.RoomName ?? "Chưa chọn phòng")
             </h5>
             <span class="badge bg-white text-primary px-3 py-2 rounded-pill shadow-sm">
-                {{-- Desktop: kéo thả; Mobile: nhấn giữ --}}
                 <span class="hint-desktop">
-                    <i class="bi bi-hand-index-thumb me-1"></i> Kéo thả chuột để đặt phòng
+                    <i ></i> Kéo thả chuột để đặt phòng
                 </span>
                 <span class="hint-mobile">
-                    <i class="bi bi-hand-index-thumb me-1"></i> Nhấn giữ để đặt phòng
+                    <i ></i> Nhấn giữ để đặt phòng
                 </span>
             </span>
         </div>
@@ -385,10 +384,10 @@
 
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: isMobile ? 'timeGridDay' : 'timeGridWeek',
-                locale: 'vi',
+                locale: 'EN',
 
                 // Hỗ trợ nhấn giữ trên mobile để chọn thời gian
-                selectLongPressDelay: 500,
+                selectLongPressDelay: 200,
 
                 headerToolbar: {
                     left: 'prev,next today',
@@ -433,7 +432,7 @@
                     var startTime  = info.startStr.split('T')[1].substring(0, 5);
                     var endTime    = info.endStr.split('T')[1].substring(0, 5);
                     var dateObj    = new Date(info.startStr);
-                    var formattedDate = dateObj.toLocaleDateString('vi-VN');
+                    var formattedDate = dateObj.toLocaleDateString('en');
                     var daysOfWeek = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
                     var dayName    = daysOfWeek[dateObj.getDay()];
 
@@ -458,8 +457,8 @@
                 eventClick: function (info) {
                     var status  = info.event.extendedProps.status;
                     var purpose = info.event.extendedProps.purpose || "Không có ghi chú";
-                    var startTime  = info.event.start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                    var endTime    = info.event.end ? info.event.end.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+                    var startTime  = info.event.start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    var endTime    = info.event.end ? info.event.end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
                     var timeString = endTime ? startTime + ' - ' + endTime : startTime;
 
                     document.getElementById('modalUserName').innerText = info.event.title;
