@@ -31,6 +31,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             {
                 Name = vm.Name,
                 CourseName = vm.CourseName,
+                GoogleSheetLink = vm.GoogleSheetLink,
                 StartDate = vm.StartDate,
                 EndDate = vm.EndDate,
                 IsActive = vm.IsActive

@@ -16,8 +16,8 @@
 @inject UserManager<User> UserManager
 
 @{
-	    SignInManager.IsSignedIn(User);
-	        UserManager.GetUserName(User);
+         SignInManager.IsSignedIn(User);
+             UserManager.GetUserName(User);
 }
 <body class="d-flex flex-column min-vh-100 bg-light">
 
@@ -41,34 +41,75 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Home" asp-action="RoomList">Đặt phòng</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Device" asp-action="Catalog">Mượn thiết bị</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="AppRegistration" asp-action="Create">Đăng tải App</a>
-                        </li>
+                        <!-- Thiết bị: dropdown cho Admin, link thẳng cho user thường -->
+                        @if (SignInManager.IsSignedIn(User) && User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Thiết bị
+                                </a>
+                                <ul class="dropdown-menu shadow-sm border-0">
+                                    <li>
+                                        <a class="dropdown-item fw-semibold" asp-area="" asp-controller="Device" asp-action="Catalog">
+                                            Mượn
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item fw-semibold" asp-area="" asp-controller="Device" asp-action="Index">
+                                            Quản lý
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Device" asp-action="Catalog">Thiết bị</a>
+                            </li>
+                        }
+
+                        <!-- App: dropdown cho Admin, link thẳng cho user thường -->
+                        @if (SignInManager.IsSignedIn(User) && User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    App
+                                </a>
+                                <ul class="dropdown-menu shadow-sm border-0">
+                                    <li>
+                                        <a class="dropdown-item fw-semibold" asp-area="" asp-controller="AppRegistration" asp-action="Create">
+                                            Đăng tải
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item fw-semibold" asp-area="" asp-controller="AppRegistration" asp-action="PendingRequests">
+                                            Duyệt
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="AppRegistration" asp-action="Create">App</a>
+                            </li>
+                        }
+
 
                         @if (SignInManager.IsSignedIn(User) && User.IsInRole("Admin"))
                         {
-                            <li class="nav-item">
+                            @* <li class="nav-item">
                                 <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Room" asp-action="PendingBookings">Duyệt phòng</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="Device" asp-action="Index">Quản lý thiết bị</a>
-                            </li>
+                            </li> *@
 
                             <li class="nav-item">
                                 <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Admin" asp-controller="Registration" asp-action="Periods">Đợt đăng ký </a>
                             </li>
                         }
 
-                        @if (SignInManager.IsSignedIn(User) && (User.IsInRole("Admin") || User.IsInRole("Lecturer")))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="" asp-controller="AppRegistration" asp-action="PendingRequests">Duyệt App</a>
-                            </li>
-                        }
-                        @if (SignInManager.IsSignedIn(User) &&  User.IsInRole("Lecturer"))
+                        @if (SignInManager.IsSignedIn(User) && User.IsInRole("Lecturer"))
                         {
                             <li class="nav-item">
                                 <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Lecturer" asp-controller="Registration" asp-action="CreateTopic">CreateTopic</a>
@@ -83,9 +124,9 @@
                         @if (SignInManager.IsSignedIn(User) && User.IsInRole("Student"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Student" asp-controller="Registration" asp-action="TopicList">TopicList</a>
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Student" asp-controller="Registration" asp-action="ActivePeriods">Danh sách đợt đăng ký</a>
                             </li>
-                            
+
                         }
                     </ul>
 

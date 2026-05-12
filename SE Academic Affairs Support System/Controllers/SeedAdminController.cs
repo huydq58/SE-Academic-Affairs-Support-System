@@ -41,7 +41,8 @@ namespace SE_Academic_Affairs_Support_System.Controllers
         // POST: /SeedAdmin/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(string username, string password, string fullname, string role)
+        // BƯỚC 1: Thêm tham số email và phoneNumber vào hàm
+        public async Task<IActionResult> Create(string username, string password, string fullname, string role, string email, string phoneNumber)
         {
             if (!_env.IsDevelopment())
                 return NotFound();
@@ -63,12 +64,15 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                 return View("Index");
             }
 
+            // BƯỚC 2: Gán giá trị Email và PhoneNumber cho đối tượng User
             var user = new User
             {
                 UserName = username,
                 FullName = fullname,
+                Email = email,               // Thêm Email
+                PhoneNumber = phoneNumber,   // Thêm Số điện thoại
                 Role = role,
-                EmailConfirmed = true
+                EmailConfirmed = true        // Tự động xác nhận email cho tài khoản seed
             };
 
             var result = await _userManager.CreateAsync(user, password);

@@ -64,7 +64,7 @@
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm">
                                     <a asp-action="EditPeriod" asp-route-id="@p.Id"
-                                       class="btn btn-outline-secondary">
+                                       class="btn btn-outline-secondary" title="Sửa đợt">
                                         <i class="bi bi-pencil"></i>
                                     </a>
 
@@ -92,10 +92,23 @@
                                         </form>
                                     }
 
-                                    <a asp-action="Export" asp-route-periodId="@p.Id"
+                                    @* <a asp-action="Export" asp-route-periodId="@p.Id"
                                        class="btn btn-outline-primary" title="Xuất CSV">
                                         <i class="bi bi-download"></i>
-                                    </a>
+                                    </a> *@
+
+                                    @if (!string.IsNullOrEmpty(p.GoogleSheetLink))
+                                    {
+                                        <a href="@p.GetDownloadLink("pdf")" target="_blank"
+                                           class="btn btn-outline-danger" title="In/Xuất PDF Sheet">
+                                            <i class="bi bi-file-pdf-fill"></i> PDF
+                                        </a>
+
+                                        <a href="@p.GetDownloadLink("xlsx")" target="_blank"
+                                           class="btn btn-outline-success" title="Tải Excel Sheet">
+                                            <i class="bi bi-file-excel-fill"></i> Excel
+                                        </a>
+                                    }
                                 </div>
                             </td>
                         </tr>

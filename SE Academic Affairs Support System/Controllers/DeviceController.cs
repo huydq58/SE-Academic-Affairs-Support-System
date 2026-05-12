@@ -1,4 +1,5 @@
 using System.Linq;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SE_Academic_Affairs_Support_System.Data;
@@ -11,12 +12,13 @@ namespace SE_Academic_Affairs_Support_System.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _config;
-        private readonly EmailService _emailService;
-        public DeviceController(AppDbContext context)
+        private readonly EmailService _emailService; 
+        private readonly UserManager<User> _userManager;
+        public DeviceController(AppDbContext context, UserManager<User> userManager)
         {
             _context = context;
             _emailService = new EmailService(_config);
-
+                        _userManager = userManager;
         }
 
 
@@ -266,28 +268,44 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             TempData["Success"] = $"Đã cập nhật tình trạng thiết bị \"{device.DeviceName}\" thành {(condition == "Good" ? "Tốt" : "Hỏng")}.";
             return RedirectToAction(nameof(Index));
         }
-        public IActionResult BorrowForm(int? deviceId = null)
+        public async Task<IActionResult> BorrowForm(int? deviceId = null)
         {
-            // Chỉ lấy thiết bị Available VÀ Condition = Good
-            var availableDevices = _context.Devices
-                .Where(d => d.Status == "Available" && d.Condition == "Good")
+            // Có thể null nếu chưa login
+            var user = await _userManager.GetUserAsync(User);
+
+            // Chỉ lấy thiết bị Available và Good
+            var availableDevices = await _context.Devices
+                .Where(d => d.Status == "Available" &&
+                            d.Condition == "Good")
                 .OrderBy(d => d.Category)
                 .ThenBy(d => d.DeviceName)
-                .ToList();
+                .ToListAsync();
 
             ViewBag.AvailableDevices = availableDevices;
             ViewBag.SelectedDeviceId = deviceId;
 
-            // Nếu có deviceId truyền vào, pre-select thiết bị đó
+            // Autofill thông tin user
+            ViewBag.UserName = user?.UserName ?? "";
+            ViewBag.UserEmail = user?.Email ?? "";
+            ViewBag.PhoneNumber = user?.PhoneNumber ?? "";
+
+            // Pre-select thiết bị
             if (deviceId.HasValue)
             {
-                var preSelected = availableDevices.FirstOrDefault(d => d.DeviceId == deviceId.Value);
+                var preSelected = availableDevices
+                    .FirstOrDefault(d => d.DeviceId == deviceId.Value);
+
                 ViewBag.PreSelectedDevice = preSelected;
             }
 
-            return View();
-        }
+            var model = new DeviceRequest
+            {
+                BorrowerName = user?.FullName ?? "",
+                BorrowerEmail = user?.Email ?? ""
+            };
 
+            return View(model);
+        }
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult BorrowForm(DeviceRequest request)

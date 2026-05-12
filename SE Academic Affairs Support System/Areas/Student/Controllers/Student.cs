@@ -170,5 +170,17 @@ namespace SE_Academic_Affairs_Support_System.Areas.Student.Controllers
             var vm = await _svc.GetMyRegistrationsAsync(studentId.Value);
             return View(vm);
         }
+        public async Task<IActionResult> ActivePeriods()
+        {
+            var now = DateTime.Now;
+
+            // Lọc các đợt đăng ký đang trong thời gian mở và được kích hoạt
+            var activePeriods = await _db.RegistrationPeriods
+                .Where(p => p.IsActive && p.StartDate <= now && p.EndDate >= now)
+                .OrderByDescending(p => p.EndDate) // Đợt nào sắp hết hạn hiện lên đầu
+                .ToListAsync();
+
+            return View(activePeriods);
+        }
     }
 }

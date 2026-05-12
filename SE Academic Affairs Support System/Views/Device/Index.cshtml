@@ -315,6 +315,8 @@
         }
 </style>
 
+
+
 <div class="dm-page">
     <div class="dm-header">
         <div class="dm-header-left">
@@ -453,7 +455,7 @@
 
 <script>
     function confirmDelete(id, name) {
-        if (confirm(`⚠️ Bạn có chắc chắn muốn XÓA thiết bị:\n- ${name}\n\nHành động này không thể hoàn tác.`)) {
+        if (confirm(`Bạn có chắc chắn muốn XÓA thiết bị:\n- ${name}\n\nHành động này không thể hoàn tác.`)) {
             let form = document.getElementById('deleteForm');
             form.action = '/Device/Delete/' + id;
             form.submit();

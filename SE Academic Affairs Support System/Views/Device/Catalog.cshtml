@@ -5,6 +5,8 @@
     var selectedCat = ViewBag.SelectedCategory as string;
     var searchVal = ViewBag.Search as string;
     var total = (int)(ViewBag.TotalAvailable ?? 0);
+    // Ẩn thiết bị đã trả (Returned) — chỉ hiển thị Available và Borrowing
+    var devices = Model.Where(d => d.Status != "Returned").ToList();
 
     // Hàm hỗ trợ render icon theo danh mục
     string Icon(string cat) => cat?.ToLower() switch
@@ -278,118 +280,108 @@
         display: none;
     }
 
-    /* ── RESPONSIVE ── */
+
     @@media (max-width: 768px) {
-        .dm-page
+        .dm-page {
+            padding: 16px;
+        }
 
-    {
-        padding: 16px;
-    }
+        .dm-header h1 {
+            font-size: 22px;
+        }
 
-    .dm-header h1 {
-        font-size: 22px;
-    }
+        .dm-header p {
+            font-size: 13px;
+        }
 
-    .dm-header p {
-        font-size: 13px;
-    }
+        .search-container {
+            max-width: 100%;
+        }
 
-    .search-container {
-        max-width: 100%;
-    }
+        .search-input {
+            font-size: 14px;
+            padding: 12px 16px 12px 42px;
+        }
+        /* Category pills scroll ngang trên mobile */
+        .cat-pills {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            justify-content: flex-start;
+            padding-bottom: 6px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
 
-    .search-input {
-        font-size: 14px;
-        padding: 12px 16px 12px 42px;
-    }
+            .cat-pills::-webkit-scrollbar {
+                display: none;
+            }
 
-    /* Category pills scroll ngang trên mobile */
-    .cat-pills {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        justify-content: flex-start;
-        padding-bottom: 6px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-
-        .cat-pills::-webkit-scrollbar {
+        .cpill {
+            flex-shrink: 0;
+            font-size: 12px;
+            padding: 7px 14px;
+        }
+        /* Table: ẩn cột Phân loại, giữ 3 cột chính */
+        .dm-table th:nth-child(2),
+        .dm-table td:nth-child(2) {
             display: none;
         }
 
-    .cpill {
-        flex-shrink: 0;
-        font-size: 12px;
-        padding: 7px 14px;
-    }
+        .dm-table th,
+        .dm-table td {
+            padding: 12px 10px;
+        }
+            /* Cột Thao tác: thu nhỏ nút */
+            .dm-table td:last-child {
+                text-align: right;
+            }
 
-    /* Table: ẩn cột Phân loại, giữ 3 cột chính */
-    .dm-table th:nth-child(2),
-    .dm-table td:nth-child(2) {
-        display: none;
-    }
-
-    .dm-table th,
-    .dm-table td {
-        padding: 12px 10px;
-    }
-
-        /* Cột Thao tác: thu nhỏ nút */
-        .dm-table td:last-child {
-            text-align: right;
+        .btn {
+            padding: 7px 12px;
+            font-size: 12px;
         }
 
-    .btn {
-        padding: 7px 12px;
-        font-size: 12px;
-    }
+        .device-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+        }
 
-    .device-icon {
-        width: 32px;
-        height: 32px;
-        font-size: 16px;
-    }
-
-    .device-name-wrap {
-        gap: 8px;
-    }
-
+        .device-name-wrap {
+            gap: 8px;
+        }
     }
 
     @@media (max-width: 480px) {
-        .dm-page
+        .dm-page {
+            padding: 12px;
+        }
 
-    {
-        padding: 12px;
+        .dm-header h1 {
+            font-size: 18px;
+        }
+        /* Ẩn thêm cột Tình trạng, hiển thị badge ngay trong tên thiết bị */
+        .dm-table th:nth-child(3),
+        .dm-table td:nth-child(3) {
+            display: none;
+        }
+        /* Hiện badge status inline trong device-meta */
+        .status-inline {
+            display: inline-flex;
+            margin-top: 4px;
+        }
+
+        .btn {
+            padding: 6px 10px;
+            font-size: 11px;
+            gap: 3px;
+        }
+
+        .device-code {
+            font-size: 11px;
+        }
     }
-
-    .dm-header h1 {
-        font-size: 18px;
-    }
-
-    /* Ẩn thêm cột Tình trạng, hiển thị badge ngay trong tên thiết bị */
-    .dm-table th:nth-child(3),
-    .dm-table td:nth-child(3) {
-        display: none;
-    }
-
-    /* Hiện badge status inline trong device-meta */
-    .status-inline {
-        display: inline-flex;
-        margin-top: 4px;
-    }
-
-    .btn {
-        padding: 6px 10px;
-        font-size: 11px;
-        gap: 3px;
-    }
-
-    .device-code {
-        font-size: 11px;
-    }
-
-    }</style>
+</style>
 
 <div class="dm-page">
     <div class="dm-header">
@@ -423,12 +415,12 @@
                 </tr>
             </thead>
             <tbody id="tableBody">
-                @if (!Model.Any())
+                @if (!devices.Any())
                 {
                     <tr id="emptyDbRow"><td colspan="4" class="empty-state">Kho hiện tại chưa có thiết bị nào.</td></tr>
                 }
 
-                @foreach (var d in Model)
+                @foreach (var d in devices)
                 {
                     bool isAvail = (d.Status == "Available" && d.Condition == "Good");
 
