@@ -23,7 +23,12 @@ namespace SE_Academic_Affairs_Support_System
             builder.Services.AddScoped<IAppRegistrationService, AppRegistrationService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddScoped<IRegistrationService, RegistrationService>();
-
+            builder.Services.AddHttpClient<GoogleSheetsService>()
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        AllowAutoRedirect = true,
+        MaxAutomaticRedirections = 5
+    });
             // 3. Identity
             builder.Services.AddIdentity<User, IdentityRole>(options =>
             {

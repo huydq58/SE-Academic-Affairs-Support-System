@@ -1,0 +1,143 @@
+﻿@model TopicListSheetViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Đăng ký đề tài";
+}
+
+<div class="container mt-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-controller="RegistrationPeriod" asp-action="ActivePeriods">
+                    Đợt đăng ký
+                </a>
+            </li>
+            <li class="breadcrumb-item active">@Model.PeriodName</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-0">@Model.PeriodName</h4>
+            <small class="text-muted">@Model.CourseName</small>
+        </div>
+        <span class="badge bg-primary fs-6">
+            @Model.Topics.Count đề tài
+        </span>
+    </div>
+
+    @if (Model.StatusMessage != null)
+    {
+        <div class="alert alert-@(Model.IsSuccess ? "success" : "danger")
+                        alert-dismissible fade show" role="alert">
+            <i class="fas fa-@(Model.IsSuccess ? "check-circle" : "exclamation-circle") me-2"></i>
+            @Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th style="width:50px">STT</th>
+                    <th>Tên đề tài</th>
+                    <th style="width:160px">Giảng viên HD</th>
+                    <th style="width:160px">Sinh viên 1</th>
+                    <th style="width:160px">Sinh viên 2</th>
+                    <th style="width:70px" class="text-center">Slot</th>
+                    <th style="width:110px" class="text-center">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model.Topics)
+                {
+                    var full = t.Registered >= t.MaxSlot;
+                    <tr class="@(full ? "table-secondary" : "")">
+                        <td class="text-center">@t.Stt</td>
+                        <td>
+                            <div class="fw-semibold">@t.TopicName</div>
+                            @if (!string.IsNullOrEmpty(t.Note))
+                            {
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>@t.Note
+                                </small>
+                            }
+                            @if (!string.IsNullOrEmpty(t.EducationType))
+                            {
+                                <span class="badge bg-light text-dark border ms-1">
+                                    @t.EducationType
+                                </span>
+                            }
+                        </td>
+                        <td>
+                            <div>@t.Lecturer</div>
+                            <small class="text-muted">@t.LecturerInfo</small>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(t.Student1))
+                            {
+                                <span class="badge bg-primary">@t.Mssv1</span>
+                                <div class="small mt-1">@t.Student1</div>
+                            }
+                            else
+                            {
+
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(t.Student2))
+                            {
+                                <span class="badge bg-primary">@t.Mssv2</span>
+                                <div class="small mt-1">@t.Student2</div>
+                            }
+                            else
+                            {
+
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <span class="badge @(full ? "bg-danger" : "bg-success") fs-6">
+                                @t.Registered/@t.MaxSlot
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            @if (!full)
+                            {
+                                <form asp-action="Register" asp-controller="Topic"
+                                      method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="sheetId" value="@Model.SheetId" />
+                                    <input type="hidden" name="periodName" value="@Model.PeriodName" />
+                                    <input type="hidden" name="courseName" value="@Model.CourseName" />
+                                    <input type="hidden" name="rowIndex" value="@t.RowIndex" />
+                                    <button type="button" class="btn btn-sm btn-primary"
+                                            onclick="confirmRegister(this, '@t.TopicName')">
+                                        <i class="fas fa-check-circle me-1"></i>Đăng ký
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-danger fw-semibold small">Đã đủ</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmRegister(btn, topicName) {
+            if (confirm(`Bạn xác nhận đăng ký đề tài:\n"${topicName}"?`)) {
+                btn.closest('form').submit();
+            }
+        }
+    </script>
+}
