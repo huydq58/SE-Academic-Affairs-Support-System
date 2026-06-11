@@ -5,45 +5,8 @@
 }
 
 <style>
-    .rm-page-title { border-left:4px solid #2563eb; padding-left:14px; margin-bottom:24px; }
-    .rm-page-title h2 { font-size:22px; font-weight:700; color:#1e3a8a; margin-bottom:3px; }
-    .rm-page-title p  { font-size:13px; color:#6b7280; margin:0; }
-
-    /* Stats */
-    .stat-box { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:14px 12px; text-align:center; }
-    .stat-num  { font-size:26px; font-weight:700; line-height:1; margin-bottom:4px; color:#374151; }
-    .stat-lbl  { font-size:12px; color:#6b7280; font-weight:500; }
-    .sn-amber  { color:#d97706; }
-
-    /* Table */
-    .dt-wrap { border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; }
-    .dt { border-collapse:collapse; width:100%; }
-    .dt thead th { background:#f8fafc; padding:12px 16px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#64748b; border-bottom:1px solid #e5e7eb; white-space:nowrap; }
-    .dt tbody td { padding:13px 16px; border-bottom:1px solid #f1f5f9; vertical-align:middle; font-size:14px; color:#374151; }
-    .dt tbody tr:last-child td { border-bottom:none; }
-    .dt tbody tr:hover td { background:#f8fafc; }
-
     .time-block .date { font-weight:600; font-size:14px; color:#374151; }
     .time-block .hour { font-size:12px; color:#6b7280; font-family:monospace; margin-top:2px; }
-
-    /* Buttons */
-    .btn-act { display:inline-flex; align-items:center; padding:5px 14px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid; transition:all .15s; }
-    .btn-act-success { background:#22c55e; color:#fff; border-color:#22c55e; }
-    .btn-act-success:hover { background:#16a34a; border-color:#16a34a; }
-    .btn-act-danger  { background:#fff; color:#dc2626; border-color:#fecaca; }
-    .btn-act-danger:hover  { background:#fee2e2; border-color:#fca5a5; }
-
-    /* Mobile */
-    @@media (max-width:767px) {
-        .dt-wrap { border-radius:0; border-left:none; border-right:none; overflow:visible; }
-        .dt thead { display:none; }
-        .dt, .dt tbody { display:block; }
-        .dt tr { display:block; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:10px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-        .dt td { display:flex; flex-direction:column; padding:10px 14px; border-bottom:1px solid #f3f4f6; font-size:14px; }
-        .dt td:last-child { border-bottom:none; }
-        .dt td::before { content:attr(data-label); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#9ca3af; margin-bottom:5px; }
-        .dt tbody tr:hover td { background:transparent; }
-    }
 </style>
 
 <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
