@@ -2,10 +2,21 @@
 @{
     ViewData["Title"] = "Tạo đề tài mới";
     Layout = "~/Views/Shared/_Layout.cshtml";
-
 }
 
-<div class="container py-4" style="max-width:680px">
+<style>
+    .rg-page-title { border-left:4px solid #2563eb; padding-left:14px; margin-bottom:24px; }
+    .rg-page-title h2 { font-size:22px; font-weight:700; color:#1e3a8a; margin-bottom:3px; }
+    .rg-page-title p  { font-size:13px; color:#6b7280; margin:0; }
+
+    .rg-form-card { border:1px solid #dbeafe; border-radius:10px; overflow:hidden; }
+    .rg-form-head { background:#eff6ff; border-bottom:1px solid #bfdbfe; padding:14px 20px; font-size:14px; font-weight:700; color:#1e3a8a; }
+    .rg-form-body { background:#fff; padding:24px; }
+
+    .form-control:focus, .form-select:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+</style>
+
+<div style="max-width:700px;">
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a asp-action="MyTopics">Đề tài của tôi</a></li>
@@ -13,14 +24,18 @@
         </ol>
     </nav>
 
-    <h2 class="mb-4"><i class="bi bi-journal-plus text-primary me-2"></i>Tạo đề tài mới</h2>
+    <div class="rg-page-title">
+        <h2>Tạo Đề Tài Mới</h2>
+        <p>Đăng đề tài mới để sinh viên đăng ký thực hiện</p>
+    </div>
 
-    <form asp-asp-area="Lecturer" asp-action="CreateTopic" method="post">
+    <form asp-area="Lecturer" asp-action="CreateTopic" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="RegistrationPeriodId" />
 
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
+        <div class="rg-form-card">
+            <div class="rg-form-head">Thông tin đề tài</div>
+            <div class="rg-form-body">
 
                 <div class="mb-3">
                     <label asp-for="Title" class="form-label fw-semibold"></label>
@@ -49,18 +64,17 @@
                 </div>
 
                 <div class="mb-4">
-                    <label asp-for="MaxStudents" class="form-label fw-semibold"></label>
+                    <label asp-for="MaxStudents" class="form-label fw-semibold">Số sinh viên tối đa</label>
                     <input asp-for="MaxStudents" type="number" min="1" max="10"
-                           class="form-control" style="width:120px" />
+                           class="form-control" style="max-width:120px" />
                     <span asp-validation-for="MaxStudents" class="text-danger small"></span>
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary px-4">
-                        <i class="bi bi-plus-lg me-1"></i> Tạo đề tài
-                    </button>
+                    <button type="submit" class="btn btn-primary px-4">Tạo đề tài</button>
                     <a asp-action="MyTopics" class="btn btn-outline-secondary">Hủy</a>
                 </div>
+
             </div>
         </div>
     </form>

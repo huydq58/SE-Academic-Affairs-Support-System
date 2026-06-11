@@ -38,15 +38,90 @@
     .btn-borrow-disabled { display:inline-block; padding:5px 14px; background:#f1f5f9; color:#9ca3af; border-radius:6px; font-size:13px; font-weight:600; }
 
     @@media (max-width:767px) {
-        .dt-wrap { border-radius:0; border-left:none; border-right:none; overflow:visible; }
+        /* Bỏ viền wrapper, để card tự quản */
+        .dt-wrap { border:none; background:transparent; overflow:visible; border-radius:0; }
         .dt thead { display:none; }
-        .dt, .dt tbody { display:block; }
-        .dt tr { display:block; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:10px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+        .dt, .dt tbody { display:block; background:transparent; }
+
+        /* Mỗi hàng = 1 card */
+        .dt tr {
+            display:block;
+            background:#fff;
+            border:1px solid #e5e7eb;
+            border-left:4px solid #2563eb;
+            border-radius:10px;
+            margin-bottom:16px;
+            box-shadow:0 2px 10px rgba(37,99,235,.08);
+            overflow:hidden;
+        }
         .dt tr.hidden { display:none !important; }
-        .dt td { display:flex; flex-direction:column; padding:10px 14px; border-bottom:1px solid #f3f4f6; font-size:14px; }
-        .dt td:last-child { border-bottom:none; }
-        .dt td::before { content:attr(data-label); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#9ca3af; margin-bottom:5px; }
-        .dt tbody tr:hover td { background:transparent; }
+
+        /* Hàng tên thiết bị — header của card */
+        .dt td:first-child {
+            background:#eff6ff;
+            border-bottom:2px solid #bfdbfe;
+            padding:12px 16px;
+            display:block;
+        }
+        .dt td:first-child::before { display:none; }
+        .dt td:first-child .fw-semibold { font-size:15px; color:#1e3a8a; }
+
+        /* Hàng thao tác — footer của card */
+        .dt td:last-child {
+            background:#f8fafc;
+            border-top:1px solid #e5e7eb;
+            border-bottom:none;
+            padding:12px 16px;
+            display:block;
+        }
+        .dt td:last-child::before { display:none; }
+
+        /* Các hàng giữa: label trái + value phải, ngang hàng */
+        .dt td {
+            display:flex;
+            flex-direction:row;
+            align-items:center;
+            gap:10px;
+            padding:9px 16px;
+            border-bottom:1px solid #f1f5f9;
+            font-size:13px;
+            color:#374151;
+            background:#fff;
+        }
+        .dt td::before {
+            content:attr(data-label);
+            font-size:11px;
+            font-weight:700;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            color:#6b7280;
+            min-width:84px;
+            flex-shrink:0;
+        }
+
+        /* Nút mượn full-width, nổi bật */
+        .btn-borrow {
+            display:block;
+            width:100%;
+            text-align:center;
+            padding:11px 14px;
+            font-size:14px;
+            border-radius:8px;
+        }
+        .btn-borrow-disabled {
+            display:block;
+            width:100%;
+            text-align:center;
+            padding:11px 14px;
+            font-size:14px;
+            border-radius:8px;
+            background:#f1f5f9;
+            color:#9ca3af;
+        }
+
+        .dt tbody tr:hover td { background:#fff; }
+        .dt tbody tr:hover td:first-child { background:#eff6ff; }
+        .dt tbody tr:hover td:last-child { background:#f8fafc; }
     }
 </style>
 

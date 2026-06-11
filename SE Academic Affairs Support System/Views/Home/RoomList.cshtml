@@ -1,58 +1,76 @@
-﻿@model IEnumerable<RoomModel>
+@model IEnumerable<RoomModel>
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="text-primary fw-bold text-uppercase mb-0">Danh sách phòng học</h3>
+<style>
+    .rm-page-title { border-left:4px solid #2563eb; padding-left:14px; margin-bottom:24px; }
+    .rm-page-title h2 { font-size:22px; font-weight:700; color:#1e3a8a; margin-bottom:3px; }
+    .rm-page-title p  { font-size:13px; color:#6b7280; margin:0; }
 
-        <div class="input-group w-auto shadow-sm">
-            <input type="text" class="form-control" placeholder="Tìm tên phòng...">
-            <button class="btn btn-outline-primary" type="button">Tìm</button>
-        </div>
+    .search-wrap { position:relative; max-width:320px; }
+    .search-wrap input { border-color:#d1d5db; border-radius:8px; font-size:14px; }
+    .search-wrap input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); outline:none; }
+
+    .room-card { border:1px solid #dbeafe; border-radius:12px; overflow:hidden; background:#fff; transition:box-shadow .2s, transform .2s; height:100%; display:flex; flex-direction:column; }
+    .room-card:hover { box-shadow:0 6px 24px rgba(37,99,235,.12); transform:translateY(-3px); }
+
+    .room-card-head { background:#eff6ff; border-bottom:1px solid #bfdbfe; padding:16px 18px; }
+    .room-card-head h5 { font-size:16px; font-weight:700; color:#1e3a8a; margin:0; }
+
+    .room-card-body { padding:14px 18px; flex:1; }
+    .room-meta { font-size:13px; color:#6b7280; }
+
+    .room-card-foot { padding:14px 18px; border-top:1px solid #f1f5f9; }
+    .btn-view { display:block; text-align:center; padding:8px; background:#2563eb; color:#fff; border-radius:8px; font-size:14px; font-weight:600; text-decoration:none; transition:background .15s; }
+    .btn-view:hover { background:#1d4ed8; color:#fff; }
+
+    .room-card.hidden { display:none !important; }
+
+    .empty-msg { text-align:center; padding:60px 20px; color:#9ca3af; font-size:14px; }
+</style>
+
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+    <div class="rm-page-title mb-0">
+        <h2>Danh sách Phòng học</h2>
+        <p>Chọn phòng để xem lịch và đặt phòng học</p>
     </div>
-
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
-
-        @foreach (var room in Model)
-        {
-            <div class="col">
-                <div class="card h-100 shadow-sm border-0 custom-card-hover rounded-4 overflow-hidden">
-
-                    <div class="card-header bg-primary bg-opacity-10 border-bottom-0 py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold text-primary">@room.RoomName</h5>
-
-                    </div>
-
-
-                    <div class="card-footer bg-white border-top-0 pt-0 pb-3 px-3 text-center">
-                        <a href="@Url.Action("WeeklySchedule", "Room", new { roomId = room.RoomID })"
-                           class="btn btn-primary w-100 fw-semibold rounded-pill transition-btn">
-                            Xem Lịch / Đặt Phòng
-                        </a>
-                    </div>
-                </div>
-            </div>
-        }
-
+    <div class="search-wrap">
+        <input type="text" id="searchRoom" class="form-control" placeholder="Tìm tên phòng..." oninput="filterRooms()" />
     </div>
 </div>
 
-<style>
-    /* Hiệu ứng nảy lên cho toàn bộ thẻ khi di chuột */
-    .custom-card-hover {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="roomGrid">
+    @foreach (var room in Model)
+    {
+        <div class="col room-card-col" data-name="@room.RoomName.ToLower()">
+            <div class="room-card">
+                <div class="room-card-head">
+                    <h5>@room.RoomName</h5>
+                </div>
+                <div class="room-card-body">
+                    <div class="room-meta">Nhấn bên dưới để xem lịch và đặt phòng</div>
+                </div>
+                <div class="room-card-foot">
+                    <a href="@Url.Action("WeeklySchedule", "Room", new { roomId = room.RoomID })" class="btn-view">
+                        Xem Lịch / Đặt Phòng
+                    </a>
+                </div>
+            </div>
+        </div>
     }
+</div>
 
-        .custom-card-hover:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 1rem 3rem rgba(0,0,0,.175) !important;
-        }
+<div id="emptyMsg" class="empty-msg" style="display:none;">Không tìm thấy phòng phù hợp.</div>
 
-    /* Hiệu ứng sáng lên của nút bấm trong thẻ */
-    .transition-btn {
-        transition: background-color 0.2s, transform 0.2s;
+<script>
+    function filterRooms() {
+        var q = document.getElementById('searchRoom').value.trim().toLowerCase();
+        var cols = document.querySelectorAll('.room-card-col');
+        var visible = 0;
+        cols.forEach(function(col) {
+            var name = col.getAttribute('data-name') || '';
+            var show = !q || name.includes(q);
+            col.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        document.getElementById('emptyMsg').style.display = (visible === 0 ? 'block' : 'none');
     }
-
-        .transition-btn:hover {
-            transform: scale(1.03);
-        }
-</style>
+</script>

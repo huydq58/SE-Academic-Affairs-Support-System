@@ -7,10 +7,25 @@
         ? Url.Action("ReviseProposal", new { id = Model.ExistingRegistrationId })!
         : Url.Action("ProposeNew")!;
     Layout = "~/Views/Shared/_Layout.cshtml";
-
 }
 
-<div class="container py-4" style="max-width:720px">
+<style>
+    .rg-page-title { border-left:4px solid #2563eb; padding-left:14px; margin-bottom:24px; }
+    .rg-page-title h2 { font-size:22px; font-weight:700; color:#1e3a8a; margin-bottom:3px; }
+    .rg-page-title p  { font-size:13px; color:#6b7280; margin:0; }
+
+    .rg-form-card { border:1px solid #dbeafe; border-radius:10px; overflow:hidden; }
+    .rg-form-head { background:#eff6ff; border-bottom:1px solid #bfdbfe; padding:14px 20px; font-size:14px; font-weight:700; color:#1e3a8a; }
+    .rg-form-body { background:#fff; padding:24px; }
+
+    .revision-alert { background:#fefce8; border:1px solid #fde68a; border-left:4px solid #eab308; border-radius:8px; padding:14px 16px; margin-bottom:20px; }
+    .revision-alert-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#92400e; margin-bottom:6px; }
+    .revision-alert-text { font-size:13px; color:#78350f; line-height:1.6; }
+
+    .form-control:focus, .form-select:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+</style>
+
+<div style="max-width:740px;">
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a asp-action="TopicList">Danh sách đề tài</a></li>
@@ -18,19 +33,18 @@
         </ol>
     </nav>
 
-    <h2 class="mb-1"><i class="bi bi-pencil-square text-primary me-2"></i>@ViewData["Title"]</h2>
-    <p class="text-muted mb-4">Điền thông tin đề tài bạn muốn thực hiện và chọn giảng viên hướng dẫn.</p>
+    <div class="rg-page-title">
+        <h2>@ViewData["Title"]</h2>
+        <p>Điền thông tin đề tài bạn muốn thực hiện và chọn giảng viên hướng dẫn.</p>
+    </div>
 
     <partial name="_Alerts" />
 
     @if (isRevision && !string.IsNullOrEmpty(Model.PreviousLecturerNote))
     {
-        <div class="alert alert-warning d-flex align-items-start">
-            <i class="bi bi-exclamation-triangle-fill me-2 mt-1 flex-shrink-0"></i>
-            <div>
-                <strong>Yêu cầu chỉnh sửa từ giảng viên:</strong><br />
-                @Model.PreviousLecturerNote
-            </div>
+        <div class="revision-alert">
+            <div class="revision-alert-lbl">Yêu cầu chỉnh sửa từ giảng viên</div>
+            <div class="revision-alert-text">@Model.PreviousLecturerNote</div>
         </div>
     }
 
@@ -42,12 +56,14 @@
             <input type="hidden" asp-for="ExistingRegistrationId" />
         }
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4">
+        <div class="rg-form-card">
+            <div class="rg-form-head">Thông tin đề tài</div>
+            <div class="rg-form-body">
 
                 <div class="mb-3">
                     <label asp-for="Title" class="form-label fw-semibold"></label>
-                    <input asp-for="Title" class="form-control" placeholder="Ví dụ: Xây dựng hệ thống quản lý thư viện trực tuyến" />
+                    <input asp-for="Title" class="form-control"
+                           placeholder="Ví dụ: Xây dựng hệ thống quản lý thư viện trực tuyến" />
                     <span asp-validation-for="Title" class="text-danger small"></span>
                 </div>
 
@@ -66,7 +82,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <label asp-for="LecturerProfileId" class="form-label fw-semibold"></label>
+                    <label asp-for="LecturerProfileId" class="form-label fw-semibold">Giảng viên hướng dẫn</label>
                     <select asp-for="LecturerProfileId" class="form-select">
                         <option value="">-- Chọn giảng viên --</option>
                         @foreach (var lec in Model.AvailableLecturers)
@@ -79,11 +95,11 @@
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary px-4">
-                        <i class="bi bi-send-fill me-1"></i>
                         @(isRevision ? "Gửi lại đề xuất" : "Gửi đề xuất")
                     </button>
                     <a asp-action="TopicList" class="btn btn-outline-secondary">Hủy</a>
                 </div>
+
             </div>
         </div>
     </form>

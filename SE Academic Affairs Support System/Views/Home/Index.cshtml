@@ -1,23 +1,324 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Trang chủ";
 }
 @using Microsoft.AspNetCore.Identity
 @using System.Security.Claims
 @inject SignInManager<User> SignInManager
 @inject UserManager<User> UserManager
 
+<style>
+    /* ── Shared ── */
+    .page-title {
+        border-left: 4px solid #2563eb;
+        padding-left: 14px;
+        margin-bottom: 28px;
+    }
+    .page-title h2 { font-size: 24px; font-weight: 700; color: #1e3a8a; margin-bottom: 4px; }
+    .page-title p  { font-size: 14px; color: #6b7280; margin: 0; }
 
+    /* ── Landing (guest) ── */
+    .hero {
+        text-align: center;
+        padding: 40px 20px 32px;
+        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 36px;
+    }
+    .hero-badge {
+        display: inline-block;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+        border-radius: 20px;
+        padding: 4px 16px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        margin-bottom: 16px;
+    }
+    .hero h1 { font-size: 30px; font-weight: 800; color: #1e3a8a; margin-bottom: 12px; line-height: 1.25; }
+    .hero p   { font-size: 15px; color: #6b7280; max-width: 520px; margin: 0 auto 28px; line-height: 1.7; }
+    .btn-login-hero {
+        display: inline-block;
+        padding: 12px 36px;
+        background: #2563eb;
+        color: #fff;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background .15s;
+    }
+    .btn-login-hero:hover { background: #1d4ed8; color: #fff; }
+
+    /* Feature cards (guest) */
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
+    .feature-card {
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+        padding: 20px 18px;
+        background: #fff;
+    }
+    .feature-card .fc-title { font-size: 14px; font-weight: 700; color: #1e3a8a; margin-bottom: 6px; }
+    .feature-card .fc-desc  { font-size: 13px; color: #6b7280; line-height: 1.6; margin: 0; }
+    .feature-card .fc-line  {
+        width: 32px; height: 3px;
+        background: #2563eb;
+        border-radius: 2px;
+        margin-bottom: 12px;
+    }
+
+    /* ── Dashboard (logged in) ── */
+    /* Welcome banner */
+    .welcome-banner {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        border-radius: 12px;
+        padding: 24px 28px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 28px;
+    }
+    .wb-left h3 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .wb-left p  { font-size: 13px; opacity: .8; margin: 0; }
+    .role-badge {
+        display: inline-block;
+        background: rgba(255,255,255,.18);
+        border: 1px solid rgba(255,255,255,.3);
+        color: #fff;
+        border-radius: 20px;
+        padding: 6px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    /* Section heading */
+    .section-head {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        color: #9ca3af;
+        margin-bottom: 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    /* Quick-action tiles */
+    .qa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .qa-tile {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 18px 16px;
+        background: #fff;
+        text-decoration: none;
+        display: block;
+        transition: all .15s;
+        color: inherit;
+    }
+    .qa-tile:hover {
+        border-color: #93c5fd;
+        background: #eff6ff;
+        box-shadow: 0 2px 12px rgba(37,99,235,.1);
+        transform: translateY(-2px);
+    }
+    .qa-tile .qt-label { font-size: 14px; font-weight: 700; color: #1e3a8a; margin-bottom: 5px; }
+    .qa-tile .qt-desc  { font-size: 12px; color: #6b7280; margin: 0; line-height: 1.5; }
+    .qa-tile .qt-arrow {
+        font-size: 18px;
+        color: #2563eb;
+        font-weight: 700;
+        float: right;
+        margin-top: -2px;
+        opacity: 0;
+        transition: opacity .15s;
+    }
+    .qa-tile:hover .qt-arrow { opacity: 1; }
+
+    /* Admin-only tiles get a subtle amber tint */
+    .qa-tile.tile-admin { border-color: #fde68a; }
+    .qa-tile.tile-admin:hover { border-color: #f59e0b; background: #fefce8; box-shadow: 0 2px 12px rgba(245,158,11,.1); }
+    .qa-tile.tile-admin .qt-label { color: #92400e; }
+    .qa-tile.tile-admin .qt-arrow { color: #d97706; }
+
+    /* User info strip */
+    .user-strip {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 28px;
+    }
+    .us-item .us-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; margin-bottom: 3px; }
+    .us-item .us-val { font-size: 14px; color: #374151; font-weight: 500; }
+
+    /* Responsive */
+    @@media (max-width: 600px) {
+        .hero h1   { font-size: 22px; }
+        .hero p    { font-size: 14px; }
+        .welcome-banner { padding: 18px 16px; }
+        .wb-left h3 { font-size: 17px; }
+        .qa-grid   { grid-template-columns: 1fr 1fr; gap: 10px; }
+        .feature-grid { grid-template-columns: 1fr; }
+    }
+    @@media (max-width: 400px) {
+        .qa-grid { grid-template-columns: 1fr; }
+    }
+</style>
 
 @if (SignInManager.IsSignedIn(User))
 {
     var currentUser = await UserManager.GetUserAsync(User);
-    var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
-    var primaryRole = userRoles.FirstOrDefault() ?? "User";
+    var primaryRole = User.Claims
+        .Where(c => c.Type == ClaimTypes.Role)
+        .Select(c => c.Value)
+        .FirstOrDefault() ?? "User";
 
-    <div>
-        <p><strong>Họ và tên:</strong> @(currentUser?.FullName ?? "Chưa cập nhật")</p>
-        <p><strong>Tên đăng nhập:</strong> @User.Identity?.Name</p>
-        <p><strong>Vai trò:</strong> @primaryRole</p>
+    var roleLabel = primaryRole == "Admin"    ? "Quản trị viên" :
+                    primaryRole == "Lecturer" ? "Giảng viên"    :
+                    primaryRole == "Student"  ? "Sinh viên"     : primaryRole;
 
+    <!-- Dashboard -->
+    <div class="welcome-banner">
+        <div class="wb-left">
+            <h3>Xin chào, @(currentUser?.FullName ?? User.Identity?.Name ?? "bạn")</h3>
+            <p>@User.Identity?.Name &nbsp;·&nbsp; SE Academic Affairs Support System</p>
+        </div>
+        <span class="role-badge">@roleLabel</span>
+    </div>
+
+    <!-- User info strip -->
+    <div class="user-strip">
+        <div class="us-item">
+            <div class="us-lbl">Họ và tên</div>
+            <div class="us-val">@(currentUser?.FullName ?? "Chưa cập nhật")</div>
+        </div>
+        <div class="us-item">
+            <div class="us-lbl">Tên đăng nhập</div>
+            <div class="us-val">@User.Identity?.Name</div>
+        </div>
+        <div class="us-item">
+            <div class="us-lbl">Email</div>
+            <div class="us-val">@(currentUser?.Email ?? "—")</div>
+        </div>
+        <div class="us-item">
+            <div class="us-lbl">Vai trò</div>
+            <div class="us-val">@roleLabel</div>
+        </div>
+    </div>
+
+    <!-- Quick actions chung -->
+    <div class="section-head">Truy cập nhanh</div>
+    <div class="qa-grid">
+        <a href="/Home/RoomList" class="qa-tile">
+            <span class="qt-arrow">›</span>
+            <div class="qt-label">Đặt phòng học</div>
+            <p class="qt-desc">Xem lịch và đặt phòng học theo tuần</p>
+        </a>
+        <a href="/Device/Catalog" class="qa-tile">
+            <span class="qt-arrow">›</span>
+            <div class="qt-label">Mượn thiết bị</div>
+            <p class="qt-desc">Xem danh sách thiết bị và gửi yêu cầu mượn</p>
+        </a>
+        <a href="/AppRegistration/Create" class="qa-tile">
+            <span class="qt-arrow">›</span>
+            <div class="qt-label">Đăng ký App</div>
+            <p class="qt-desc">Gửi yêu cầu đăng ký phát hành ứng dụng</p>
+        </a>
+
+        @if (primaryRole == "Student")
+        {
+            <a href="/Student/Registration/ActivePeriods" class="qa-tile">
+                <span class="qt-arrow">›</span>
+                <div class="qt-label">Đăng ký đề tài</div>
+                <p class="qt-desc">Xem các đợt đăng ký đề tài đang mở</p>
+            </a>
+        }
+
+        @if (primaryRole == "Lecturer")
+        {
+            <a href="/Lecturer/Registration/CreateTopic" class="qa-tile">
+                <span class="qt-arrow">›</span>
+                <div class="qt-label">Tạo đề tài</div>
+                <p class="qt-desc">Đăng đề tài mới cho sinh viên đăng ký</p>
+            </a>
+            <a href="/Lecturer/Registration/MyTopics" class="qa-tile">
+                <span class="qt-arrow">›</span>
+                <div class="qt-label">Đề tài của tôi</div>
+                <p class="qt-desc">Quản lý các đề tài đã tạo và xét duyệt đề xuất</p>
+            </a>
+            <a href="/Lecturer/Registration/ActivePeriods" class="qa-tile">
+                <span class="qt-arrow">›</span>
+                <div class="qt-label">Chấm điểm</div>
+                <p class="qt-desc">Nhập và đồng bộ điểm lên Google Sheets</p>
+            </a>
+        }
+    </div>
+
+    @if (primaryRole == "Admin")
+    {
+        <div class="section-head">Quản trị hệ thống</div>
+        <div class="qa-grid">
+            <a href="/Admin/Registration/Periods" class="qa-tile tile-admin">
+                <span class="qt-arrow">›</span>
+                <div class="qt-label">Đợt đăng ký đề tài</div>
+                <p class="qt-desc">Tạo và quản lý các đợt đăng ký đề tài</p>
+            </a>
+            <a href="/Device/Index" class="qa-tile tile-admin">
+                <span class="qt-arrow">›</span>
+                <div class="qt-label">Quản lý thiết bị</div>
+                <p class="qt-desc">Kiểm soát kho, duyệt yêu cầu mượn thiết bị</p>
+            </a>
+            <a href="/AppRegistration/PendingRequests" class="qa-tile tile-admin">
+                <span class="qt-arrow">›</span>
+                <div class="qt-label">Duyệt yêu cầu App</div>
+                <p class="qt-desc">Xem xét và phê duyệt các đơn đăng ký App</p>
+            </a>
+        </div>
+    }
+}
+else
+{
+    <!-- Landing page (guest) -->
+    <div class="hero">
+        <div class="hero-badge">SE UIT — Khoa Kỹ thuật Phần mềm</div>
+        <h1>Hệ thống Hỗ trợ<br>Công tác Học vụ</h1>
+        <p>Nền tảng số hóa các thủ tục học vụ — đặt phòng học, mượn thiết bị, đăng ký đề tài và phát hành ứng dụng trong một nơi.</p>
+        <a href="/Login" class="btn-login-hero">Đăng nhập để bắt đầu</a>
+    </div>
+
+    <div class="page-title">
+        <h2>Các tính năng chính</h2>
+        <p>Hệ thống hỗ trợ toàn bộ luồng học vụ dành cho sinh viên, giảng viên và quản trị viên</p>
+    </div>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="fc-line"></div>
+            <div class="fc-title">Đặt phòng học</div>
+            <p class="fc-desc">Xem lịch theo tuần, chọn khung giờ trống và đặt phòng học trực tiếp trên hệ thống.</p>
+        </div>
+        <div class="feature-card">
+            <div class="fc-line"></div>
+            <div class="fc-title">Mượn thiết bị</div>
+            <p class="fc-desc">Duyệt danh sách thiết bị hiện có, gửi yêu cầu mượn và theo dõi trạng thái phê duyệt.</p>
+        </div>
+        <div class="feature-card">
+            <div class="fc-line"></div>
+            <div class="fc-title">Đăng ký đề tài</div>
+            <p class="fc-desc">Đăng ký đề tài có sẵn hoặc đề xuất đề tài mới, theo dõi trạng thái xét duyệt từ giảng viên.</p>
+        </div>
+        <div class="feature-card">
+            <div class="fc-line"></div>
+            <div class="fc-title">Đăng ký phát hành App</div>
+            <p class="fc-desc">Gửi hồ sơ đăng ký kiểm duyệt ứng dụng, đính kèm APK và link demo cho ban học vụ xét duyệt.</p>
+        </div>
     </div>
 }
