@@ -21,7 +21,8 @@ namespace SE_Academic_Affairs_Support_System.Data
         public DbSet<Topic> Topics => Set<Topic>();
         public DbSet<Registration> Registrations => Set<Registration>();
         public DbSet<Notification> Notifications => Set<Notification>();
-
+        public DbSet<TopicRegistration> TopicRegistrations { get; set; }
+        public DbSet<GradeRecord> GradeRecords { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

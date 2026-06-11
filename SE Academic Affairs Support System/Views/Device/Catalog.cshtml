@@ -1,530 +1,160 @@
 @model List<SE_Academic_Affairs_Support_System.Models.Device>
 @{
-    ViewData["Title"] = "Danh sách thiết bị ";
+    ViewData["Title"] = "Danh sách Thiết bị";
     var categories = ViewBag.Categories as List<string> ?? new List<string>();
     var selectedCat = ViewBag.SelectedCategory as string;
-    var searchVal = ViewBag.Search as string;
-    var total = (int)(ViewBag.TotalAvailable ?? 0);
-    // Ẩn thiết bị đã trả (Returned) — chỉ hiển thị Available và Borrowing
-    var devices = Model.Where(d => d.Status != "Returned").ToList();
-
-    // Hàm hỗ trợ render icon theo danh mục
-    string Icon(string cat) => cat?.ToLower() switch
-    {
-        var c when c != null && c.Contains("chiếu") => "📽️",
-        var c when c != null && c.Contains("âm thanh") => "🎙️",
-        var c when c != null && c.Contains("micro") => "🎤",
-        var c when c != null && c.Contains("màn hình") => "🖥️",
-        var c when c != null && c.Contains("cáp") => "🔌",
-        var c when c != null && c.Contains("camera") => "📷",
-        var c when c != null && c.Contains("máy tính") => "💻",
-        _ => "🔧"
-    };
 }
 
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-
 <style>
-    :root {
-        --bg: #0f1117;
-        --surface: #1a1d27;
-        --surface2: #22263a;
-        --border: #2e3350;
-        --accent: #4f8ef7;
-        --green: #22c55e;
-        --yellow: #f59e0b;
-        --red: #ef4444;
-        --orange: #f97316;
-        --text: #e8eaf6;
-        --muted: #7c83a8;
-        --radius: 12px;
-    }
+    .dv-page-title { border-left:4px solid #2563eb; padding-left:14px; margin-bottom:24px; }
+    .dv-page-title h2 { font-size:22px; font-weight:700; color:#1e3a8a; margin-bottom:3px; }
+    .dv-page-title p  { font-size:13px; color:#6b7280; margin:0; }
 
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-    }
+    .search-wrap { position:relative; }
+    .search-wrap input { padding-left:12px; border-color:#d1d5db; border-radius:8px; font-size:14px; }
+    .search-wrap input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); outline:none; }
 
-    body {
-        background: var(--bg);
-        color: var(--text);
-        font-family: 'Be Vietnam Pro', sans-serif;
-    }
+    .cat-pill { display:inline-block; padding:5px 14px; border-radius:20px; font-size:13px; font-weight:500; cursor:pointer; border:1px solid #d1d5db; background:#fff; color:#6b7280; text-decoration:none; transition:all .15s; white-space:nowrap; }
+    .cat-pill:hover { border-color:#93c5fd; color:#2563eb; background:#eff6ff; }
+    .cat-pill.active { background:#2563eb; border-color:#2563eb; color:#fff; }
 
-    .dm-page {
-        padding: 28px 32px;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
+    .dt-wrap { border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; }
+    .dt { border-collapse:collapse; width:100%; }
+    .dt thead th { background:#f8fafc; padding:12px 16px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#64748b; border-bottom:1px solid #e5e7eb; white-space:nowrap; }
+    .dt tbody td { padding:13px 16px; border-bottom:1px solid #f1f5f9; vertical-align:middle; font-size:14px; color:#374151; }
+    .dt tbody tr:last-child td { border-bottom:none; }
+    .dt tbody tr:hover td { background:#f8fafc; }
+    .dt tr.hidden { display:none !important; }
 
-    /* ── HEADER & SEARCH ── */
-    .dm-header {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        margin-bottom: 32px;
-    }
+    .sb { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; }
+    .sb-green { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+    .sb-red   { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+    .sb-blue  { background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe; }
 
-        .dm-header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
+    .cat-tag  { background:#f1f5f9; border:1px solid #e2e8f0; color:#475569; padding:2px 8px; border-radius:6px; font-size:12px; }
 
-        .dm-header p {
-            color: var(--muted);
-            font-size: 15px;
-        }
+    .btn-borrow { display:inline-block; padding:5px 14px; background:#2563eb; color:#fff; border-radius:6px; font-size:13px; font-weight:600; text-decoration:none; transition:all .15s; }
+    .btn-borrow:hover { background:#1d4ed8; color:#fff; }
+    .btn-borrow-disabled { display:inline-block; padding:5px 14px; background:#f1f5f9; color:#9ca3af; border-radius:6px; font-size:13px; font-weight:600; }
 
-    .search-container {
-        width: 100%;
-        max-width: 600px;
-        margin: 20px auto 0;
-        position: relative;
-    }
-
-    .search-input {
-        width: 100%;
-        background: var(--surface);
-        border: 1.5px solid var(--border);
-        color: var(--text);
-        padding: 14px 20px 14px 45px;
-        border-radius: 50px;
-        font-size: 15px;
-        outline: none;
-        transition: 0.2s;
-        font-family: inherit;
-    }
-
-        .search-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15);
-        }
-
-    .search-icon {
-        position: absolute;
-        left: 16px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 18px;
-        color: var(--muted);
-    }
-
-    /* ── CATEGORY PILLS ── */
-    .cat-pills {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        justify-content: center;
-        margin-bottom: 24px;
-    }
-
-    .cpill {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 8px 16px;
-        border-radius: 50px;
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: 0.2s;
-        user-select: none;
-    }
-
-        .cpill:hover {
-            background: var(--surface2);
-        }
-
-        .cpill.active {
-            background: var(--accent);
-            color: #fff;
-            border-color: var(--accent);
-        }
-
-    /* ── TABLE ── */
-    .dm-table-wrap {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        overflow: auto;
-    }
-
-    .dm-table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-    }
-
-        .dm-table th {
-            padding: 16px;
-            font-size: 13px;
-            color: var(--muted);
-            text-transform: uppercase;
-            background: var(--surface2);
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-        }
-
-        .dm-table td {
-            padding: 16px;
-            font-size: 14px;
-            border-bottom: 1px solid var(--border);
-            vertical-align: middle;
-        }
-
-        .dm-table tbody tr {
-            transition: background 0.2s;
-        }
-
-            .dm-table tbody tr:hover {
-                background: var(--surface2);
-            }
-
-            .dm-table tbody tr.hidden {
-                display: none;
-            }
-
-    /* ── BADGES & ELEMENTS ── */
-    .status-badge {
-        display: inline-flex;
-        gap: 5px;
-        padding: 5px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .badge-green {
-        background: #22c55e1a;
-        color: #86efac;
-        border: 1px solid #22c55e33;
-    }
-
-    .badge-red {
-        background: #ef44441a;
-        color: #fca5a5;
-        border: 1px solid #ef444433;
-    }
-
-    .device-name-wrap {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .device-icon {
-        font-size: 20px;
-        background: var(--surface2);
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-    }
-
-    .device-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .device-code {
-        font-family: 'Space Mono', monospace;
-        font-size: 12px;
-        color: var(--muted);
-    }
-
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-        transition: 0.2s;
-        text-decoration: none;
-        white-space: nowrap;
-    }
-
-    .btn-primary {
-        background: var(--accent);
-        color: #fff;
-    }
-
-        .btn-primary:hover {
-            background: #3a7de8;
-        }
-
-    .btn-disabled {
-        background: var(--surface2);
-        color: var(--muted);
-        cursor: not-allowed;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--muted);
-    }
-
-    /* Badge inline trong device-meta — chỉ hiện trên màn hình rất nhỏ */
-    .status-inline {
-        display: none;
-    }
-
-
-    @@media (max-width: 768px) {
-        .dm-page {
-            padding: 16px;
-        }
-
-        .dm-header h1 {
-            font-size: 22px;
-        }
-
-        .dm-header p {
-            font-size: 13px;
-        }
-
-        .search-container {
-            max-width: 100%;
-        }
-
-        .search-input {
-            font-size: 14px;
-            padding: 12px 16px 12px 42px;
-        }
-        /* Category pills scroll ngang trên mobile */
-        .cat-pills {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            justify-content: flex-start;
-            padding-bottom: 6px;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-        }
-
-            .cat-pills::-webkit-scrollbar {
-                display: none;
-            }
-
-        .cpill {
-            flex-shrink: 0;
-            font-size: 12px;
-            padding: 7px 14px;
-        }
-        /* Table: ẩn cột Phân loại, giữ 3 cột chính */
-        .dm-table th:nth-child(2),
-        .dm-table td:nth-child(2) {
-            display: none;
-        }
-
-        .dm-table th,
-        .dm-table td {
-            padding: 12px 10px;
-        }
-            /* Cột Thao tác: thu nhỏ nút */
-            .dm-table td:last-child {
-                text-align: right;
-            }
-
-        .btn {
-            padding: 7px 12px;
-            font-size: 12px;
-        }
-
-        .device-icon {
-            width: 32px;
-            height: 32px;
-            font-size: 16px;
-        }
-
-        .device-name-wrap {
-            gap: 8px;
-        }
-    }
-
-    @@media (max-width: 480px) {
-        .dm-page {
-            padding: 12px;
-        }
-
-        .dm-header h1 {
-            font-size: 18px;
-        }
-        /* Ẩn thêm cột Tình trạng, hiển thị badge ngay trong tên thiết bị */
-        .dm-table th:nth-child(3),
-        .dm-table td:nth-child(3) {
-            display: none;
-        }
-        /* Hiện badge status inline trong device-meta */
-        .status-inline {
-            display: inline-flex;
-            margin-top: 4px;
-        }
-
-        .btn {
-            padding: 6px 10px;
-            font-size: 11px;
-            gap: 3px;
-        }
-
-        .device-code {
-            font-size: 11px;
-        }
+    @@media (max-width:767px) {
+        .dt-wrap { border-radius:0; border-left:none; border-right:none; overflow:visible; }
+        .dt thead { display:none; }
+        .dt, .dt tbody { display:block; }
+        .dt tr { display:block; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:10px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+        .dt tr.hidden { display:none !important; }
+        .dt td { display:flex; flex-direction:column; padding:10px 14px; border-bottom:1px solid #f3f4f6; font-size:14px; }
+        .dt td:last-child { border-bottom:none; }
+        .dt td::before { content:attr(data-label); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#9ca3af; margin-bottom:5px; }
+        .dt tbody tr:hover td { background:transparent; }
     }
 </style>
 
-<div class="dm-page">
-    <div class="dm-header">
-        <h1 style="color: black;">Danh sách thiết bị</h1>
-        <p>Hiện có <strong>@total</strong> thiết bị đang ở trạng thái sẵn sàng phục vụ</p>
+<div class="dv-page-title">
+    <h2>Danh sách Thiết bị</h2>
+    <p>Xem tất cả thiết bị hiện có và gửi yêu cầu mượn</p>
+</div>
 
-        <div class="search-container">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="sInput" class="search-input" placeholder="Tìm tên thiết bị, mã số, mô tả..." value="@searchVal" onkeyup="applyFilter()" autocomplete="off" />
-        </div>
-    </div>
+@await Html.PartialAsync("_Alerts")
 
-    <div class="cat-pills">
-        <div class="cpill @(string.IsNullOrEmpty(selectedCat) ? "active" : "")" onclick="setCat('', this)">Tất cả</div>
-        @foreach (var c in categories)
-        {
-            <div class="cpill @(selectedCat == c ? "active" : "")" onclick="setCat('@c', this)">
-                @Icon(c) @c
-            </div>
-        }
-    </div>
-
-    <div class="dm-table-wrap">
-        <table class="dm-table">
-            <thead>
-                <tr>
-                    <th>Thiết bị</th>
-                    <th>Phân loại</th>
-                    <th>Tình trạng</th>
-                    <th style="text-align: right;">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                @if (!devices.Any())
-                {
-                    <tr id="emptyDbRow"><td colspan="4" class="empty-state">Kho hiện tại chưa có thiết bị nào.</td></tr>
-                }
-
-                @foreach (var d in devices)
-                {
-                    bool isAvail = (d.Status == "Available" && d.Condition == "Good");
-
-                    <tr class="device-row"
-                        data-name="@(d.DeviceName?.ToLower())"
-                        data-cat="@(d.Category)"
-                        data-desc="@(d.Description?.ToLower())"
-                        data-id="@d.DeviceId">
-
-                        <td>
-                            <div class="device-name-wrap">
-                                <div class="device-icon">@Icon(d.Category)</div>
-                                <div class="device-meta">
-                                    <strong>@d.DeviceName</strong>
-                                    <span class="device-code">#@d.DeviceId</span>
-                                    @if (isAvail)
-                                    {
-                                        <span class="status-badge badge-green status-inline">Sẵn sàng</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="status-badge badge-red status-inline">Không khả dụng</span>
-                                    }
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <span style="color: var(--muted); font-size: 13px;">@(string.IsNullOrEmpty(d.Category) ? "Khác" : d.Category)</span>
-                        </td>
-                        <td>
-                            @if (isAvail)
-                            {
-                                <span class="status-badge badge-green">Sẵn sàng</span>
-                            }
-                            else
-                            {
-                                <span class="status-badge badge-red">Không khả dụng</span>
-                            }
-                        </td>
-                        <td style="text-align: right;">
-                            @if (isAvail)
-                            {
-                                <a href="/Device/BorrowForm?deviceId=@d.DeviceId" class="btn btn-primary">Mượn ngay →</a>
-                            }
-                            else
-                            {
-                                <span class="btn btn-disabled">Tạm hết</span>
-                            }
-                        </td>
-                    </tr>
-                }
-                <tr id="emptySearchRow" style="display: none;">
-                    <td colspan="4" class="empty-state">
-                        <div style="font-size: 24px; margin-bottom: 8px;">👻</div>
-                        Không tìm thấy thiết bị nào phù hợp với bộ lọc.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+<!-- Search + Category filter -->
+<div class="d-flex flex-wrap gap-3 align-items-center mb-3">
+    <div class="search-wrap flex-grow-1" style="max-width:360px;">
+        <input type="text" id="searchInput" class="form-control" placeholder="Tìm tên thiết bị..." oninput="applyFilter()" />
     </div>
 </div>
 
-<script>
-    let activeCat = '@selectedCat';
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <button class="cat-pill @(string.IsNullOrEmpty(selectedCat) ? "active" : "")" onclick="setCat('', this)">Tất cả</button>
+    @foreach (var cat in categories)
+    {
+        <button class="cat-pill @(selectedCat == cat ? "active" : "")" onclick="setCat('@cat', this)">@cat</button>
+    }
+</div>
 
-    // Xử lý click chọn Tab danh mục
-    function setCat(cat, btn) {
-        activeCat = cat;
-        document.querySelectorAll('.cpill').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
+<!-- Table -->
+<div class="dt-wrap">
+    <table class="dt">
+        <thead>
+            <tr>
+                <th>Tên thiết bị</th>
+                <th>Phân loại</th>
+                <th>Mô tả</th>
+                <th>Tình trạng</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody id="deviceTable">
+            @foreach (var d in Model)
+            {
+                <tr data-name="@d.DeviceName.ToLower()" data-cat="@(d.Category ?? "")">
+                    <td data-label="Tên thiết bị">
+                        <span class="fw-semibold">@d.DeviceName</span>
+                    </td>
+                    <td data-label="Phân loại">
+                        <span class="cat-tag">@(string.IsNullOrEmpty(d.Category) ? "Khác" : d.Category)</span>
+                    </td>
+                    <td data-label="Mô tả">
+                        <span class="text-muted" style="font-size:13px;">@(string.IsNullOrEmpty(d.Description) ? "—" : d.Description)</span>
+                    </td>
+                    <td data-label="Tình trạng">
+                        <span class="sb @(d.Condition == "Good" ? "sb-green" : "sb-red")">
+                            @(d.Condition == "Good" ? "Tốt" : "Hỏng")
+                        </span>
+                    </td>
+                    <td data-label="Trạng thái">
+                        <span class="sb @(d.Status == "Available" ? "sb-green" : "sb-blue")">
+                            @(d.Status == "Available" ? "Sẵn sàng" : "Đang mượn")
+                        </span>
+                    </td>
+                    <td data-label="Thao tác">
+                        @if (d.Status == "Available" && d.Condition == "Good")
+                        {
+                            <a href="/Device/BorrowForm?deviceId=@d.DeviceId" class="btn-borrow">Mượn</a>
+                        }
+                        else
+                        {
+                            <span class="btn-borrow-disabled">Không có sẵn</span>
+                        }
+                    </td>
+                </tr>
+            }
+            <tr id="emptyRow" class="hidden">
+                <td colspan="6" style="text-align:center; padding:48px 16px; color:#9ca3af; font-size:14px;">
+                    Không tìm thấy thiết bị phù hợp.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    var currentCat = '@(selectedCat ?? "")';
+
+    function setCat(cat, el) {
+        currentCat = cat;
+        document.querySelectorAll('.cat-pill').forEach(function(p) { p.classList.remove('active'); });
+        el.classList.add('active');
         applyFilter();
     }
 
-    // Xử lý bộ lọc Tìm kiếm & Danh mục
     function applyFilter() {
-        let q = (document.getElementById('sInput').value || '').toLowerCase().trim();
-        let rows = document.querySelectorAll('.device-row');
-        let visibleCount = 0;
-
-        rows.forEach(row => {
-            let matchCat = !activeCat || row.dataset.cat === activeCat;
-            let matchSearch = !q
-                || row.dataset.name.includes(q)
-                || row.dataset.id.includes(q)
-                || (row.dataset.desc && row.dataset.desc.includes(q));
-
-            if (matchCat && matchSearch) {
-                row.classList.remove('hidden');
-                visibleCount++;
+        var q = document.getElementById('searchInput').value.trim().toLowerCase();
+        var rows = document.querySelectorAll('#deviceTable tr:not(#emptyRow)');
+        var visible = 0;
+        rows.forEach(function(tr) {
+            var name = tr.getAttribute('data-name') || '';
+            var cat  = tr.getAttribute('data-cat') || '';
+            var matchQ   = !q || name.includes(q);
+            var matchCat = !currentCat || cat === currentCat;
+            if (matchQ && matchCat) {
+                tr.classList.remove('hidden');
+                visible++;
             } else {
-                row.classList.add('hidden');
+                tr.classList.add('hidden');
             }
         });
-
-        // Hiển thị dòng thông báo nếu tìm không thấy
-        let emptyRow = document.getElementById('emptySearchRow');
-        let dbEmptyRow = document.getElementById('emptyDbRow');
-
-        if (emptyRow) {
-            // Chỉ hiện "Không tìm thấy" nếu trong DB có đồ nhưng bị filter mất
-            emptyRow.style.display = (visibleCount === 0 && !dbEmptyRow) ? 'table-row' : 'none';
-        }
+        document.getElementById('emptyRow').classList.toggle('hidden', visible > 0);
     }
-
-    // Chạy filter ngay lần đầu load trang (nếu có sắn từ khóa search từ Controller)
-    document.addEventListener('DOMContentLoaded', applyFilter);
 </script>

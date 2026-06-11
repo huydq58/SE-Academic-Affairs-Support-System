@@ -3,480 +3,156 @@
     ViewData["Title"] = "Đăng ký mượn thiết bị";
     var availableDevices = ViewBag.AvailableDevices as List<SE_Academic_Affairs_Support_System.Models.Device> ?? new();
     var preSelected = ViewBag.PreSelectedDevice as SE_Academic_Affairs_Support_System.Models.Device;
-
-    string Icon(string cat) => cat?.ToLower() switch
-    {
-        var c when c != null && c.Contains("chiếu") => "📽️",
-        var c when c != null && c.Contains("âm thanh") => "🎙️",
-        var c when c != null && c.Contains("micro") => "🎤",
-        var c when c != null && c.Contains("màn hình") => "🖥️",
-        var c when c != null && c.Contains("cáp") => "🔌",
-        var c when c != null && c.Contains("camera") => "📷",
-        var c when c != null && c.Contains("máy tính") => "💻",
-        _ => "🔧"
-    };
 }
 
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-
 <style>
-    :root {
-        --bg: #0f1117;
-        --surface: #1a1d27;
-        --surface2: #22263a;
-        --border: #2e3350;
-        --accent: #4f8ef7;
-        --green: #22c55e;
-        --yellow: #f59e0b;
-        --red: #ef4444;
-        --orange: #f97316;
-        --text: #e8eaf6;
-        --muted: #7c83a8;
-        --radius: 12px;
-    }
+    .bf-wrap { max-width:700px; margin:0 auto; }
 
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-    }
+    .dv-page-title { border-left:4px solid #2563eb; padding-left:14px; margin-bottom:28px; }
+    .dv-page-title h2 { font-size:22px; font-weight:700; color:#1e3a8a; margin-bottom:3px; }
+    .dv-page-title p  { font-size:13px; color:#6b7280; margin:0; }
 
-    body {
-        background: var(--bg);
-        color: var(--text);
-        font-family: 'Be Vietnam Pro', sans-serif;
-    }
+    .bf-section { border:1px solid #dbeafe; border-radius:10px; overflow:hidden; margin-bottom:18px; }
+    .bf-section-head { background:#eff6ff; border-bottom:1px solid #bfdbfe; padding:10px 18px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#1d4ed8; }
+    .bf-section-body { padding:20px 18px; }
 
-    .dm-page {
-        padding: 28px 32px;
-        max-width: 1100px;
-        margin: 0 auto;
-    }
+    .bf-wrap .form-label { font-size:13px; font-weight:600; color:#374151; }
+    .bf-wrap .form-control,
+    .bf-wrap .form-select { font-size:14px; border-color:#d1d5db; border-radius:7px; padding:9px 12px; }
+    .bf-wrap .form-control:focus,
+    .bf-wrap .form-select:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); outline:none; }
+    .bf-wrap .form-control.is-invalid { border-color:#dc2626; background-image:none; }
 
-    /* ── HEADER — đồng bộ với Catalog (căn giữa) ── */
-    .dm-header {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        margin-bottom: 32px;
-    }
+    .device-preview { background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:14px 16px; margin-top:4px; }
+    .device-preview .dp-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#0369a1; margin-bottom:4px; }
+    .device-preview .dp-val { font-size:14px; font-weight:600; color:#0c4a6e; }
 
-        .dm-header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: var(--text); /* bỏ hardcode black */
-        }
+    .commit-box { background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:14px 16px; }
+    .commit-box p { font-size:13px; color:#78350f; margin:0 0 10px 0; line-height:1.6; }
 
-        .dm-header p {
-            color: var(--muted);
-            font-size: 15px;
-        }
-
-    /* ── BACK LINK ── */
-    .back-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 13px;
-        color: var(--muted);
-        text-decoration: none;
-        margin-bottom: 20px;
-        transition: color 0.2s;
-    }
-
-        .back-link:hover {
-            color: var(--text);
-        }
-
-    /* ── ALERTS ── */
-    .alert {
-        padding: 12px 16px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        font-size: 14px;
-        display: flex;
-        gap: 10px;
-    }
-
-    .alert-success {
-        background: #22c55e1a;
-        border: 1px solid #22c55e44;
-        color: #86efac;
-    }
-
-    .alert-error {
-        background: #ef44441a;
-        border: 1px solid #ef444444;
-        color: #fca5a5;
-    }
-
-    /* ── LAYOUT GRID ── */
-    .dm-grid {
-        display: grid;
-        grid-template-columns: 1.8fr 1fr;
-        gap: 24px;
-        align-items: start;
-    }
-
-    @@media (max-width: 850px) {
-        .dm-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* ── CARDS ── */
-    .dm-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 24px;
-        margin-bottom: 20px;
-    }
-
-        .dm-card h3 {
-            font-size: 13px;
-            margin-bottom: 18px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 12px;
-            text-transform: uppercase;
-            color: var(--muted);
-            font-weight: 600;
-            letter-spacing: 0.04em;
-        }
-
-    /* ── FORMS ── */
-    .form-group {
-        margin-bottom: 16px;
-    }
-
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--muted);
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-
-    .form-control {
-        width: 100%;
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 10px 14px;
-        border-radius: 8px;
-        font-size: 14px;
-        outline: none;
-        transition: 0.2s;
-        font-family: inherit;
-    }
-
-        .form-control:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15); /* đồng bộ với search-input focus Catalog */
-        }
-
-    textarea.form-control {
-        resize: vertical;
-        min-height: 100px;
-    }
-
-    /* ── CHECKBOX ── */
-    .checkbox-group {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        background: #f59e0b11;
-        border: 1px solid #f59e0b33;
-        padding: 16px;
-        border-radius: 8px;
-        margin-top: 24px;
-    }
-
-        .checkbox-group input {
-            margin-top: 4px;
-            accent-color: var(--yellow);
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        .checkbox-group label {
-            font-size: 13px;
-            color: #fde68a;
-            line-height: 1.5;
-            cursor: pointer;
-        }
-
-    /* ── BUTTONS — đồng bộ với Catalog ── */
-    .btn {
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-        transition: 0.2s;
-        text-decoration: none;
-    }
-
-    .btn-primary {
-        background: var(--accent);
-        color: #fff;
-        width: 100%;
-        padding: 11px 20px;
-        font-size: 14px;
-    }
-
-        .btn-primary:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
-    .btn-outline {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 11px 24px;
-        font-size: 14px;
-    }
-
-        .btn-outline:hover {
-            background: var(--surface2);
-        }
-
-    /* ── SIDEBAR ── */
-    .selected-device {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-        background: var(--surface2);
-        padding: 16px;
-        border-radius: 8px;
-        margin-bottom: 16px;
-        border: 1px solid var(--border);
-    }
-
-    .selected-icon {
-        font-size: 28px;
-        background: var(--bg);
-        width: 56px;
-        height: 56px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        flex-shrink: 0;
-    }
-
-    .selected-info h4 {
-        font-size: 15px;
-        margin-bottom: 4px;
-        color: var(--text);
-    }
-
-    .selected-info p {
-        font-size: 12px;
-        color: var(--muted);
-        font-family: 'Space Mono', monospace;
-    }
-
-    .other-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 12px;
-        border-radius: 8px;
-        text-decoration: none;
-        color: var(--text);
-        transition: 0.2s;
-        border: 1px solid transparent;
-        margin-bottom: 4px;
-    }
-
-        .other-item:hover {
-            background: var(--surface2);
-            border-color: var(--border);
-        }
-
-    .other-icon {
-        font-size: 20px;
-    }
-
-    .other-info {
-        flex: 1;
-    }
-
-    .other-name {
-        font-size: 13px;
-        font-weight: 500;
-    }
-
-    .other-cat {
-        font-size: 11px;
-        color: var(--muted);
-        margin-top: 2px;
-    }
-
-    .other-arrow {
-        color: var(--muted);
-        font-weight: bold;
-        font-size: 16px;
-    }
-
-    .contact-box {
-        font-size: 13px;
-        color: var(--muted);
-        line-height: 1.6;
-    }
-
-        .contact-box strong {
-            color: var(--text);
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .contact-box a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-    /* ── STATUS BADGE — đồng bộ với Catalog ── */
-    .status-badge {
-        display: inline-flex;
-        gap: 5px;
-        padding: 5px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .badge-green {
-        background: #22c55e1a;
-        color: #86efac;
-        border: 1px solid #22c55e33;
-    }
+    .bf-footer { display:flex; justify-content:flex-end; gap:10px; padding-top:18px; border-top:1px solid #e5e7eb; margin-top:20px; }
+    .bf-wrap .btn-primary { background-color:#2563eb; border-color:#2563eb; }
+    .bf-wrap .btn-primary:hover { background-color:#1d4ed8; border-color:#1d4ed8; }
 </style>
 
-<div class="dm-page">
+<div class="bf-wrap">
 
-    <div class="dm-header">
-        <h1>Đăng ký mượn thiết bị</h1>
-        <p>Điền thông tin bên dưới để gửi yêu cầu đến Phòng Quản lý thiết bị</p>
+    <div class="dv-page-title">
+        <h2>Đăng ký mượn thiết bị</h2>
+        <p>Điền thông tin để gửi yêu cầu mượn thiết bị đến quản lý</p>
     </div>
 
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success">✅ @TempData["Success"]</div>
-    }
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-error">⚠️ @TempData["Error"]</div>
-    }
+    @await Html.PartialAsync("_Alerts")
 
-    <div class="dm-grid">
-        <div class="dm-main">
-            <form asp-action="BorrowForm" method="post" class="dm-card">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="DeviceId" value="@(preSelected?.DeviceId ?? 0)" />
+    <form asp-action="BorrowForm" asp-controller="Device" method="post" novalidate>
+        @Html.AntiForgeryToken()
 
-                <h3>👤 Thông tin người mượn</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div class="form-group">
-                        <label>Họ và tên</label>
-                        <input asp-for="BorrowerName" class="form-control" required placeholder="Ví dụ: Nguyễn Văn A" />
-                    </div>
-                    <div class="form-group">
-                        <label>Email liên hệ</label>
-                        <input asp-for="BorrowerEmail" type="email" class="form-control" required placeholder="sv@university.edu.vn" />
-                    </div>
-                </div>
+        <!-- Device selection -->
+        <div class="bf-section">
+            <div class="bf-section-head">Chọn thiết bị</div>
+            <div class="bf-section-body">
 
-                <h3 style="margin-top: 24px;">📝 Chi tiết yêu cầu</h3>
-                <div class="form-group">
-                    <label>Mục đích sử dụng</label>
-                    <textarea asp-for="Purpose" class="form-control" required placeholder="Vui lòng ghi rõ môn học, sự kiện hoặc lý do cần mượn thiết bị..."></textarea>
-                </div>
-
-                <div class="checkbox-group">
-                    <input type="checkbox" id="commit" required />
-                    <label for="commit">Tôi cam kết bảo quản thiết bị cẩn thận, sử dụng đúng mục đích và hoàn trả đúng thời hạn. Nếu làm hỏng hoặc mất, tôi xin chịu hoàn toàn trách nhiệm bồi thường theo quy định.</label>
-                </div>
-
-                <div style="margin-top: 24px; display: flex; gap: 12px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Gửi yêu cầu mượn →</button>
-                    <a href="/Device/Catalog" class="btn btn-outline">Hủy</a>
-                </div>
-            </form>
-        </div>
-
-        <div class="dm-sidebar">
-            <div class="dm-card">
-                <h3>📦 Thiết bị đang chọn</h3>
                 @if (preSelected != null)
                 {
-                    <div class="selected-device">
-                        <div class="selected-icon">@Icon(preSelected.Category)</div>
-                        <div class="selected-info">
-                            <h4>@preSelected.DeviceName</h4>
-                            <p>Mã TB: #@preSelected.DeviceId</p>
-                        </div>
+                    <input type="hidden" name="DeviceId" value="@preSelected.DeviceId" />
+                    <div class="device-preview">
+                        <div class="dp-lbl">Thiết bị đã chọn</div>
+                        <div class="dp-val">@preSelected.DeviceName</div>
+                        @if (!string.IsNullOrEmpty(preSelected.Category))
+                        {
+                            <div style="font-size:12px; color:#0369a1; margin-top:4px;">@preSelected.Category</div>
+                        }
                     </div>
-                    <span class="status-badge badge-green" style="margin-bottom: 12px;">Sẵn sàng</span>
-                    <a href="/Device/Catalog" class="btn btn-outline" style="width: 100%; font-size: 13px; margin-top: 12px;">🔄 Đổi thiết bị khác</a>
+                    <div class="mt-2">
+                        <a href="/Device/Catalog" style="font-size:13px; color:#2563eb;">Chọn thiết bị khác</a>
+                    </div>
                 }
                 else
                 {
-                    <p style="color: var(--yellow); font-size: 13px; margin-bottom: 12px; line-height: 1.5;">⚠️ Bạn chưa chọn thiết bị cụ thể nào để mượn.</p>
-                    <a href="/Device/Catalog" class="btn btn-outline" style="width: 100%; font-size: 13px;">🔍 Trở về kho thiết bị</a>
-                }
-            </div>
-
-            @if (availableDevices.Any())
-            {
-                var others = availableDevices.Where(d => preSelected == null || d.DeviceId != preSelected.DeviceId).Take(4).ToList();
-                if (others.Any())
-                {
-                    <div class="dm-card">
-                        <h3>💡 Gợi ý thiết bị khác</h3>
-                        <div>
-                            @foreach (var d in others)
+                    <div>
+                        <label class="form-label">Thiết bị <span class="text-danger">*</span></label>
+                        <select name="DeviceId" class="form-select" required>
+                            <option value="">-- Chọn thiết bị muốn mượn --</option>
+                            @foreach (var dev in availableDevices)
                             {
-                                <a href="/Device/BorrowForm?deviceId=@d.DeviceId" class="other-item">
-                                    <span class="other-icon">@Icon(d.Category)</span>
-                                    <div class="other-info">
-                                        <div class="other-name">@d.DeviceName</div>
-                                        <div class="other-cat">@(string.IsNullOrEmpty(d.Category) ? "Khác" : d.Category)</div>
-                                    </div>
-                                    <span class="other-arrow">→</span>
-                                </a>
+                                <option value="@dev.DeviceId" selected="@(Model.DeviceId == dev.DeviceId)">
+                                    @dev.DeviceName@(!string.IsNullOrEmpty(dev.Category) ? $" ({dev.Category})" : "")
+                                </option>
                             }
-                        </div>
-                        <a href="/Device/Catalog" style="display:block; text-align:center; font-size:13px; color:var(--accent); margin-top: 12px; text-decoration: none; font-weight: 500;">Xem tất cả kho →</a>
+                        </select>
+                        <span asp-validation-for="DeviceId" class="text-danger small"></span>
                     </div>
                 }
-            }
 
-            <div class="dm-card contact-box">
-                <h3>📞 Hỗ trợ kỹ thuật</h3>
-                <strong>Phòng Quản lý Thiết bị</strong>
-                📍 Tầng 1, Tòa nhà A<br />
-                ✉️ <a href="mailto:thietbi@university.edu.vn">thietbi@university.edu.vn</a><br />
-                ⏱ Thứ 2 – Thứ 6 (7:30 – 17:00)
             </div>
         </div>
-    </div>
+
+        <!-- Borrower info -->
+        <div class="bf-section">
+            <div class="bf-section-head">Thông tin người mượn</div>
+            <div class="bf-section-body">
+
+                <div class="mb-3">
+                    <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                    <input asp-for="BorrowerName" class="form-control"
+                           placeholder="Nguyễn Văn A" />
+                    <span asp-validation-for="BorrowerName" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-0">
+                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                    <input asp-for="BorrowerEmail" type="email" class="form-control"
+                           placeholder="email@student.uit.edu.vn" />
+                    <span asp-validation-for="BorrowerEmail" class="text-danger small"></span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Purpose -->
+        <div class="bf-section">
+            <div class="bf-section-head">Mục đích sử dụng</div>
+            <div class="bf-section-body">
+
+                <div>
+                    <label class="form-label">Mô tả mục đích <span class="text-danger">*</span></label>
+                    <textarea asp-for="Purpose" class="form-control" rows="3"
+                              placeholder="Mô tả ngắn gọn mục đích mượn thiết bị..."></textarea>
+                    <span asp-validation-for="Purpose" class="text-danger small"></span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Commitment -->
+        <div class="bf-section">
+            <div class="bf-section-head">Cam kết sử dụng</div>
+            <div class="bf-section-body">
+                <div class="commit-box">
+                    <p>
+                        Bằng việc gửi yêu cầu này, tôi cam kết sử dụng thiết bị đúng mục đích,
+                        giữ gìn cẩn thận và hoàn trả kịp thời trong tình trạng nguyên vẹn.
+                        Trong trường hợp hỏng hóc hoặc mất mát, tôi chịu hoàn toàn trách nhiệm bồi thường.
+                    </p>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="commitCheck" required />
+                        <label class="form-check-label" for="commitCheck"
+                               style="font-size:13px; font-weight:600; color:#78350f;">
+                            Tôi đã đọc và đồng ý với các điều khoản trên
+                        </label>
+                    </div>
+                </div>
+
+                <div class="bf-footer">
+                    <a href="/Device/Catalog" class="btn btn-outline-secondary px-4">Hủy</a>
+                    <button type="submit" class="btn btn-primary px-5">Gửi yêu cầu</button>
+                </div>
+            </div>
+        </div>
+
+    </form>
 </div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

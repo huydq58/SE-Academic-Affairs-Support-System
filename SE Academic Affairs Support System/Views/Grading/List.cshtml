@@ -1,0 +1,186 @@
+@using SE_Academic_Affairs_Support_System.ViewModels
+@using SE_Academic_Affairs_Support_System.Models
+@* Views/Grading/List.cshtml *@
+@model GradingListViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chấm báo cáo đề tài";
+
+    var successMsg = TempData["StatusMessage"]?.ToString();
+    var isSuccess = TempData["IsSuccess"]?.ToString() == "True";
+}
+
+<div class="container mt-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-controller="RegistrationPeriod" asp-action="ActivePeriods">Đợt đăng ký</a>
+            </li>
+            <li class="breadcrumb-item active">Chấm điểm – @Model.PeriodName</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-0">Chấm báo cáo cuối kỳ</h4>
+            <small class="text-muted">@Model.PeriodName – @Model.CourseName</small>
+        </div>
+        @{
+            var gradedCount = Model.Rows.Count(r => r.Score.HasValue);
+            var ungradedCount = Model.Rows.Count(r => !r.Score.HasValue);
+            var pendingSync = Model.Rows.Count(r => r.SyncStatus == SyncStatus.Pending || r.SyncStatus == SyncStatus.Failed);
+        }
+        <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-success fs-6">Đã chấm: @gradedCount</span>
+            <span class="badge bg-warning text-dark fs-6">Chưa chấm: @ungradedCount</span>
+            @if (pendingSync > 0)
+            {
+                <span class="badge bg-secondary fs-6"
+                      title="Sẽ đồng bộ lên Google Sheet trong 1 phút">
+                    <i class="fas fa-sync-alt me-1"></i>Chờ sync: @pendingSync
+                </span>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(successMsg))
+    {
+        <div class="alert alert-@(isSuccess ? "success" : "danger") alert-dismissible fade show" role="alert">
+            <i class="fas fa-@(isSuccess ? "check-circle" : "exclamation-circle") me-2"></i>
+            @successMsg
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form method="get" class="mb-3">
+        <input type="hidden" name="periodId" value="@Model.PeriodId" />
+        <div class="input-group" style="max-width:420px">
+            <span class="input-group-text">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text"
+                   name="search"
+                   class="form-control"
+                   placeholder="Tìm theo MSSV, họ tên hoặc tên đề tài…"
+                   value="@Model.SearchQuery" />
+            <button class="btn btn-outline-secondary" type="submit">Tìm</button>
+            @if (!string.IsNullOrEmpty(Model.SearchQuery))
+            {
+                <a asp-action="List"
+                   asp-route-periodId="@Model.PeriodId"
+                   class="btn btn-outline-danger">
+                    <i class="fas fa-times"></i>
+                </a>
+            }
+        </div>
+    </form>
+
+    @if (!Model.Rows.Any())
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Không có kết quả phù hợp.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-primary">
+                    <tr>
+                        <th style="width:50px">STT</th>
+                        <th style="width:120px">MSSV</th>
+                        <th>Họ tên</th>
+                        <th>Tên đề tài</th>
+                        <th style="width:150px">Giảng viên HD</th>
+                        <th style="width:110px" class="text-center">Điểm</th>
+                        <th style="width:150px" class="text-center">Thời gian chấm</th>
+                        <th style="width:110px" class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Rows.Count; i++)
+                    {
+                        var r = Model.Rows[i];
+                        var graded = r.Score.HasValue;
+                        <tr class="@(!graded ? "table-warning" : "")">
+                            <td class="text-center">@(i + 1)</td>
+                            <td>
+                                <span class="badge bg-primary">@r.Mssv</span>
+                            </td>
+                            <td>@r.StudentName</td>
+                            <td class="fw-semibold">@r.TopicName</td>
+                            <td><small>@r.Lecturer</small></td>
+                            <td class="text-center">
+                                @if (graded)
+                                {
+                                    var scoreVal = r.Score!.Value;
+                                    var scoreClass = scoreVal >= 8 ? "success"
+                                    : scoreVal >= 5 ? "primary"
+                                    : "danger";
+                                    <span class="badge bg-@scoreClass fs-6">
+                                        @scoreVal.ToString("0.#")
+                                    </span>
+                                    @* Badge trạng thái sync *@
+                                    @if (r.SyncStatus == SyncStatus.Synced)
+                                    {
+                                        <div>
+                                            <span class="badge bg-success mt-1"
+                                                  title="Đã đồng bộ lên Google Sheet">
+                                                <i class="fas fa-check me-1"></i>Đã sync
+                                            </span>
+                                        </div>
+                                    }
+                                    else if (r.SyncStatus == SyncStatus.Pending)
+                                    {
+                                        <div>
+                                            <span class="badge bg-warning text-dark mt-1"
+                                                  title="Sẽ đồng bộ trong 1 phút">
+                                                <i class="fas fa-clock me-1"></i>Chờ sync
+                                            </span>
+                                        </div>
+                                    }
+                                    else if (r.SyncStatus == SyncStatus.Failed)
+                                    {
+                                        @* <div>
+                                            <span class="badge bg-danger mt-1"
+                                                  title="@r.SyncError">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>Lỗi sync
+                                            </span>
+                                        </div> *@
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic">Chưa chấm</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (graded)
+                                {
+                                    <small class="text-muted d-block">@r.GradedAt</small>
+                                    <small class="text-muted">@r.GradedBy</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="Grade"
+                                   asp-route-periodId="@Model.PeriodId"
+                                   asp-route-sheetId="@Model.SheetId"
+                                   asp-route-mssv="@r.Mssv"
+                                   class="btn btn-sm @(graded ? "btn-outline-warning" : "btn-primary")">
+                                    <i class="fas fa-@(graded ? "edit" : "star") me-1"></i>
+                                    @(graded ? "Sửa" : "Chấm")
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

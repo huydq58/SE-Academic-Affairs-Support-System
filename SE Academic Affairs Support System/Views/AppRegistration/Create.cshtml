@@ -1,293 +1,228 @@
-@model AppRegistrationRequest
+@model SE_Academic_Affairs_Support_System.Models.AppRegistrationRequest
 
 @{
     ViewData["Title"] = "Đăng ký phát hành ứng dụng";
 }
 
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-
 <style>
-    :root {
-        --bg: #0f1117;
-        --surface: #1a1d27;
-        --surface2: #22263a;
-        --border: #2e3350;
-        --accent: #4f8ef7;
-        --green: #22c55e;
-        --yellow: #f59e0b;
-        --red: #ef4444;
-        --text: #e8eaf6;
-        --muted: #7c83a8;
-        --radius: 12px;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-        background: var(--bg);
-        color: var(--text);
-        font-family: 'Be Vietnam Pro', sans-serif;
-    }
-
-    .dm-page {
-        padding: 28px 32px;
-        max-width: 760px;
+    .ar-wrap {
+        max-width: 700px;
         margin: 0 auto;
     }
 
-    /* ── HEADER — giống Catalog ── */
-    .dm-header {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        margin-bottom: 32px;
+    .ar-page-title {
+        border-left: 4px solid #2563eb;
+        padding-left: 14px;
+        margin-bottom: 28px;
     }
 
-    .dm-header h1 {
-        font-size: 28px;
+    .ar-page-title h2 {
+        font-size: 22px;
         font-weight: 700;
-        margin-bottom: 8px;
-        color: var(--text);
+        color: #1e3a8a;
+        margin-bottom: 3px;
     }
 
-    .dm-header p { color: var(--muted); font-size: 15px; }
-
-    /* ── ALERT ── */
-    .alert {
-        padding: 12px 16px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        font-size: 14px;
-        display: flex;
-        gap: 10px;
-        align-items: flex-start;
-    }
-
-    .alert-success {
-        background: #22c55e1a;
-        border: 1px solid #22c55e44;
-        color: #86efac;
-    }
-
-    /* ── CARD ── */
-    .dm-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 24px;
-        margin-bottom: 20px;
-    }
-
-    .dm-card h3 {
+    .ar-page-title p {
         font-size: 13px;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .ar-section {
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+        overflow: hidden;
         margin-bottom: 18px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 12px;
-        text-transform: uppercase;
-        color: var(--muted);
-        font-weight: 600;
-        letter-spacing: 0.04em;
     }
 
-    /* ── FORM ── */
-    .form-group { margin-bottom: 16px; }
+    .ar-section-head {
+        background: #eff6ff;
+        border-bottom: 1px solid #bfdbfe;
+        padding: 10px 18px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #1d4ed8;
+    }
 
-    .form-group label {
-        display: block;
+    .ar-section-body {
+        padding: 20px 18px;
+    }
+
+    .ar-wrap .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .ar-wrap .form-control {
+        font-size: 14px;
+        border-color: #d1d5db;
+        border-radius: 7px;
+        padding: 9px 12px;
+    }
+
+    .ar-wrap .form-control:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .ar-wrap .form-control.is-invalid {
+        border-color: #dc2626;
+        background-image: none;
+    }
+
+    .ar-wrap textarea.form-control {
+        resize: vertical;
+        min-height: 88px;
+    }
+
+    .form-hint {
         font-size: 12px;
-        font-weight: 600;
-        color: var(--muted);
-        margin-bottom: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+        color: #9ca3af;
+        margin-top: 4px;
     }
 
-    .req { color: var(--red); margin-left: 2px; }
-
-    .badge-opt {
+    .opt-badge {
         display: inline-block;
         font-size: 11px;
-        padding: 1px 8px;
-        background: var(--surface2);
-        border: 1px solid var(--border);
+        font-weight: 500;
+        background: #f3f4f6;
+        color: #6b7280;
+        border: 1px solid #e5e7eb;
         border-radius: 20px;
-        color: var(--muted);
-        margin-left: 6px;
+        padding: 1px 8px;
         vertical-align: middle;
         text-transform: none;
         letter-spacing: 0;
     }
 
-    .form-control {
-        width: 100%;
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 10px 14px;
-        border-radius: 8px;
-        font-size: 14px;
-        outline: none;
-        transition: 0.2s;
-        font-family: inherit;
-    }
-
-    .form-control:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.15);
-    }
-
-    .form-control.is-invalid { border-color: var(--red); }
-
-    textarea.form-control { resize: vertical; min-height: 90px; }
-
-    .form-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
-    .invalid-msg { font-size: 12px; color: #fca5a5; margin-top: 4px; display: block; }
-
-    .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @@media (max-width: 600px) { .col2 { grid-template-columns: 1fr; } }
-
-    /* ── BUTTONS — giống Catalog ── */
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-        transition: 0.2s;
-        text-decoration: none;
-    }
-
-    .btn-primary {
-        background: var(--accent);
-        color: #fff;
-        padding: 10px 28px;
-        font-size: 14px;
-    }
-
-    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-
-    .btn-outline {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 10px 20px;
-        font-size: 14px;
-    }
-
-    .btn-outline:hover { background: var(--surface2); }
-
-    .form-actions {
+    .ar-footer {
         display: flex;
         justify-content: flex-end;
         gap: 10px;
-        border-top: 1px solid var(--border);
-        padding-top: 20px;
-        margin-top: 8px;
+        padding-top: 18px;
+        border-top: 1px solid #e5e7eb;
+        margin-top: 20px;
+    }
+
+    .ar-wrap .btn-primary {
+        background-color: #2563eb;
+        border-color: #2563eb;
+    }
+
+    .ar-wrap .btn-primary:hover {
+        background-color: #1d4ed8;
+        border-color: #1d4ed8;
     }
 </style>
 
-<div class="dm-page">
+<div class="ar-wrap">
 
-    <div class="dm-header">
-        <h1 style="color : black">Đăng ký phát hành ứng dụng</h1>
-        <p>Điền đầy đủ thông tin để gửi yêu cầu duyệt ứng dụng</p>
+    <div class="ar-page-title">
+        <h2>Đăng ký phát hành ứng dụng</h2>
+        <p>Điền đầy đủ thông tin bên dưới để gửi yêu cầu xét duyệt ứng dụng lên ban học vụ</p>
     </div>
-
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success">✅ @TempData["SuccessMessage"]</div>
-    }
 
     <form asp-action="Submit" asp-controller="AppRegistration" method="post" novalidate>
         @Html.AntiForgeryToken()
 
-        <div class="dm-card">
-            <h3>📱 Thông tin ứng dụng</h3>
+        <div class="ar-section">
+            <div class="ar-section-head">Thông tin ứng dụng</div>
+            <div class="ar-section-body">
 
-            <div class="form-group">
-                <label>Tên ứng dụng <span class="req">*</span></label>
-                <input asp-for="AppName"
-                       class="form-control @(ViewData.ModelState["AppName"]?.Errors.Count > 0 ? "is-invalid" : "")"
-                       placeholder="Ví dụ: StudyMate, CampusMap..." />
-                <span asp-validation-for="AppName" class="invalid-msg"></span>
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Tên ứng dụng <span class="text-danger">*</span></label>
+                    <input asp-for="AppName"
+                           class="form-control @(ViewData.ModelState["AppName"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                           placeholder="Ví dụ: StudyMate, CampusMap..." />
+                    <span asp-validation-for="AppName" class="invalid-feedback d-block small"></span>
+                </div>
 
-            <div class="form-group">
-                <label>Mô tả ứng dụng <span class="req">*</span></label>
-                <textarea asp-for="AppDescription"
-                          class="form-control @(ViewData.ModelState["AppDescription"]?.Errors.Count > 0 ? "is-invalid" : "")"
-                          placeholder="Mô tả ngắn gọn về chức năng và tính năng chính..."></textarea>
-                <span asp-validation-for="AppDescription" class="invalid-msg"></span>
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Mô tả ứng dụng <span class="text-danger">*</span></label>
+                    <textarea asp-for="AppDescription"
+                              class="form-control @(ViewData.ModelState["AppDescription"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                              rows="3"
+                              placeholder="Mô tả ngắn gọn về chức năng và tính năng chính..."></textarea>
+                    <span asp-validation-for="AppDescription" class="invalid-feedback d-block small"></span>
+                </div>
 
-            <div class="form-group">
-                <label>Mục đích sử dụng <span class="req">*</span></label>
-                <textarea asp-for="Purpose"
-                          class="form-control @(ViewData.ModelState["Purpose"]?.Errors.Count > 0 ? "is-invalid" : "")"
-                          placeholder="Ứng dụng giải quyết vấn đề gì? Đối tượng người dùng là ai?"></textarea>
-                <span asp-validation-for="Purpose" class="invalid-msg"></span>
+                <div>
+                    <label class="form-label">Mục đích sử dụng <span class="text-danger">*</span></label>
+                    <textarea asp-for="Purpose"
+                              class="form-control @(ViewData.ModelState["Purpose"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                              rows="3"
+                              placeholder="Ứng dụng giải quyết vấn đề gì? Đối tượng người dùng là ai?"></textarea>
+                    <span asp-validation-for="Purpose" class="invalid-feedback d-block small"></span>
+                </div>
+
             </div>
         </div>
 
-        <div class="dm-card">
-            <h3>🔗 Liên kết tài nguyên</h3>
+        <div class="ar-section">
+            <div class="ar-section-head">Liên kết tài nguyên</div>
+            <div class="ar-section-body">
 
-            <div class="col2">
-                <div class="form-group">
-                    <label>Link Demo <span class="req">*</span></label>
-                    <input asp-for="DemoLink"
-                           class="form-control @(ViewData.ModelState["DemoLink"]?.Errors.Count > 0 ? "is-invalid" : "")"
-                           placeholder="https://youtube.com/..." />
-                    <span asp-validation-for="DemoLink" class="invalid-msg"></span>
-                    <div class="form-hint">YouTube, video demo hoặc link trực tiếp</div>
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label">Link Demo <span class="text-danger">*</span></label>
+                        <input asp-for="DemoLink"
+                               class="form-control @(ViewData.ModelState["DemoLink"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                               placeholder="https://youtube.com/..." />
+                        <span asp-validation-for="DemoLink" class="invalid-feedback d-block small"></span>
+                        <div class="form-hint">YouTube, video demo hoặc link trực tiếp</div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label">Link APK <span class="text-danger">*</span></label>
+                        <input asp-for="ApkLink"
+                               class="form-control @(ViewData.ModelState["ApkLink"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                               placeholder="https://drive.google.com/..." />
+                        <span asp-validation-for="ApkLink" class="invalid-feedback d-block small"></span>
+                        <div class="form-hint">Google Drive, Dropbox hoặc link tải trực tiếp</div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Link APK <span class="req">*</span></label>
-                    <input asp-for="ApkLink"
-                           class="form-control @(ViewData.ModelState["ApkLink"]?.Errors.Count > 0 ? "is-invalid" : "")"
-                           placeholder="https://drive.google.com/..." />
-                    <span asp-validation-for="ApkLink" class="invalid-msg"></span>
-                    <div class="form-hint">Google Drive, Dropbox...</div>
-                </div>
+
             </div>
         </div>
 
-        <div class="dm-card">
-            <h3>👤 Thông tin người thực hiện</h3>
+        <div class="ar-section">
+            <div class="ar-section-head">Thông tin người thực hiện</div>
+            <div class="ar-section-body">
 
-            <div class="form-group">
-                <label>Thông tin sinh viên <span class="req">*</span></label>
-                <input asp-for="StudentInfo"
-                       class="form-control @(ViewData.ModelState["StudentInfo"]?.Errors.Count > 0 ? "is-invalid" : "")"
-                       placeholder="Họ tên – MSSV – Khoa/Lớp" />
-                <span asp-validation-for="StudentInfo" class="invalid-msg"></span>
-            </div>
-            <div class="form-group">
-                <label>Email liên hệ <span class="req">*</span></label>
-                <input asp-for="StudentEmail"
-                       class="form-control @(ViewData.ModelState["StudentEmail"]?.Errors.Count > 0 ? "is-invalid" : "")"
-                       placeholder="Email liên hệ" />
-                <span asp-validation-for="StudentEmail" class="invalid-msg"></span>
-            </div>
-            <div class="form-group">
-                <label>Thông tin giảng viên hướng dẫn <span class="badge-opt">Tùy chọn</span></label>
-                <input asp-for="SupervisorInfo" class="form-control"
-                       placeholder="Họ tên – Bộ môn (nếu có)" />
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Thông tin sinh viên <span class="text-danger">*</span></label>
+                    <input asp-for="StudentInfo"
+                           class="form-control @(ViewData.ModelState["StudentInfo"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                           placeholder="Họ tên – MSSV – Khoa/Lớp" />
+                    <span asp-validation-for="StudentInfo" class="invalid-feedback d-block small"></span>
+                </div>
 
-            <div class="form-actions">
-                <a asp-action="Index" asp-controller="AppRegistration" class="btn btn-outline">Hủy</a>
-                <button type="submit" class="btn btn-primary">Gửi yêu cầu →</button>
+                <div class="mb-3">
+                    <label class="form-label">Email liên hệ <span class="text-danger">*</span></label>
+                    <input asp-for="StudentEmail" type="email"
+                           class="form-control @(ViewData.ModelState["StudentEmail"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                           placeholder="example@student.uit.edu.vn" />
+                    <span asp-validation-for="StudentEmail" class="invalid-feedback d-block small"></span>
+                </div>
+
+                <div>
+                    <label class="form-label">
+                        Giảng viên hướng dẫn
+                        <span class="opt-badge">Tùy chọn</span>
+                    </label>
+                    <input asp-for="SupervisorInfo" class="form-control"
+                           placeholder="Họ tên – Bộ môn (nếu có)" />
+                </div>
+
+                <div class="ar-footer">
+                    <a asp-action="Index" asp-controller="AppRegistration"
+                       class="btn btn-outline-secondary px-4">Hủy</a>
+                    <button type="submit" class="btn btn-primary px-5">Gửi yêu cầu</button>
+                </div>
+
             </div>
         </div>
 

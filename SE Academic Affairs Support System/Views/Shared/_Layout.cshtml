@@ -107,6 +107,7 @@
                             <li class="nav-item">
                                 <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Admin" asp-controller="Registration" asp-action="Periods">Đợt đăng ký </a>
                             </li>
+
                         }
 
                         @if (SignInManager.IsSignedIn(User) && User.IsInRole("Lecturer"))
@@ -118,7 +119,7 @@
                                 <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Lecturer" asp-controller="Registration" asp-action="MyTopics">MyTopics</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Lecturer" asp-controller="Registration" asp-action="Inbox">Inbox</a>
+                                <a class="nav-link text-dark fw-semibold custom-nav-hover" asp-area="Lecturer" asp-controller="Registration" asp-action="ActivePeriods">Grading</a>
                             </li>
                         }
                         @if (SignInManager.IsSignedIn(User) && User.IsInRole("Student"))

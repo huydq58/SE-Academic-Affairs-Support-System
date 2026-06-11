@@ -21,11 +21,14 @@
     // Models/RegisterTopicRequest.cs
     public class RegisterTopicRequest
     {
-        public string Action { get; set; } = "register";
-        public string SheetId { get; set; } = "";
+        public string SheetId { get; set; } = string.Empty;
         public int RowIndex { get; set; }
-        public string StudentId { get; set; } = "";
-        public string StudentName { get; set; } = "";
+        public string StudentName { get; set; } = string.Empty;
+        public string StudentId { get; set; } = string.Empty;
+
+        // Sinh viên 2 (tuỳ chọn)
+        public string? StudentName2 { get; set; }
+        public string? StudentId2 { get; set; }
     }
 
     // Models/ApiResponse.cs
@@ -44,5 +47,10 @@
         public List<TopicSheet> Topics { get; set; } = [];
         public string? StatusMessage { get; set; }
         public bool IsSuccess { get; set; }
+        public int PeriodId { get; set; }
+
+        public List<TopicRegistration> Registrations { get; set; } = [];
+        public TopicRegistration? GetRegistration(int rowIndex) =>
+        Registrations.FirstOrDefault(r => r.RowIndex == rowIndex);
     }
 }

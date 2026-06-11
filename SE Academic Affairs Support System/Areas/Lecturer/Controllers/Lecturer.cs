@@ -138,5 +138,42 @@ namespace SE_Academic_Affairs_Support_System.Areas.Lecturer.Controllers
             }
             return RedirectToAction(nameof(MyTopics));
         }
+
+
+        private async Task<int?> GetStudentProfileIdAsync()
+        {
+            var user = await _userMgr.GetUserAsync(User);
+            if (user == null) return null;
+            var profile = await _db.StudentProfiles.FirstOrDefaultAsync(s => s.UserId == user.Id);
+            return profile?.Id;
+        }
+
+        // GET /Student/Registration/TopicList
+        public async Task<IActionResult> TopicList(string? keyword, int? lecturerId)
+        {
+            var studentId = await GetStudentProfileIdAsync();
+            if (studentId == null) return Forbid();
+
+            var vm = await _svc.GetTopicListForStudentAsync(studentId.Value, keyword, lecturerId);
+            if (vm == null)
+            {
+                TempData["Info"] = "Hiện chưa có đợt đăng ký nào đang mở.";
+                return View("NoPeriod");
+            }
+            return View(vm);
+        }
+        public async Task<IActionResult> ActivePeriods()
+        {
+            var now = DateTime.Now;
+
+            // Lọc các đợt đăng ký đang trong thời gian mở và được kích hoạt
+            var activePeriods = await _db.RegistrationPeriods
+                .Where(p => p.IsActive && p.StartDate <= now && p.EndDate >= now)
+                .OrderByDescending(p => p.EndDate) // Đợt nào sắp hết hạn hiện lên đầu
+                .ToListAsync();
+
+            return View(activePeriods);
+        }
     }
 }
+

@@ -1,0 +1,186 @@
+@using SE_Academic_Affairs_Support_System.ViewModels
+@using SE_Academic_Affairs_Support_System.Models
+@* Views/Grading/Grade.cshtml *@
+@model GradeFormViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chấm điểm";
+    var isUpdate = Model.Row.Score.HasValue;
+}
+
+<div class="container mt-4" style="max-width:600px">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="List" asp-route-periodId="@Model.PeriodId">
+                    Danh sách chấm điểm
+                </a>
+            </li>
+            <li class="breadcrumb-item active">
+                @(isUpdate ? "Cập nhật điểm" : "Chấm điểm")
+            </li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-star me-2"></i>
+                @(isUpdate ? "Cập nhật điểm báo cáo" : "Chấm điểm báo cáo")
+            </h5>
+        </div>
+        <div class="card-body">
+
+            @* Thông tin sinh viên / đề tài *@
+            <table class="table table-borderless table-sm mb-4">
+                <tr>
+                    <td class="text-muted fw-semibold" style="width:140px">MSSV</td>
+                    <td>
+                        <span class="badge bg-primary fs-6">@Model.Row.Mssv</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted fw-semibold">Họ tên</td>
+                    <td>@Model.Row.StudentName</td>
+                </tr>
+                <tr>
+                    <td class="text-muted fw-semibold">Tên đề tài</td>
+                    <td class="fw-semibold">@Model.Row.TopicName</td>
+                </tr>
+                <tr>
+                    <td class="text-muted fw-semibold">Giảng viên HD</td>
+                    <td>@Model.Row.Lecturer</td>
+                </tr>
+                @if (isUpdate)
+                {
+                    <tr>
+                        <td class="text-muted fw-semibold">Điểm hiện tại</td>
+                        <td>
+                            <span class="badge bg-secondary fs-6">
+                                @Model.Row.Score!.Value.ToString("0.#")
+                            </span>
+                            <small class="text-muted ms-2">
+                                (chấm bởi @Model.Row.GradedBy lúc @Model.Row.GradedAt)
+                            </small>
+                            @* Badge trạng thái sync *@
+                            @if (Model.Row.SyncStatus == SyncStatus.Synced)
+                            {
+                                <span class="badge bg-success ms-2">
+                                    <i class="fas fa-check me-1"></i>Đã sync
+                                </span>
+                            }
+                            else if (Model.Row.SyncStatus == SyncStatus.Pending)
+                            {
+                                <span class="badge bg-warning text-dark ms-2">
+                                    <i class="fas fa-clock me-1"></i>Chờ sync
+                                </span>
+                            }
+                            else if (Model.Row.SyncStatus == SyncStatus.Failed)
+                            {
+                                <span class="badge bg-danger ms-2">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Lỗi sync
+                                </span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </table>
+
+            <hr />
+
+            @* Form nhập điểm *@
+            <form asp-action="Grade" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="periodId" value="@Model.PeriodId" />
+                <input type="hidden" name="sheetId" value="@Model.SheetId" />
+                <input type="hidden" name="mssv" value="@Model.Row.Mssv" />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">
+                        Điểm báo cáo
+                        <small class="text-muted fw-normal">(0 – 10, cho phép 0.5)</small>
+                    </label>
+
+                    @* Slider trực quan *@
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="range"
+                               id="scoreRange"
+                               min="0" max="10" step="0.5"
+                               value="@Model.Score.ToString("0.#").Replace(",", ".")"
+                               class="form-range flex-grow-1"
+                               oninput="syncScore(this.value)" />
+                        <input type="number"
+                               id="scoreInput"
+                               name="score"
+                               min="0" max="10" step="0.5"
+                               value="@Model.Score.ToString("0.#").Replace(",", ".")"
+                               class="form-control text-center fw-bold fs-5"
+                               style="width:80px"
+                               oninput="syncRange(this.value)"
+                               required />
+                    </div>
+
+                    @* Các nút chọn nhanh *@
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        @foreach (var v in new[]{ 4.0f, 5.0f, 5.5f, 6.0f, 6.5f,
+                                                7.0f, 7.5f, 8.0f, 8.5f, 9.0f, 9.5f, 10.0f })
+                        {
+                            var cls = v >= 8 ? "success" : v >= 5 ? "primary" : "danger";
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-@cls quick-score"
+                                    data-val="@v.ToString("0.#").Replace(",", ".")">
+                                @v.ToString("0.#")
+                            </button>
+                        }
+                    </div>
+                    <span asp-validation-for="Score" class="text-danger small"></span>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit"
+                            class="btn btn-primary flex-grow-1"
+                            onclick="return confirmGrade()">
+                        <i class="fas fa-save me-2"></i>
+                        @(isUpdate ? "Cập nhật điểm" : "Lưu điểm")
+                    </button>
+                    <a asp-action="List"
+                       asp-route-periodId="@Model.PeriodId"
+                       class="btn btn-outline-secondary">
+                        Hủy
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function syncScore(val) {
+            document.getElementById('scoreInput').value = val;
+        }
+        function syncRange(val) {
+            var v = parseFloat(val);
+            if (!isNaN(v) && v >= 0 && v <= 10)
+                document.getElementById('scoreRange').value = v;
+        }
+
+        document.querySelectorAll('.quick-score').forEach(btn => {
+            btn.addEventListener('click', () => {
+                var v = btn.dataset.val;
+                document.getElementById('scoreInput').value = v;
+                document.getElementById('scoreRange').value = v;
+            });
+        });
+
+        function confirmGrade() {
+            var score = document.getElementById('scoreInput').value;
+            var name  = '@Model.Row.StudentName';
+            return confirm(`Xác nhận chấm điểm ${score} cho sinh viên "${name}"?`);
+        }
+    </script>
+}

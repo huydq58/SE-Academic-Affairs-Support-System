@@ -3,107 +3,129 @@
     ViewData["Title"] = "Chỉnh sửa thiết bị";
 }
 
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    :root { --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;--accent:#4f8ef7;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--orange:#f97316;--text:#e8eaf6;--muted:#7c83a8;--radius:12px; }
-    * { box-sizing:border-box;margin:0;padding:0; }
-    body { background:var(--bg);color:var(--text);font-family:'Be Vietnam Pro',sans-serif; }
-    .page { padding:28px 32px;max-width:680px;margin:0 auto; }
-    .page-header { display:flex;align-items:center;gap:12px;margin-bottom:28px;flex-wrap:wrap; }
-    .back-link { color:var(--muted);font-size:13px;text-decoration:none;display:flex;align-items:center;gap:5px; }
-    .back-link:hover { color:var(--text); }
-    h1 { font-size:22px;font-weight:700; }
-    .card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px; }
+    .dv-wrap { max-width:620px; margin:0 auto; }
+    .dv-page-title { border-left:4px solid #2563eb; padding-left:14px; margin-bottom:28px; }
+    .dv-page-title h2 { font-size:22px; font-weight:700; color:#1e3a8a; margin-bottom:3px; }
+    .dv-page-title p  { font-size:13px; color:#6b7280; margin:0; }
 
-    /* Status info strip */
-    .status-strip { background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px; }
-    .status-strip .label { color:var(--muted); }
-    .status-badge { display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600; }
-    .s-available { background:#22c55e1a;color:#86efac;border:1px solid #22c55e33; }
-    .s-borrowing { background:#4f8ef71a;color:#93c5fd;border:1px solid #4f8ef733; }
-    .s-returned  { background:#f973161a;color:#fdba74;border:1px solid #f9731633; }
-    .c-good      { background:#22c55e1a;color:#86efac;border:1px solid #22c55e33; }
-    .c-broken    { background:#ef44441a;color:#fca5a5;border:1px solid #ef444433; }
-    .status-note { font-size:12px;color:var(--muted);font-style:italic; }
+    /* Status strip */
+    .status-strip { display:flex; flex-wrap:wrap; gap:16px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:14px 18px; margin-bottom:20px; }
+    .strip-item .strip-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#9ca3af; margin-bottom:5px; }
+    .sb { display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; }
+    .sb-green { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+    .sb-blue  { background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe; }
+    .sb-amber { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+    .sb-red   { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
 
-    .form-group { margin-bottom:20px; }
-    .form-group label { display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:0.4px; }
-    .form-group input,.form-group select,.form-group textarea { width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-family:'Be Vietnam Pro',sans-serif;font-size:14px;transition:border-color 0.15s; }
-    .form-group input:focus,.form-group select:focus,.form-group textarea:focus { outline:none;border-color:var(--accent); }
-    .form-group textarea { resize:vertical; }
-    .validation-error { font-size:12px;color:#fca5a5;margin-top:5px; }
-    .form-row { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
-    .form-actions { display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:20px;border-top:1px solid var(--border); }
-    .btn { display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.18s;text-decoration:none;font-family:'Be Vietnam Pro',sans-serif; }
-    .btn-primary { background:var(--accent);color:#fff; }
-    .btn-primary:hover { background:#3a7de8; }
-    .btn-outline { background:transparent;color:var(--text);border:1.5px solid var(--border); }
-    .btn-outline:hover { border-color:var(--accent);color:var(--accent); }
-    .field-note { font-size:11px;color:var(--muted);margin-top:5px; }
+    .dv-section { border:1px solid #dbeafe; border-radius:10px; overflow:hidden; margin-bottom:18px; }
+    .dv-section-head { background:#eff6ff; border-bottom:1px solid #bfdbfe; padding:10px 18px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#1d4ed8; }
+    .dv-section-body { padding:20px 18px; }
+
+    .dv-wrap .form-label { font-size:13px; font-weight:600; color:#374151; }
+    .dv-wrap .form-control,
+    .dv-wrap .form-select { font-size:14px; border-color:#d1d5db; border-radius:7px; padding:9px 12px; }
+    .dv-wrap .form-control:focus,
+    .dv-wrap .form-select:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); outline:none; }
+    .dv-wrap .form-control.is-invalid { border-color:#dc2626; background-image:none; }
+
+    .dv-footer { display:flex; justify-content:flex-end; gap:10px; padding-top:18px; border-top:1px solid #e5e7eb; margin-top:20px; }
+    .dv-wrap .btn-primary { background-color:#2563eb; border-color:#2563eb; }
+    .dv-wrap .btn-primary:hover { background-color:#1d4ed8; border-color:#1d4ed8; }
 </style>
 
-<div class="page">
-    <div class="page-header">
-        <a href="/Device/Index" class="back-link">← Quay lại</a>
-        <h1>✏️ Chỉnh sửa thiết bị</h1>
+<div class="dv-wrap">
+
+    <div class="dv-page-title">
+        <h2>Chỉnh sửa thiết bị</h2>
+        <p>Cập nhật thông tin và trạng thái của thiết bị</p>
     </div>
 
-    <!-- Current Status Info (read-only) -->
+    @await Html.PartialAsync("_Alerts")
+
+    <!-- Status strip (read-only info) -->
     <div class="status-strip">
-        <span class="label">Trạng thái hiện tại:</span>
-        <span class="status-badge @(Model.Status == "Available" ? "s-available" : Model.Status == "Borrowing" ? "s-borrowing" : "s-returned")">
-            @(Model.Status == "Available" ? "✅ Sẵn sàng" : Model.Status == "Borrowing" ? "🔵 Đang mượn" : "🟠 Đã trả")
-        </span>
-        <span class="status-badge @(Model.Condition == "Good" ? "c-good" : "c-broken")">
-            @(Model.Condition == "Good" ? "✅ Tốt" : "🔴 Hỏng")
-        </span>
-        <span class="status-note">Trạng thái thay đổi từ trang danh sách</span>
+        <div class="strip-item">
+            <div class="strip-lbl">Mã TB</div>
+            <span style="font-family:monospace; font-size:14px; color:#6b7280;">#@Model.DeviceId</span>
+        </div>
+        <div class="strip-item">
+            <div class="strip-lbl">Trạng thái hiện tại</div>
+            <span class="sb @(Model.Status == "Available" ? "sb-green" : Model.Status == "Borrowing" ? "sb-blue" : "sb-amber")">
+                @(Model.Status == "Available" ? "Sẵn sàng" : Model.Status == "Borrowing" ? "Đang mượn" : "Đã trả")
+            </span>
+        </div>
+        <div class="strip-item">
+            <div class="strip-lbl">Tình trạng hiện tại</div>
+            <span class="sb @(Model.Condition == "Good" ? "sb-green" : "sb-red")">
+                @(Model.Condition == "Good" ? "Tốt" : "Hỏng")
+            </span>
+        </div>
     </div>
 
-    <div class="card">
-        <form asp-action="Edit" asp-route-id="@Model.DeviceId" method="post">
-            @Html.AntiForgeryToken()
+    <form asp-action="Edit" asp-controller="Device" asp-route-id="@Model.DeviceId" method="post" novalidate>
+        @Html.AntiForgeryToken()
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label asp-for="DeviceName">Tên thiết bị *</label>
-                    <input asp-for="DeviceName" />
-                    <span asp-validation-for="DeviceName" class="validation-error"></span>
-                </div>
-                <div class="form-group">
-                    <label asp-for="Category">Loại thiết bị</label>
-                    <input asp-for="Category" />
-                </div>
-            </div>
+        <div class="dv-section">
+            <div class="dv-section-head">Thông tin thiết bị</div>
+            <div class="dv-section-body">
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label asp-for="Condition">Tình trạng</label>
-                    <select asp-for="Condition">
-                        <option value="Good">✅ Tốt</option>
-                        <option value="Broken">🔴 Hỏng</option>
-                    </select>
+                <div class="mb-3">
+                    <label class="form-label">Tên thiết bị <span class="text-danger">*</span></label>
+                    <input asp-for="DeviceName"
+                           class="form-control @(ViewData.ModelState["DeviceName"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                           placeholder="Tên thiết bị" />
+                    <span asp-validation-for="DeviceName" class="invalid-feedback d-block small"></span>
                 </div>
-                <div class="form-group">
-                    <label asp-for="ImageUrl">Hình ảnh (URL)</label>
-                    <input asp-for="ImageUrl" />
-                    <div class="field-note">URL ảnh minh hoạ (tuỳ chọn)</div>
+
+                <div class="mb-3">
+                    <label class="form-label">Phân loại</label>
+                    <input asp-for="Category" class="form-control"
+                           placeholder="Ví dụ: Laptop, Camera, Máy chiếu..." />
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label asp-for="Description">Mô tả / Thông số</label>
-                <textarea asp-for="Description" rows="3"></textarea>
-            </div>
+                <div class="mb-0">
+                    <label class="form-label">Mô tả</label>
+                    <textarea asp-for="Description" class="form-control" rows="3"
+                              placeholder="Mô tả chi tiết về thiết bị..."></textarea>
+                </div>
 
-            <div class="form-actions">
-                <a href="/Device/Index" class="btn btn-outline">Hủy</a>
-                <button type="submit" class="btn btn-primary">💾 Lưu thay đổi</button>
             </div>
-        </form>
-    </div>
+        </div>
+
+        <div class="dv-section">
+            <div class="dv-section-head">Trạng thái & Tình trạng</div>
+            <div class="dv-section-body">
+
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label">Trạng thái</label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="Available">Sẵn sàng</option>
+                            <option value="Borrowing">Đang mượn</option>
+                            <option value="Returned">Đã trả</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label">Tình trạng</label>
+                        <select asp-for="Condition" class="form-select">
+                            <option value="Good">Tốt</option>
+                            <option value="Broken">Hỏng</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="dv-footer">
+                    <a href="/Device/Index" class="btn btn-outline-secondary px-4">Hủy</a>
+                    <button type="submit" class="btn btn-primary px-5">Lưu thay đổi</button>
+                </div>
+
+            </div>
+        </div>
+
+    </form>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
 }
