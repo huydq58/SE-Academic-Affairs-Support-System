@@ -2,51 +2,137 @@
     ViewData["Title"] = "Đăng nhập";
 }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-4">
+<style>
+    .login-wrap {
+        max-width: 420px;
+        margin: 40px auto;
+    }
 
-        <div class="card shadow-sm">
-            <div class="card-header text-center bg-primary text-white">
-                <h4 class="mb-0">Đăng nhập</h4>
-            </div>
+    .login-page-title {
+        border-left: 4px solid #2563eb;
+        padding-left: 14px;
+        margin-bottom: 28px;
+    }
 
-            <div class="card-body">
+    .login-page-title h2 {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1e3a8a;
+        margin-bottom: 3px;
+    }
 
-                @if (ViewBag.Error != null)
-                {
-                    <div class="alert alert-danger py-2">
-                        <i class="bi bi-exclamation-circle me-1"></i> @ViewBag.Error
-                    </div>
-                }
+    .login-page-title p {
+        font-size: 13px;
+        color: #6b7280;
+        margin: 0;
+    }
 
-                <form asp-action="Index" asp-controller="Login" method="post">
-                    @Html.AntiForgeryToken()
+    .login-section {
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+        overflow: hidden;
+    }
 
-                    <div class="mb-3">
-                        <label class="form-label">Tên đăng nhập</label>
-                        <input type="text" name="Username" class="form-control"
-                               placeholder="Nhập tên đăng nhập" required autocomplete="username" />
-                    </div>
+    .login-section-head {
+        background: #eff6ff;
+        border-bottom: 1px solid #bfdbfe;
+        padding: 10px 18px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #1d4ed8;
+    }
 
-                    <div class="mb-3">
-                        <label class="form-label">Mật khẩu</label>
-                        <input type="password" name="Password" class="form-control"
-                               placeholder="Nhập mật khẩu" required autocomplete="current-password" />
-                    </div>
+    .login-section-body {
+        padding: 24px 18px;
+    }
 
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" name="RememberMe" class="form-check-input" id="rememberMe" />
-                        <label class="form-check-label" for="rememberMe">Ghi nhớ đăng nhập</label>
-                    </div>
+    .login-wrap .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+    }
 
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Đăng nhập</button>
-                    </div>
+    .login-wrap .form-control {
+        font-size: 14px;
+        border-color: #d1d5db;
+        border-radius: 7px;
+        padding: 9px 12px;
+    }
 
-                </form>
+    .login-wrap .form-control:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
 
-            </div>
-        </div>
+    .login-wrap .form-check-label {
+        font-size: 13px;
+        color: #374151;
+    }
 
+    .login-wrap .btn-primary {
+        background-color: #2563eb;
+        border-color: #2563eb;
+        font-weight: 600;
+        padding: 10px;
+    }
+
+    .login-wrap .btn-primary:hover {
+        background-color: #1d4ed8;
+        border-color: #1d4ed8;
+    }
+</style>
+
+<div class="login-wrap">
+
+    <div class="login-page-title">
+        <h2><i class="bi bi-mortarboard-fill me-2"></i>SE Academic Affairs</h2>
+        <p>Đăng nhập để truy cập hệ thống hỗ trợ học vụ</p>
     </div>
+
+    <div class="login-section">
+        <div class="login-section-head">
+            <i class="bi bi-person-fill me-1"></i> Thông tin tài khoản
+        </div>
+        <div class="login-section-body">
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger py-2 mb-3" style="font-size:13px; border-radius:7px;">
+                    <i class="bi bi-exclamation-circle me-1"></i> @ViewBag.Error
+                </div>
+            }
+
+            <form asp-action="Index" asp-controller="Login" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="mb-3">
+                    <label class="form-label">Tên đăng nhập</label>
+                    <input type="text" name="Username" class="form-control"
+                           placeholder="Nhập tên đăng nhập" required autocomplete="username" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mật khẩu</label>
+                    <input type="password" name="Password" class="form-control"
+                           placeholder="Nhập mật khẩu" required autocomplete="current-password" />
+                </div>
+
+                <div class="mb-4 form-check">
+                    <input type="checkbox" name="RememberMe" class="form-check-input" id="rememberMe" />
+                    <label class="form-check-label" for="rememberMe">Ghi nhớ đăng nhập</label>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
 </div>

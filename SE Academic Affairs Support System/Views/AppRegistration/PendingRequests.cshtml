@@ -574,5 +574,6 @@
             || '<span class="text-muted" style="font-size:13px;font-style:italic;">Không có liên kết đính kèm</span>';
     }
 
-    document.addEventListener('DOMContentLoaded', applyFilter);
+    // Chạy ngay (không dùng DOMContentLoaded vì HTMX swap không fire lại event đó)
+    applyFilter();
 </script>

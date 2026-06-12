@@ -34,7 +34,8 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                 GoogleSheetLink = vm.GoogleSheetLink,
                 StartDate = vm.StartDate,
                 EndDate = vm.EndDate,
-                IsActive = vm.IsActive
+                IsActive = vm.IsActive,
+                RestrictToAllowedStudents = vm.RestrictToAllowedStudents
             });
             await _db.SaveChangesAsync();
         }
@@ -48,6 +49,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             period.StartDate = vm.StartDate;
             period.EndDate = vm.EndDate;
             period.IsActive = vm.IsActive;
+            period.RestrictToAllowedStudents = vm.RestrictToAllowedStudents;
             await _db.SaveChangesAsync();
         }
 

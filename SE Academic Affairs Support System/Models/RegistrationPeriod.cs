@@ -26,8 +26,12 @@ namespace SE_Academic_Affairs_Support_System.Models
         public DateTime EndDate { get; set; }
         public bool IsActive { get; set; } = false;
 
+        // Nếu true: chỉ sinh viên trong AllowedStudents mới được đăng ký
+        public bool RestrictToAllowedStudents { get; set; } = false;
+
         public ICollection<Topic> Topics { get; set; } = new List<Topic>();
         public ICollection<Registration> Registrations { get; set; } = new List<Registration>();
+        public ICollection<RegistrationPeriodStudent> AllowedStudents { get; set; } = new List<RegistrationPeriodStudent>();
 
         public string GetDownloadLink(string format)
         {

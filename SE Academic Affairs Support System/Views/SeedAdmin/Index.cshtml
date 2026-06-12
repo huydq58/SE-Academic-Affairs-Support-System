@@ -77,5 +77,30 @@
             Sau khi tạo xong, hãy xóa hoặc vô hiệu hóa <code>SeedAdminController</code>.
         </p>
 
+        <!-- Batch student seeder -->
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-header bg-warning text-dark text-center py-3">
+                <h5 class="mb-0">Tạo hàng loạt sinh viên mẫu</h5>
+                <small class="opacity-75">Chỉ dùng để test — Development only</small>
+            </div>
+            <div class="card-body px-4 py-3">
+                <p class="text-muted small">
+                    Tạo <code>count</code> sinh viên mẫu với email <code>student0001@university.edu.vn</code>,
+                    MSSV <code>SV{năm}{thứ tự}</code>, mật khẩu <code>Student@123</code>.
+                    Sinh viên đã tồn tại sẽ được bỏ qua.
+                </p>
+                <form asp-action="SeedStudents" asp-controller="SeedAdmin" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">Số lượng sinh viên (tối đa 50)</label>
+                        <input type="number" name="count" class="form-control" value="10" min="1" max="50" />
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-warning">Tạo sinh viên mẫu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </div>
 </div>

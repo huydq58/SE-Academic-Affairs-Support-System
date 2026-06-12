@@ -1,0 +1,133 @@
+@model SE_Academic_Affairs_Support_System.ViewModels.UserFormViewModel
+@{
+    bool isEdit = Model.IsEditMode;
+    ViewData["Title"] = isEdit ? "Chỉnh sửa tài khoản" : "Thêm tài khoản mới";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb" style="font-size:13px;">
+        <li class="breadcrumb-item">
+            <a asp-area="Admin" asp-controller="Account" asp-action="Index">Quản lý tài khoản</a>
+        </li>
+        <li class="breadcrumb-item active">@ViewData["Title"]</li>
+    </ol>
+</nav>
+
+<div class="rg-page-title">
+    <h2>@ViewData["Title"]</h2>
+    <p>@(isEdit ? "Cập nhật thông tin — dữ liệu cũ đã được điền sẵn vào form"
+               : "Điền thông tin để tạo tài khoản Admin, Giảng viên hoặc Sinh viên")</p>
+</div>
+
+<div style="max-width:580px;">
+
+    <form asp-area="Admin" asp-controller="Account"
+          asp-action="@(isEdit ? "Edit" : "Create")"
+          method="post">
+        @Html.AntiForgeryToken()
+        @* Hidden field Id chỉ submit khi chỉnh sửa (IsEditMode = true) *@
+        <input type="hidden" asp-for="Id" />
+
+        @* ── Thông tin cơ bản ── *@
+        <div class="rg-form-card mb-3">
+            <div class="rg-form-head">Thông tin cơ bản</div>
+            <div class="rg-form-body">
+
+                <div class="mb-3">
+                    <label asp-for="FullName" class="form-label fw-semibold"></label>
+                    @* asp-for tự điền value từ Model.FullName khi controller trả về *@
+                    <input asp-for="FullName" class="form-control"
+                           placeholder="Nguyễn Văn A" autocomplete="off" />
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label fw-semibold"></label>
+                    <input asp-for="Email" type="email" class="form-control"
+                           placeholder="example@university.edu.vn" autocomplete="off" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                    @if (isEdit)
+                    {
+                        <div class="form-text">Đổi email sẽ cập nhật cả tên đăng nhập.</div>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Role" class="form-label fw-semibold"></label>
+                    @* asp-for tự chọn option khớp với Model.Role *@
+                    <select asp-for="Role" class="form-select">
+                        <option value="Student">Sinh viên</option>
+                        <option value="Lecturer">Giảng viên</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                    <span asp-validation-for="Role" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-0">
+                    <label asp-for="Mssv" class="form-label fw-semibold">
+                        MSSV / Mã GV
+                        <span class="fw-normal text-muted" style="font-size:12px;">(tùy chọn)</span>
+                    </label>
+                    <input asp-for="Mssv" class="form-control"
+                           placeholder="VD: 2021001234" autocomplete="off" />
+                    <span asp-validation-for="Mssv" class="text-danger small"></span>
+                    <div class="form-text">Để trống nếu là tài khoản Admin.</div>
+                </div>
+
+            </div>
+        </div>
+
+        @* ── Mật khẩu ── *@
+        <div class="rg-form-card mb-4">
+            <div class="rg-form-head">
+                Mật khẩu
+                @if (isEdit)
+                {
+                    <span class="fw-normal text-muted" style="font-size:12px; margin-left:6px;">
+                        — để trống nếu không muốn đổi
+                    </span>
+                }
+            </div>
+            <div class="rg-form-body">
+
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label fw-semibold"></label>
+                    <input asp-for="Password" type="password" class="form-control"
+                           placeholder="@(isEdit ? "Nhập mật khẩu mới (không bắt buộc)" : "Ít nhất 6 ký tự")"
+                           autocomplete="new-password" />
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-0">
+                    <label asp-for="ConfirmPassword" class="form-label fw-semibold"></label>
+                    <input asp-for="ConfirmPassword" type="password" class="form-control"
+                           placeholder="Nhập lại mật khẩu"
+                           autocomplete="new-password" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                </div>
+
+            </div>
+        </div>
+
+        @* Validation summary cho lỗi chung từ service *@
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"
+                 style="font-size:13px; border-radius:8px;"></div>
+        }
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4">
+                @(isEdit ? "Lưu thay đổi" : "Tạo tài khoản")
+            </button>
+            <a asp-area="Admin" asp-controller="Account" asp-action="Index"
+               class="btn btn-outline-secondary px-3">Hủy</a>
+        </div>
+
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

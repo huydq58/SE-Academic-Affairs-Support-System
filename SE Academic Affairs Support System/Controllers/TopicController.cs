@@ -97,28 +97,46 @@ public class TopicController : Controller
         }
 
         // ── 3. Xử lý sinh viên 2 (nếu có) ───────────────────────────────
+        // partnerId ở đây là MSSV (StudentCode) được nhập từ modal
+        string? partnerUserId = null;
         string? studentName2 = null;
+
         if (!string.IsNullOrEmpty(partnerId))
         {
-            var partner = await _userManager.FindByIdAsync(partnerId);
-            if (partner == null)
+            // Tra cứu sinh viên 2 bằng MSSV qua StudentProfile
+            var partnerProfile = await _db.StudentProfiles
+                .Include(s => s.User)
+                .FirstOrDefaultAsync(s => s.StudentCode == partnerId);
+
+            if (partnerProfile == null)
             {
                 return await ReturnListView(sheetId, periodId, periodName, courseName,
-                    "Không tìm thấy sinh viên ghép nhóm.", isSuccess: false);
+                    $"Không tìm thấy sinh viên có MSSV \"{partnerId}\" trong hệ thống.",
+                    isSuccess: false);
             }
 
-            // Kiểm tra partner đã đăng ký đề tài khác chưa
+            partnerUserId = partnerProfile.UserId;
+
+            // Không được tự ghép nhóm với chính mình
+            if (partnerUserId == studentId1)
+            {
+                return await ReturnListView(sheetId, periodId, periodName, courseName,
+                    "Không thể tự ghép nhóm với chính mình.", isSuccess: false);
+            }
+
+            // Kiểm tra partner đã đăng ký đề tài khác trong kỳ này chưa
             var partnerTaken = await _db.TopicRegistrations
                 .AnyAsync(r => r.PeriodId == periodId &&
-                    (r.StudentId1 == partnerId || r.StudentId2 == partnerId));
+                    (r.StudentId1 == partnerUserId || r.StudentId2 == partnerUserId));
 
             if (partnerTaken)
             {
                 return await ReturnListView(sheetId, periodId, periodName, courseName,
-                    "Sinh viên ghép nhóm đã đăng ký đề tài khác.", isSuccess: false);
+                    "Sinh viên ghép nhóm đã đăng ký đề tài khác trong đợt này.",
+                    isSuccess: false);
             }
 
-            studentName2 = partner.FullName ?? partner.UserName!;
+            studentName2 = partnerProfile.User?.FullName ?? partnerProfile.User?.UserName;
         }
 
         // ── 4. Ghi vào SQL (nguồn sự thật), đánh dấu Pending sync ────────
@@ -129,7 +147,7 @@ public class TopicController : Controller
             TopicName = topicName,
             StudentId1 = studentId1,
             StudentName1 = studentName1,
-            StudentId2 = partnerId,
+            StudentId2 = partnerUserId,   // lưu userId (GUID), không phải MSSV
             StudentName2 = studentName2,
             SyncStatus = SyncStatus.Pending,
             RegisteredAt = DateTime.Now

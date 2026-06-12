@@ -176,9 +176,7 @@ public class GradingController : Controller
 
         await _db.SaveChangesAsync();
 
-        TempData["StatusMessage"] = $"Đã lưu điểm {score:0.#} cho {row.StudentName}. " +
-                                    "Sẽ đồng bộ lên Google Sheet trong 1 phút.";
-        TempData["IsSuccess"] = true;
+        TempData["Success"] = $"Đã lưu điểm {score:0.#} cho {row.StudentName}. Sẽ đồng bộ lên Google Sheet trong 1 phút.";
 
         return RedirectToAction(nameof(List), new { periodId });
     }

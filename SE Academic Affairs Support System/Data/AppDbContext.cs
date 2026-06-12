@@ -23,12 +23,19 @@ namespace SE_Academic_Affairs_Support_System.Data
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<TopicRegistration> TopicRegistrations { get; set; }
         public DbSet<GradeRecord> GradeRecords { get; set; }
+        public DbSet<RegistrationPeriodStudent> RegistrationPeriodStudents => Set<RegistrationPeriodStudent>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            // Mssv unique nhưng chỉ khi không null (Admin/Lecturer có Mssv = null)
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Mssv)
+                .IsUnique()
+                .HasFilter("[Mssv] IS NOT NULL");
 
 
             // Unique student code
@@ -62,7 +69,25 @@ namespace SE_Academic_Affairs_Support_System.Data
                 .WithMany()
                 .HasForeignKey(t => t.ProposedByStudentId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            // Junction table: đợt đăng ký ↔ sinh viên được phép
+            modelBuilder.Entity<RegistrationPeriodStudent>(e =>
+            {
+                e.HasOne(rps => rps.RegistrationPeriod)
+                    .WithMany(rp => rp.AllowedStudents)
+                    .HasForeignKey(rps => rps.RegistrationPeriodId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(rps => rps.StudentProfile)
+                    .WithMany()
+                    .HasForeignKey(rps => rps.StudentProfileId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Một sinh viên chỉ xuất hiện một lần trong mỗi đợt
+                e.HasIndex(rps => new { rps.RegistrationPeriodId, rps.StudentProfileId })
+                    .IsUnique();
+            });
         }
     }
-    
+
 }

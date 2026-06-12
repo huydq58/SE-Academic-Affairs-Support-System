@@ -14,17 +14,20 @@ namespace SE_Academic_Affairs_Support_System.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IWebHostEnvironment _env;
         private readonly AppDbContext _context;
+        private readonly ILogger<SeedAdminController> _logger;
 
         public SeedAdminController(
             UserManager<User> userManager,
             RoleManager<IdentityRole> roleManager,
             IWebHostEnvironment env,
-            AppDbContext context)
+            AppDbContext context,
+            ILogger<SeedAdminController> logger)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _env = env;
             _context = context;
+            _logger = logger;
         }
 
         // GET: /SeedAdmin
@@ -111,6 +114,61 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             await _context.SaveChangesAsync();
 
             ViewBag.Success = $"Tạo tài khoản \"{username}\" với role \"{role}\" thành công!";
+            return View("Index");
+        }
+
+        // POST: /SeedAdmin/SeedStudents
+        // Tạo hàng loạt sinh viên mẫu cho môi trường Development
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> SeedStudents(int count = 10)
+        {
+            if (!_env.IsDevelopment()) return NotFound();
+
+            count = Math.Clamp(count, 1, 50);
+
+            if (!await _roleManager.RoleExistsAsync("Student"))
+                await _roleManager.CreateAsync(new IdentityRole("Student"));
+
+            int created = 0;
+            var errors = new List<string>();
+
+            for (int i = 1; i <= count; i++)
+            {
+                var mssv = $"SV{DateTime.Today.Year}{i:D4}";
+                var email = $"student{i:D4}@university.edu.vn";
+
+                if (await _userManager.FindByEmailAsync(email) != null) continue;
+
+                var user = new User
+                {
+                    UserName = email,
+                    Email = email,
+                    FullName = $"Sinh viên {i:D4}",
+                    Role = "Student",
+                    Mssv = mssv,
+                    EmailConfirmed = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                var result = await _userManager.CreateAsync(user, "Student@123");
+                if (!result.Succeeded)
+                {
+                    errors.Add($"{mssv}: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+                    continue;
+                }
+
+                await _userManager.AddToRoleAsync(user, "Student");
+                _context.StudentProfiles.Add(new StudentProfile { UserId = user.Id, StudentCode = mssv });
+                created++;
+            }
+
+            await _context.SaveChangesAsync();
+
+            if (errors.Any())
+                ViewBag.Error = $"Tạo {created} sinh viên thành công. Lỗi: " + string.Join(" | ", errors);
+            else
+                ViewBag.Success = $"Đã tạo thành công {created} sinh viên mẫu.";
+
             return View("Index");
         }
     }

@@ -46,8 +46,9 @@ else
 
                         @if (!string.IsNullOrEmpty(item.GoogleSheetLink))
                         {
+                            @* Có Google Sheet → dùng luồng đọc/đăng ký qua Apps Script *@
                             <div class="d-flex flex-wrap gap-2 period-actions">
-                                <a asp-controller="Topic" asp-action="List"
+                                <a asp-area="" asp-controller="Topic" asp-action="List"
                                    asp-route-periodId="@item.Id"
                                    class="btn-period-primary">
                                     Xem &amp; Đăng ký đề tài
@@ -60,13 +61,10 @@ else
                         }
                         else
                         {
-                            <div class="d-flex flex-wrap gap-2">
-                                <a asp-controller="Topic" asp-action="List"
-                                   asp-route-periodId="@item.Id"
-                                   class="btn-period-primary">
-                                    Xem &amp; Đăng ký đề tài
-                                </a>
-                            </div>
+                            @* Không có Google Sheet → thông báo chưa cấu hình *@
+                            <p class="text-muted mb-0" style="font-size:13px;">
+                                Đợt này chưa được liên kết Google Sheet. Vui lòng liên hệ giáo vụ.
+                            </p>
                         }
                     </div>
                 </div>

@@ -168,7 +168,7 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@@6.1.11/index.global.min.js'></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        (function () {
             var calendarEl = document.getElementById('calendar');
             var roomId = @(currentRoom?.RoomID ?? 0);
 
@@ -177,100 +177,111 @@
                 return;
             }
 
-            var isMobile = window.innerWidth < 768;
+            // FullCalendar CDN là external script — HTMX không re-load, nhưng
+            // có thể chưa kịp execute nếu script tag vừa được inject. Retry nếu cần.
+            if (typeof FullCalendar === 'undefined') {
+                setTimeout(function () { initCalendar(); }, 200);
+            } else {
+                initCalendar();
+            }
 
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: isMobile ? 'timeGridDay' : 'timeGridWeek',
-                locale: 'EN',
-                selectLongPressDelay: 200,
+            function initCalendar() {
+                var isMobile = window.innerWidth < 768;
 
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: isMobile ? 'timeGridDay,timeGridWeek' : 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: isMobile ? 'timeGridDay' : 'timeGridWeek',
+                    locale: 'EN',
+                    selectLongPressDelay: 200,
 
-                slotMinTime: '07:00:00',
-                slotMaxTime: '17:00:00',
-                allDaySlot: false,
-                height: 'auto',
-                expandRows: true,
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: isMobile ? 'timeGridDay,timeGridWeek' : 'dayGridMonth,timeGridWeek,timeGridDay'
+                    },
 
-                windowResize: function () {
-                    if (window.innerWidth < 768) {
-                        calendar.changeView('timeGridDay');
-                    } else {
-                        calendar.changeView('timeGridWeek');
+                    slotMinTime: '07:00:00',
+                    slotMaxTime: '17:00:00',
+                    allDaySlot: false,
+                    height: 'auto',
+                    expandRows: true,
+
+                    windowResize: function () {
+                        calendar.changeView(window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek');
+                    },
+
+                    selectAllow: function (selectInfo) {
+                        var now = new Date();
+                        if (selectInfo.start < now) return false;
+                        if (selectInfo.start.getDay() === 0) return false;
+                        return true;
+                    },
+
+                    selectOverlap: function (event) {
+                        return event.extendedProps.status !== 'Approved';
+                    },
+
+                    events: '/Room/GetBookingsForCalendar?roomId=' + roomId,
+                    selectable: true,
+                    selectMirror: true,
+
+                    select: function (info) {
+                        var dateStr       = info.startStr.split('T')[0];
+                        var startTime     = info.startStr.split('T')[1].substring(0, 5);
+                        var endTime       = info.endStr.split('T')[1].substring(0, 5);
+                        var dateObj       = new Date(info.startStr);
+                        var formattedDate = dateObj.toLocaleDateString('vi-VN');
+                        var daysOfWeek    = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+                        var dayName       = daysOfWeek[dateObj.getDay()];
+
+                        document.getElementById('confirmDay').innerText  = dayName;
+                        document.getElementById('confirmDate').innerText = formattedDate;
+                        document.getElementById('confirmTime').innerText = startTime + ' – ' + endTime;
+
+                        var confirmModal = new bootstrap.Modal(document.getElementById('confirmSelectionModal'));
+                        confirmModal.show();
+
+                        document.getElementById('btnProceedBooking').onclick = function () {
+                            confirmModal.hide();
+                            window.location.href = '/Room/CreateBooking?roomId=' + roomId
+                                + '&date=' + dateStr
+                                + '&startTime=' + startTime
+                                + '&endTime=' + endTime;
+                        };
+
+                        document.getElementById('confirmSelectionModal').addEventListener('hidden.bs.modal', function () {
+                            calendar.unselect();
+                        }, { once: true });
+                    },
+
+                    eventClick: function (info) {
+                        var status    = info.event.extendedProps.status;
+                        var purpose   = info.event.extendedProps.purpose || 'Không có ghi chú';
+                        var startTime = info.event.start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                        var endTime   = info.event.end
+                            ? info.event.end.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                            : '';
+
+                        document.getElementById('modalUserName').innerText = info.event.title;
+                        document.getElementById('modalTime').innerText     = endTime ? startTime + ' – ' + endTime : startTime;
+                        document.getElementById('modalPurpose').innerText  = purpose;
+
+                        var statusBadge = document.getElementById('modalStatus');
+                        if (status === 'Approved') {
+                            statusBadge.innerText     = 'Đã duyệt';
+                            statusBadge.className     = 'badge px-3 py-2';
+                            statusBadge.style.cssText = 'background:#dcfce7; color:#166534; border:1px solid #bbf7d0;';
+                        } else {
+                            statusBadge.innerText     = 'Đang chờ duyệt';
+                            statusBadge.className     = 'badge px-3 py-2';
+                            statusBadge.style.cssText = 'background:#fef3c7; color:#92400e; border:1px solid #fde68a;';
+                        }
+
+                        new bootstrap.Modal(document.getElementById('eventDetailModal')).show();
                     }
-                },
+                });
 
-                selectAllow: function (selectInfo) {
-                    var now = new Date();
-                    if (selectInfo.start < now) return false;
-                    if (selectInfo.start.getDay() === 0) return false;
-                    return true;
-                },
-
-                selectOverlap: function (event) {
-                    return event.extendedProps.status !== "Approved";
-                },
-
-                events: '/Room/GetBookingsForCalendar?roomId=' + roomId,
-                selectable: true,
-                selectMirror: true,
-
-                select: function (info) {
-                    var dateStr       = info.startStr.split('T')[0];
-                    var startTime     = info.startStr.split('T')[1].substring(0, 5);
-                    var endTime       = info.endStr.split('T')[1].substring(0, 5);
-                    var dateObj       = new Date(info.startStr);
-                    var formattedDate = dateObj.toLocaleDateString('vi-VN');
-                    var daysOfWeek    = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-                    var dayName       = daysOfWeek[dateObj.getDay()];
-
-                    document.getElementById('confirmDay').innerText  = dayName;
-                    document.getElementById('confirmDate').innerText = formattedDate;
-                    document.getElementById('confirmTime').innerText = startTime + ' - ' + endTime;
-
-                    var confirmModal = new bootstrap.Modal(document.getElementById('confirmSelectionModal'));
-                    confirmModal.show();
-
-                    document.getElementById('btnProceedBooking').onclick = function () {
-                        confirmModal.hide();
-                        window.location.href = '/Room/CreateBooking?roomId=' + roomId + '&date=' + dateStr + '&startTime=' + startTime + '&endTime=' + endTime;
-                    };
-
-                    document.getElementById('confirmSelectionModal').addEventListener('hidden.bs.modal', function () {
-                        calendar.unselect();
-                    }, { once: true });
-                },
-
-                eventClick: function (info) {
-                    var status    = info.event.extendedProps.status;
-                    var purpose   = info.event.extendedProps.purpose || "Không có ghi chú";
-                    var startTime = info.event.start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                    var endTime   = info.event.end ? info.event.end.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
-
-                    document.getElementById('modalUserName').innerText = info.event.title;
-                    document.getElementById('modalTime').innerText     = endTime ? startTime + ' - ' + endTime : startTime;
-                    document.getElementById('modalPurpose').innerText  = purpose;
-
-                    var statusBadge = document.getElementById('modalStatus');
-                    if (status === "Approved") {
-                        statusBadge.innerText   = "Đã duyệt";
-                        statusBadge.className   = "badge px-3 py-2";
-                        statusBadge.style.cssText = "background:#dcfce7; color:#166534; border:1px solid #bbf7d0;";
-                    } else {
-                        statusBadge.innerText   = "Đang chờ duyệt";
-                        statusBadge.className   = "badge px-3 py-2";
-                        statusBadge.style.cssText = "background:#fef3c7; color:#92400e; border:1px solid #fde68a;";
-                    }
-
-                    new bootstrap.Modal(document.getElementById('eventDetailModal')).show();
-                }
-            });
-
-            calendar.render();
-        });
+                calendar.render();
+            }
+        })();
     </script>
 }

@@ -1,0 +1,113 @@
+@model SE_Academic_Affairs_Support_System.ViewModels.UserListViewModel
+@{
+    ViewData["Title"] = "Quản lý tài khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var rf = Model.RoleFilter ?? "";
+    bool hasFilter = !string.IsNullOrWhiteSpace(Model.SearchKeyword) || !string.IsNullOrWhiteSpace(Model.RoleFilter);
+}
+
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+    <div class="rg-page-title mb-0">
+        <h2>Quản lý tài khoản</h2>
+        <p>Thêm, sửa, xóa tài khoản Admin, Giảng viên và Sinh viên</p>
+    </div>
+    <a asp-area="Admin" asp-controller="Account" asp-action="Create"
+       class="btn btn-primary px-4">Thêm tài khoản</a>
+</div>
+
+<partial name="_Alerts" />
+
+@* Bộ lọc *@
+<form method="get" asp-area="Admin" asp-controller="Account" asp-action="Index"
+      class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <input type="text" name="keyword" value="@Model.SearchKeyword"
+           class="form-control" style="max-width:240px; font-size:13px;"
+           placeholder="Tìm tên, email, MSSV..." />
+    <select name="role" class="form-select" style="max-width:160px; font-size:13px;">
+        <option value="">Tất cả vai trò</option>
+        <option value="Admin"    selected="@(rf == "Admin"    ? "selected" : null)">Admin</option>
+        <option value="Lecturer" selected="@(rf == "Lecturer" ? "selected" : null)">Giảng viên</option>
+        <option value="Student"  selected="@(rf == "Student"  ? "selected" : null)">Sinh viên</option>
+    </select>
+    <button type="submit" class="btn btn-outline-primary btn-sm px-3"
+            style="font-size:13px; height:38px;">Lọc</button>
+    @if (hasFilter)
+    {
+        <a asp-area="Admin" asp-controller="Account" asp-action="Index"
+           class="btn btn-outline-secondary btn-sm px-3" style="font-size:13px; height:38px;">Xóa lọc</a>
+    }
+    <span class="text-muted ms-auto" style="font-size:13px;">@Model.Users.Count kết quả</span>
+</form>
+
+@if (!Model.Users.Any())
+{
+    <div class="empty-state">
+        <p style="font-size:16px; font-weight:600; color:#374151; margin-bottom:6px;">Không tìm thấy tài khoản nào.</p>
+        <p>Thử thay đổi bộ lọc hoặc
+            <a asp-area="Admin" asp-controller="Account" asp-action="Create">thêm tài khoản mới</a>.
+        </p>
+    </div>
+}
+else
+{
+    <div class="dt-wrap">
+        <table class="dt">
+            <thead>
+                <tr>
+                    <th>Họ tên</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                    <th>MSSV / Mã GV</th>
+                    <th>Ngày tạo</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model.Users)
+                {
+                    string sbCls = u.Role switch
+                    {
+                        "Admin"    => "sb-red",
+                        "Lecturer" => "sb-blue",
+                        _          => "sb-green"
+                    };
+                    string roleLabel = u.Role switch
+                    {
+                        "Admin"    => "Admin",
+                        "Lecturer" => "Giảng viên",
+                        _          => "Sinh viên"
+                    };
+                    string displayMssv = string.IsNullOrWhiteSpace(u.Mssv) ? "—" : u.Mssv;
+
+                    <tr>
+                        <td data-label="Họ tên">
+                            <span class="fw-semibold" style="color:#1e3a8a;">@u.FullName</span>
+                        </td>
+                        <td data-label="Email" style="color:#6b7280; font-size:13px;">@u.Email</td>
+                        <td data-label="Vai trò">
+                            <span class="sb @sbCls">@roleLabel</span>
+                        </td>
+                        <td data-label="MSSV / Mã GV" style="font-size:13px;">@displayMssv</td>
+                        <td data-label="Ngày tạo" style="color:#9ca3af; font-size:12px;">
+                            @u.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")
+                        </td>
+                        <td data-label="Thao tác">
+                            <div class="d-flex flex-wrap gap-2">
+                                <a asp-area="Admin" asp-controller="Account" asp-action="Edit"
+                                   asp-route-id="@u.Id"
+                                   class="btn-act btn-act-outline">Sửa</a>
+                                <form asp-area="Admin" asp-controller="Account" asp-action="Delete"
+                                      method="post" style="margin:0"
+                                      onsubmit="return confirm('Xóa tài khoản &quot;@u.FullName&quot;?')">
+                                    <input type="hidden" name="id" value="@u.Id" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-act btn-act-danger">Xóa</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

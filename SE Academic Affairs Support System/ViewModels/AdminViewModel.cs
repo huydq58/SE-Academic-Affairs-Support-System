@@ -1,8 +1,17 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace SE_Academic_Affairs_Support_System.ViewModels
 {
     // ── Admin: Period Management ──────────────────────────────────────────────
+    public class StudentCheckboxItem
+    {
+        public int StudentProfileId { get; set; }
+        public string StudentCode { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public bool IsSelected { get; set; }
+    }
+
     public class PeriodFormViewModel
     {
         public int Id { get; set; }
@@ -28,6 +37,13 @@ namespace SE_Academic_Affairs_Support_System.ViewModels
         [Url(ErrorMessage = "Link Google Sheet không hợp lệ")]
         public string? GoogleSheetLink { get; set; }
         public bool IsActive { get; set; }
+
+        // Giới hạn sinh viên đăng ký
+        public bool RestrictToAllowedStudents { get; set; } = false;
+        public List<int> SelectedStudentIds { get; set; } = new();
+        public IFormFile? StudentListFile { get; set; }
+        // Danh sách để render checkbox (không submit lại)
+        public List<StudentCheckboxItem> AvailableStudents { get; set; } = new();
     }
 
     // ── Admin: Export ─────────────────────────────────────────────────────────

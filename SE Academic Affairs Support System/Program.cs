@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Models;
 using SE_Academic_Affairs_Support_System.Services;
+using SE_Academic_Affairs_Support_System.Services.AccountManagement;
 using SE_Academic_Affairs_Support_System.Services.AppRegistration;
 using SE_Academic_Affairs_Support_System.Services.NotificationSevices;
+using SE_Academic_Affairs_Support_System.Services.PeriodAutoClose;
 using SE_Academic_Affairs_Support_System.Services.ProjectRegistration;
 
 namespace SE_Academic_Affairs_Support_System
@@ -24,8 +26,11 @@ namespace SE_Academic_Affairs_Support_System
             builder.Services.AddScoped<IAppRegistrationService, AppRegistrationService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddScoped<IRegistrationService, RegistrationService>();
-            builder.Services.AddHostedService<GradeSyncService>(); 
+            builder.Services.AddScoped<IAccountService, AccountService>();
+            builder.Services.AddScoped<IRegistrationPeriodStudentService, RegistrationPeriodStudentService>();
+            builder.Services.AddHostedService<GradeSyncService>();
             builder.Services.AddHostedService<TopicSyncService>();
+            builder.Services.AddHostedService<PeriodAutoCloseService>();
 
             builder.Services.AddHttpClient<GoogleSheetsService>()
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler

@@ -5,59 +5,225 @@
 }
 
 <style>
-    .period-badge { display:inline-block; background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; border-radius:20px; padding:4px 14px; font-size:12px; font-weight:700; }
+    /* === Breadcrumb === */
+    .tl-breadcrumb {
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .tl-breadcrumb a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .tl-breadcrumb a:hover { text-decoration: underline; }
+    .tl-breadcrumb-sep { color: #d1d5db; font-size: 12px; }
 
-    .filter-bar { background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:16px; margin-bottom:24px; }
+    /* === Page header === */
+    .tl-page-title {
+        border-left: 4px solid #2563eb;
+        padding-left: 14px;
+        margin-bottom: 0;
+    }
+    .tl-page-title h2 {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1e3a8a;
+        margin-bottom: 4px;
+    }
+    .tl-page-title p { font-size: 13px; color: #6b7280; margin: 0; }
 
-    .topic-card { border:1px solid #dbeafe; border-radius:10px; background:#fff; overflow:hidden; display:flex; flex-direction:column; height:100%; transition:box-shadow .15s, transform .15s; }
-    .topic-card:hover { box-shadow:0 4px 16px rgba(37,99,235,.1); transform:translateY(-2px); }
-    .topic-card.full { opacity:.75; }
-    .topic-card-head { background:#eff6ff; border-bottom:1px solid #bfdbfe; padding:13px 16px; }
-    .topic-card-title { font-size:14px; font-weight:700; color:#1e3a8a; margin:0; line-height:1.4; }
-    .topic-card-body { padding:14px 16px; flex:1; display:flex; flex-direction:column; gap:10px; }
-    .topic-desc { font-size:13px; color:#6b7280; line-height:1.6; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; flex:1; }
-    .topic-tech-wrap { display:flex; flex-wrap:wrap; gap:5px; }
-    .topic-meta { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#6b7280; }
-    .topic-lecturer { font-weight:600; color:#374151; }
-    .slot-info { display:flex; align-items:center; gap:4px; }
+    .period-badge {
+        display: inline-block;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+        border-radius: 20px;
+        padding: 2px 12px;
+        font-size: 12px;
+        font-weight: 700;
+    }
 
-    .slot-bar { height:3px; background:#e5e7eb; border-radius:2px; margin-top:auto; }
-    .slot-bar-fill { height:100%; border-radius:2px; background:#2563eb; }
-    .slot-bar-fill.full { background:#dc2626; }
+    /* === Filter bar === */
+    .tl-filter {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 24px;
+    }
 
-    .topic-card-foot { padding:12px 16px; border-top:1px solid #f1f5f9; background:#fafbfc; }
+    /* === Topic cards === */
+    .topic-card {
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        transition: box-shadow .15s, transform .15s;
+    }
+    .topic-card:hover { box-shadow: 0 4px 16px rgba(37,99,235,.1); transform: translateY(-2px); }
+    .topic-card.full { opacity: .75; }
 
-    .btn-register { display:block; width:100%; padding:9px; background:#2563eb; color:#fff; border:none; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; transition:background .15s; }
-    .btn-register:hover { background:#1d4ed8; }
-    .btn-register-done { display:block; width:100%; padding:9px; background:#dcfce7; color:#166534; border:1px solid #bbf7d0; border-radius:7px; font-size:13px; font-weight:700; cursor:default; }
-    .btn-register-full { display:block; width:100%; padding:9px; background:#f1f5f9; color:#9ca3af; border:1px solid #e2e8f0; border-radius:7px; font-size:13px; font-weight:700; cursor:default; }
+    .topic-card-head {
+        background: #eff6ff;
+        border-bottom: 1px solid #bfdbfe;
+        padding: 13px 16px;
+    }
+    .topic-card-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1e3a8a;
+        margin: 0;
+        line-height: 1.4;
+    }
 
-    @@media (max-width:600px) {
-        .filter-row { flex-direction:column; }
+    .topic-card-body {
+        padding: 14px 16px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .topic-desc {
+        font-size: 13px;
+        color: #6b7280;
+        line-height: 1.6;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        flex: 1;
+    }
+
+    .topic-tech-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tech-tag {
+        font-size: 11px;
+        font-weight: 500;
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        padding: 2px 8px;
+    }
+
+    .topic-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #6b7280;
+    }
+    .topic-lecturer { font-weight: 600; color: #374151; font-size: 13px; }
+
+    .slot-bar { height: 3px; background: #e5e7eb; border-radius: 2px; }
+    .slot-bar-fill { height: 100%; border-radius: 2px; background: #2563eb; }
+    .slot-bar-fill.full { background: #dc2626; }
+
+    .topic-card-foot {
+        padding: 12px 16px;
+        border-top: 1px solid #f1f5f9;
+        background: #fafbfc;
+    }
+
+    .btn-register {
+        display: block; width: 100%; padding: 9px;
+        background: #2563eb; color: #fff; border: none;
+        border-radius: 7px; font-size: 13px; font-weight: 700;
+        cursor: pointer; transition: background .15s; text-align: center;
+    }
+    .btn-register:hover { background: #1d4ed8; color: #fff; }
+
+    .btn-register-done {
+        display: block; width: 100%; padding: 9px;
+        background: #dcfce7; color: #166534;
+        border: 1px solid #bbf7d0; border-radius: 7px;
+        font-size: 13px; font-weight: 700; text-align: center;
+    }
+    .btn-register-full {
+        display: block; width: 100%; padding: 9px;
+        background: #f1f5f9; color: #9ca3af;
+        border: 1px solid #e2e8f0; border-radius: 7px;
+        font-size: 13px; font-weight: 700; text-align: center;
+    }
+
+    .sb { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 20px; padding: 2px 9px; }
+    .sb-green { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .sb-gray  { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+
+    .tl-empty {
+        text-align: center;
+        padding: 56px 20px;
+    }
+    .tl-empty strong { font-size: 15px; color: #374151; display: block; margin-bottom: 6px; font-weight: 600; }
+    .tl-empty p { font-size: 13px; color: #9ca3af; margin: 0; }
+
+    /* === Mobile === */
+    @@media (max-width: 576px) {
+        .tl-page-title h2 { font-size: 18px; }
+        .tl-header-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+        }
+        .tl-header-row .tl-propose-btn {
+            width: 100%;
+            text-align: center;
+        }
+        .tl-filter form {
+            flex-direction: column;
+            gap: 8px !important;
+        }
+        .tl-filter form .tl-filter-keyword,
+        .tl-filter form .tl-filter-lecturer,
+        .tl-filter form .tl-filter-btn {
+            width: 100% !important;
+            min-width: 0 !important;
+            flex: none !important;
+        }
+    }
+
+    @@media (min-width: 577px) and (max-width: 767px) {
+        .tl-filter form .tl-filter-lecturer { flex: 1; }
     }
 </style>
 
-<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
-    <div class="rg-page-title mb-0">
+<div class="tl-breadcrumb">
+    <a asp-area="Student" asp-controller="Registration" asp-action="ActivePeriods">Đợt đăng ký</a>
+    <span class="tl-breadcrumb-sep">/</span>
+    <span>@Model.Period.Name</span>
+</div>
+
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4 tl-header-row">
+    <div class="tl-page-title">
         <h2>Đăng Ký Đề Tài</h2>
         <p>
             <span class="period-badge">@Model.Period.CourseName</span>
             &nbsp;@Model.Period.Name &mdash; Hạn: <strong>@Model.Period.EndDate.ToString("dd/MM/yyyy")</strong>
         </p>
     </div>
-    <a asp-action="ProposeNew" class="btn btn-outline-primary flex-shrink-0">Đề xuất đề tài mới</a>
+    <a asp-action="ProposeNew" class="btn btn-outline-primary flex-shrink-0 tl-propose-btn">
+        Đề xuất đề tài mới
+    </a>
 </div>
 
 <partial name="_Alerts" />
 
-<div class="filter-bar">
-    <form method="get" class="d-flex flex-wrap gap-2 filter-row">
-        <div class="flex-grow-1" style="min-width:180px;">
+<div class="tl-filter">
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+        <div class="tl-filter-keyword flex-grow-1" style="min-width: 180px;">
             <input type="text" name="keyword" value="@Model.SearchKeyword"
-                   class="form-control" placeholder="Tìm tên đề tài, mô tả..." />
+                   class="form-control" style="font-size:13px;"
+                   placeholder="Tìm tên đề tài, mô tả..." />
         </div>
-        <div style="min-width:200px; flex:1;">
-            <select name="lecturerId" class="form-select">
+        <div class="tl-filter-lecturer" style="min-width: 200px; flex: 1;">
+            <select name="lecturerId" class="form-select" style="font-size:13px;">
                 <option value="">Tất cả giảng viên</option>
                 @foreach (var lec in Model.Lecturers)
                 {
@@ -67,15 +233,19 @@
                 }
             </select>
         </div>
-        <button type="submit" class="btn btn-primary px-4">Lọc</button>
+        <button type="submit" class="btn btn-primary tl-filter-btn" style="font-size:13px; font-weight:600; padding: 7px 20px;">Lọc</button>
+        @if (!string.IsNullOrEmpty(Model.SearchKeyword) || Model.FilterLecturerId != null)
+        {
+            <a asp-action="TopicList" class="btn btn-outline-secondary tl-filter-btn" style="font-size:13px; padding: 7px 16px;">Xóa lọc</a>
+        }
     </form>
 </div>
 
 @if (!Model.Topics.Any())
 {
-    <div class="text-center py-5" style="color:#9ca3af;">
-        <p style="font-size:15px; font-weight:600; color:#374151; margin-bottom:6px;">Không tìm thấy đề tài nào phù hợp.</p>
-        <p style="font-size:13px;">Thử thay đổi từ khóa hoặc bộ lọc giảng viên.</p>
+    <div class="tl-empty">
+        <strong>Không tìm thấy đề tài nào phù hợp.</strong>
+        <p>Thử thay đổi từ khóa hoặc bộ lọc giảng viên.</p>
     </div>
 }
 else
@@ -83,13 +253,11 @@ else
     <div class="row g-3">
         @foreach (var topic in Model.Topics)
         {
-            <div class="col-md-6 col-lg-4">
-            @{
-                int pct = topic.MaxStudents > 0
-                    ? (int)((double)topic.RegisteredCount / topic.MaxStudents * 100)
-                    : 100;
-                bool isFull = !topic.CanRegister && !topic.AlreadyRegistered;
-            }
+            int pct = topic.MaxStudents > 0
+                ? (int)((double)topic.RegisteredCount / topic.MaxStudents * 100)
+                : 100;
+            bool isFull = !topic.CanRegister && !topic.AlreadyRegistered;
+            <div class="col-12 col-sm-6 col-lg-4">
                 <div class="topic-card @(isFull ? "full" : "")">
                     <div class="topic-card-head">
                         <div class="d-flex justify-content-between align-items-start gap-2">
@@ -104,6 +272,7 @@ else
                             }
                         </div>
                     </div>
+
                     <div class="topic-card-body">
                         <p class="topic-desc">@topic.Description</p>
 
@@ -119,16 +288,15 @@ else
 
                         <div class="topic-meta">
                             <span class="topic-lecturer">@topic.LecturerName</span>
-                            <span class="slot-info">
-                                <span style="font-weight:600; color:@(pct >= 100 ? "#dc2626" : "#374151");">@topic.RegisteredCount</span>
-                                <span>/ @topic.MaxStudents SV</span>
+                            <span style="font-size:12px; color:@(pct >= 100 ? "#dc2626" : "#374151"); font-weight:600;">
+                                @topic.RegisteredCount / @topic.MaxStudents SV
                             </span>
                         </div>
                     </div>
 
-                    <div style="padding:0 16px; margin-bottom:12px;">
+                    <div style="padding: 0 16px; margin-bottom: 12px;">
                         <div class="slot-bar">
-                            <div class="slot-bar-fill @(pct >= 100 ? "full" : "")" style="width:@pct%"></div>
+                            <div class="slot-bar-fill @(pct >= 100 ? "full" : "")" style="width:@(Math.Min(pct, 100))%"></div>
                         </div>
                     </div>
 
@@ -147,7 +315,7 @@ else
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="topicId" value="@topic.TopicId" />
                                 <button type="submit" class="btn-register"
-                                        onclick="return confirm('Xác nhận đăng ký đề tài này?')">
+                                        onclick="return confirm('Xác nhận đăng ký đề tài "@topic.Title.Replace("\"", "")"?')">
                                     Đăng ký
                                 </button>
                             </form>
@@ -157,8 +325,18 @@ else
             </div>
         }
     </div>
+
+    <div class="mt-3" style="font-size:13px; color:#9ca3af; text-align:right;">
+        @Model.Topics.Count đề tài
+    </div>
 }
 
-<div class="mt-4">
-    <a asp-action="MyRegistrations" class="btn btn-outline-secondary">Xem đăng ký của tôi</a>
+<div class="d-flex gap-2 mt-4 flex-wrap">
+    <a asp-area="Student" asp-controller="Registration" asp-action="ActivePeriods"
+       class="btn btn-outline-secondary" style="font-size:13px;">
+        Quay lại danh sách đợt
+    </a>
+    <a asp-action="MyRegistrations" class="btn btn-outline-primary" style="font-size:13px;">
+        Xem đăng ký của tôi
+    </a>
 </div>

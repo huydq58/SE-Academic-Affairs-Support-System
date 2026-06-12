@@ -1,0 +1,314 @@
+// ============================================================
+//  SE Academic Affairs — Google Apps Script
+//  Tất cả request đi qua 2 entry-point: doGet / doPost
+//
+//  ── Cấu trúc sheet "Topics" (0-based) ──────────────────────
+//  [0] STT  [1] Tên đề tài  [2] Giảng viên  [3] Thông tin GV
+//  [4] ID/MSSV SV1  [5] Tên SV1
+//  [6] ID/MSSV SV2  [7] Tên SV2
+//  [8] Hình thức đào tạo  [9] Ghi chú
+//
+//  ── Cấu trúc sheet "BangDiem" (0-based) ────────────────────
+//  [0] MSSV  [1] Họ tên  [2] Tên đề tài  [3] Giảng viên HD
+//  [4] Điểm  [5] Người chấm  [6] Thời gian chấm
+//
+//  ── Payload từ C# backend ──────────────────────────────────
+//  GET  ?action=topics&sheetId=...
+//  GET  ?action=grading&sheetId=...
+//  POST { action:"register", sheetId, rowIndex,
+//         studentId, studentName,           ← SV1 (User GUID)
+//         studentId2?, studentName2? }      ← SV2 (User GUID, sau fix)
+//  POST { action:"grade", sheetId, mssv,
+//         score, gradedBy, gradedAt }
+// ============================================================
+
+const TOPICS_SHEET_NAME  = "Topics";
+const GRADING_SHEET_NAME = "BangDiem";
+
+
+// ─────────────────────────────────────────────────────────────
+//  ENTRY POINTS
+// ─────────────────────────────────────────────────────────────
+
+function doGet(e) {
+  var action  = e.parameter.action;
+  var sheetId = e.parameter.sheetId;
+
+  if (action === "topics")  return handleGetTopics(sheetId);
+  if (action === "grading") return handleGetGrading(sheetId);
+
+  return jsonResponse({ success: false, message: "Action không hợp lệ: " + action });
+}
+
+function doPost(e) {
+  var payload;
+  try {
+    payload = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return jsonResponse({ success: false, message: "Request body không phải JSON hợp lệ." });
+  }
+
+  var action = payload.action;
+
+  if (action === "register") return handlePostRegister(payload);
+  if (action === "grade")    return handlePostGrade(payload);
+
+  return jsonResponse({ success: false, message: "Action không hợp lệ: " + action });
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  GET: topics — đọc danh sách đề tài từ sheet Topics
+//  Trả về: mảng TopicSheet (camelCase, khớp với C# model)
+// ─────────────────────────────────────────────────────────────
+
+function handleGetTopics(sheetId) {
+  if (!sheetId)
+    return jsonResponse({ success: false, message: "Thiếu sheetId." });
+
+  var sheet = SpreadsheetApp.openById(sheetId).getSheetByName(TOPICS_SHEET_NAME);
+  if (!sheet)
+    return jsonResponse({ success: false, message: "Không tìm thấy sheet '" + TOPICS_SHEET_NAME + "'." });
+
+  var values = sheet.getDataRange().getValues();
+  var result = [];
+
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+
+    // Bỏ qua dòng không có tên đề tài
+    if (!row[1]) continue;
+
+    var registered = 0;
+    if (String(row[4] ?? "").trim()) registered++; // cột E: ID SV1
+    if (String(row[6] ?? "").trim()) registered++; // cột G: ID SV2
+
+    result.push({
+      rowIndex:      i + 1,                       // 1-based — dùng khi ghi ngược lên sheet
+      stt:           String(row[0] ?? ""),
+      topicName:     String(row[1] ?? ""),
+      lecturer:      String(row[2] ?? ""),
+      lecturerInfo:  String(row[3] ?? ""),
+      mssv1:         String(row[4] ?? ""),         // ID/GUID SV1 (khớp TopicSheet.Mssv1)
+      student1:      String(row[5] ?? ""),         // Tên SV1
+      mssv2:         String(row[6] ?? ""),         // ID/GUID SV2 (khớp TopicSheet.Mssv2)
+      student2:      String(row[7] ?? ""),         // Tên SV2
+      educationType: String(row[8] ?? ""),
+      note:          String(row[9] ?? ""),
+      registered:    registered,
+      maxSlot:       2
+    });
+  }
+
+  return jsonResponse(result);
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  POST: register — ghi đăng ký lên sheet Topics
+//
+//  Được gọi từ TopicSyncService (BackgroundService, mỗi 1 phút)
+//  sau khi C# đã validate và ghi vào SQL với SyncStatus=Pending.
+//  Apps Script chỉ là bước đồng bộ cuối cùng.
+//
+//  studentId  = User GUID của SV1 (Identity user ID)
+//  studentId2 = User GUID của SV2 (sau fix: từ StudentCode → UserId)
+// ─────────────────────────────────────────────────────────────
+
+function handlePostRegister(data) {
+  if (!data.sheetId || !data.rowIndex || !data.studentId)
+    return jsonResponse({ success: false, message: "Thiếu sheetId, rowIndex hoặc studentId." });
+
+  var sheet = SpreadsheetApp.openById(data.sheetId).getSheetByName(TOPICS_SHEET_NAME);
+  if (!sheet)
+    return jsonResponse({ success: false, message: "Không tìm thấy sheet '" + TOPICS_SHEET_NAME + "'." });
+
+  var studentId1   = String(data.studentId    ?? "").trim();
+  var studentName1 = String(data.studentName  ?? "").trim();
+  var studentId2   = String(data.studentId2   ?? "").trim();
+  var studentName2 = String(data.studentName2 ?? "").trim();
+  var rowIndex     = Number(data.rowIndex);
+
+  var allValues = sheet.getDataRange().getValues();
+
+  // ── Kiểm tra SV1 đã có trên sheet chưa (phòng ghi trùng) ──
+  for (var i = 1; i < allValues.length; i++) {
+    var cell1 = String(allValues[i][4] ?? "").trim();
+    var cell2 = String(allValues[i][6] ?? "").trim();
+    if (cell1 === studentId1 || cell2 === studentId1) {
+      return jsonResponse({
+        success: false,
+        message: "Sinh viên đã được ghi nhận ở đề tài \"" + String(allValues[i][1]) + "\"."
+      });
+    }
+  }
+
+  // ── Kiểm tra dòng đăng ký còn chỗ ────────────────────────
+  var targetRow = sheet.getRange(rowIndex, 1, 1, 10).getValues()[0];
+  var existingId1 = String(targetRow[4] ?? "").trim();
+  var existingId2 = String(targetRow[6] ?? "").trim();
+
+  if (existingId1 && existingId2)
+    return jsonResponse({ success: false, message: "Đề tài đã đủ 2 sinh viên." });
+
+  // ── Ghi SV1 vào cột E-F ───────────────────────────────────
+  sheet.getRange(rowIndex, 5).setValue(studentId1);
+  sheet.getRange(rowIndex, 6).setValue(studentName1);
+
+  // ── Ghi SV2 vào cột G-H (nếu có) ─────────────────────────
+  if (studentId2) {
+    sheet.getRange(rowIndex, 7).setValue(studentId2);
+    sheet.getRange(rowIndex, 8).setValue(studentName2);
+  }
+
+  return jsonResponse({ success: true, message: "Đăng ký thành công." });
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  GET: grading — đọc danh sách sinh viên từ BangDiem
+//  Nếu BangDiem chưa tồn tại → tự tạo và đồng bộ từ Topics.
+//  Trả về: mảng GradingSheetRow (camelCase, khớp với C# model)
+// ─────────────────────────────────────────────────────────────
+
+function handleGetGrading(sheetId) {
+  if (!sheetId)
+    return jsonResponse({ success: false, message: "Thiếu sheetId." });
+
+  var ss    = SpreadsheetApp.openById(sheetId);
+  var sheet = ss.getSheetByName(GRADING_SHEET_NAME);
+
+  // Tạo và đồng bộ nếu chưa có
+  if (!sheet) sheet = _buildGradingSheet(ss);
+  if (!sheet) return jsonResponse({ success: false, message: "Không thể tạo sheet BangDiem." });
+
+  var data   = sheet.getDataRange().getValues();
+  var result = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var r = data[i];
+    if (!r[0]) continue; // bỏ qua dòng trống
+
+    result.push({
+      rowIndex:    i + 1,
+      mssv:        String(r[0]),
+      studentName: String(r[1] ?? ""),
+      topicName:   String(r[2] ?? ""),
+      lecturer:    String(r[3] ?? ""),
+      score:       r[4] !== "" ? parseFloat(r[4]) : null,
+      gradedBy:    String(r[5] ?? ""),
+      gradedAt:    String(r[6] ?? "")
+    });
+  }
+
+  return jsonResponse(result);
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  POST: grade — ghi/cập nhật điểm vào BangDiem
+//
+//  Được gọi từ GradeSyncService (BackgroundService, mỗi 1 phút).
+//  Tìm hàng theo mssv, ghi điểm + thông tin người chấm.
+//  mssv ở đây là cột A của BangDiem (có thể là GUID hoặc MSSV
+//  tuỳ theo dữ liệu được đồng bộ từ sheet Topics).
+// ─────────────────────────────────────────────────────────────
+
+function handlePostGrade(payload) {
+  var sheetId  = payload.sheetId;
+  var mssv     = String(payload.mssv  ?? "").trim();
+  var score    = parseFloat(payload.score);
+  var gradedBy = String(payload.gradedBy ?? "");
+  var gradedAt = String(payload.gradedAt ?? "");
+
+  if (!sheetId || !mssv || isNaN(score))
+    return jsonResponse({ success: false, message: "Thiếu sheetId, mssv hoặc score." });
+
+  if (score < 0 || score > 10)
+    return jsonResponse({ success: false, message: "Điểm phải trong khoảng 0 – 10." });
+
+  var ss    = SpreadsheetApp.openById(sheetId);
+  var sheet = ss.getSheetByName(GRADING_SHEET_NAME);
+  if (!sheet) sheet = _buildGradingSheet(ss);
+  if (!sheet) return jsonResponse({ success: false, message: "Không thể tạo sheet BangDiem." });
+
+  var data     = sheet.getDataRange().getValues();
+  var foundRow = -1;
+
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === mssv) {
+      foundRow = i + 1; // 1-based
+      break;
+    }
+  }
+
+  if (foundRow === -1)
+    return jsonResponse({ success: false, message: "Không tìm thấy \"" + mssv + "\" trong BangDiem." });
+
+  // Ghi điểm, người chấm, thời gian chấm vào cột E–G
+  sheet.getRange(foundRow, 5).setValue(score);
+  sheet.getRange(foundRow, 6).setValue(gradedBy);
+  sheet.getRange(foundRow, 7).setValue(gradedAt);
+
+  return jsonResponse({ success: true, message: "Lưu điểm thành công." });
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  PRIVATE: tạo sheet BangDiem và đồng bộ SV từ Topics
+//  Gọi khi BangDiem chưa tồn tại.
+//  Xoá dữ liệu cũ (giữ header) rồi ghi lại từ Topics.
+// ─────────────────────────────────────────────────────────────
+
+function _buildGradingSheet(ss) {
+  var topicsSheet = ss.getSheetByName(TOPICS_SHEET_NAME);
+  if (!topicsSheet) return null;
+
+  // Tạo sheet hoặc lấy lại nếu đã tồn tại (phòng race condition)
+  var sheet = ss.getSheetByName(GRADING_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(GRADING_SHEET_NAME);
+    sheet.appendRow([
+      "MSSV/ID", "Họ tên", "Tên đề tài",
+      "Giảng viên HD", "Điểm", "Người chấm", "Thời gian chấm"
+    ]);
+  } else if (sheet.getLastRow() > 1) {
+    // Xoá dữ liệu cũ, giữ header
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, 7).clearContent();
+  }
+
+  var data = topicsSheet.getDataRange().getValues();
+  var rows = [];
+
+  // Bỏ header (row 0), đọc từng đề tài
+  for (var i = 1; i < data.length; i++) {
+    var row      = data[i];
+    var topic    = String(row[1] ?? "");
+    var lecturer = String(row[2] ?? "");
+
+    var id1   = String(row[4] ?? "").trim(); // cột E: ID SV1
+    var name1 = String(row[5] ?? "").trim(); // cột F: Tên SV1
+    var id2   = String(row[6] ?? "").trim(); // cột G: ID SV2
+    var name2 = String(row[7] ?? "").trim(); // cột H: Tên SV2
+
+    if (id1) rows.push([id1, name1, topic, lecturer, "", "", ""]);
+    if (id2) rows.push([id2, name2, topic, lecturer, "", "", ""]);
+  }
+
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, 7).setValues(rows);
+  }
+
+  return sheet;
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  HELPER: chuẩn hoá JSON response
+// ─────────────────────────────────────────────────────────────
+
+function jsonResponse(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}

@@ -1,167 +1,208 @@
-﻿@model TopicListSheetViewModel
+@model TopicListSheetViewModel
 @using SE_Academic_Affairs_Support_System.Models
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Đăng ký đề tài";
+    ViewData["Title"] = "Đăng ký đề tài — " + Model.PeriodName;
+    int availableCount = Model.Topics.Count(t =>
+    {
+        var reg = Model.GetRegistration(t.RowIndex);
+        return reg == null && t.Registered < t.MaxSlot;
+    });
 }
 
-<div class="container mt-4">
+<style>
+    /* Ghi đè màu header table cho trang này */
+    .dt thead th { background: #eff6ff; color: #1e3a8a; border-bottom: 2px solid #bfdbfe; }
+    .dt tbody tr.row-full td { background: #f8fafc; color: #9ca3af; }
+    .dt tbody tr.row-full:hover td { background: #f8fafc; }
 
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a asp-controller="RegistrationPeriod" asp-action="ActivePeriods">
-                    Đợt đăng ký
-                </a>
-            </li>
-            <li class="breadcrumb-item active">@Model.PeriodName</li>
-        </ol>
-    </nav>
+    /* Badge sync */
+    .sync-badge { display:inline-block; font-size:11px; font-weight:600; border-radius:20px; padding:2px 8px; }
+    .sync-synced  { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+    .sync-pending { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+    .sync-failed  { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h4 class="mb-0">@Model.PeriodName</h4>
-            <small class="text-muted">@Model.CourseName</small>
-        </div>
-        <div class="d-flex gap-2 align-items-center">
-            <span class="badge bg-primary fs-6">@Model.Topics.Count đề tài</span>
-            @if (Model.Registrations.Any(r => r.SyncStatus == SyncStatus.Pending || r.SyncStatus == SyncStatus.Failed))
-            {
-                <span class="badge bg-warning text-dark"
-                      title="Dữ liệu sẽ được đồng bộ lên Google Sheet trong vài phút">
-                    <i class="fas fa-sync-alt me-1"></i>Đang chờ đồng bộ
-                </span>
-            }
-        </div>
-    </div>
+    /* Modal */
+    .modal-content { border:none; border-radius:12px; box-shadow:0 8px 32px rgba(37,99,235,.12); }
+    .modal-header  { background:#eff6ff; border-bottom:1px solid #bfdbfe; border-radius:12px 12px 0 0; }
+    .modal-header .modal-title { font-size:15px; font-weight:700; color:#1e3a8a; }
+    .modal-footer  { border-top:1px solid #f1f5f9; }
 
-    @if (Model.StatusMessage != null)
-    {
-        <div class="alert alert-@(Model.IsSuccess ? "success" : "danger") alert-dismissible fade show" role="alert">
-            <i class="fas fa-@(Model.IsSuccess ? "check-circle" : "exclamation-circle") me-2"></i>
-            @Model.StatusMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+    .topic-name { font-size:13.5px; font-weight:600; color:#1e3a8a; }
+    .topic-note { font-size:12px; color:#6b7280; margin-top:2px; }
+
+    @@media (max-width:767px) {
+        .stat-chips { flex-wrap:wrap; }
     }
+</style>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle">
-            <thead class="table-primary">
+@* Breadcrumb *@
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb" style="font-size:13px;">
+        <li class="breadcrumb-item">
+            <a asp-area="Student" asp-controller="Registration" asp-action="ActivePeriods">
+                Đợt đăng ký
+            </a>
+        </li>
+        <li class="breadcrumb-item active">@Model.PeriodName</li>
+    </ol>
+</nav>
+
+@* Header *@
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+    <div class="rg-page-title mb-0">
+        <h2>@Model.PeriodName</h2>
+        <p>@Model.CourseName</p>
+    </div>
+    <div class="d-flex align-items-center gap-2 stat-chips">
+        <span class="sb sb-blue">@Model.Topics.Count đề tài</span>
+        <span class="sb @(availableCount > 0 ? "sb-green" : "sb-gray")">
+            @availableCount còn trống
+        </span>
+        @if (Model.Registrations.Any(r => r.SyncStatus == SyncStatus.Pending || r.SyncStatus == SyncStatus.Failed))
+        {
+            <span class="sb sb-amber" title="Dữ liệu sẽ được đồng bộ lên Google Sheet trong vài phút">
+                <i class="bi bi-arrow-repeat me-1"></i>Đang chờ đồng bộ
+            </span>
+        }
+    </div>
+</div>
+
+@* Flash message sau đăng ký *@
+@if (Model.StatusMessage != null)
+{
+    <div class="alert alert-@(Model.IsSuccess ? "success" : "danger") alert-dismissible fade show mb-4"
+         role="alert" style="font-size:13.5px; border-radius:8px;">
+        <i class="bi bi-@(Model.IsSuccess ? "check-circle-fill" : "exclamation-circle-fill") me-2"></i>
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@* Bảng đề tài *@
+@if (!Model.Topics.Any())
+{
+    <div class="empty-state">
+        <p style="font-weight:600; color:#374151;">Google Sheet chưa có dữ liệu đề tài.</p>
+        <p>Vui lòng liên hệ giảng viên hoặc giáo vụ để cập nhật danh sách.</p>
+    </div>
+}
+else
+{
+    <div class="dt-wrap">
+        <table class="dt">
+            <thead>
                 <tr>
-                    <th style="width:50px">STT</th>
+                    <th style="width:44px;">STT</th>
                     <th>Tên đề tài</th>
-                    <th style="width:160px">Giảng viên HD</th>
-                    <th style="width:160px">Sinh viên 1</th>
-                    <th style="width:160px">Sinh viên 2</th>
-                    <th style="width:70px" class="text-center">Slot</th>
-                    <th style="width:130px" class="text-center">Thao tác</th>
+                    <th style="width:150px;">Giảng viên HD</th>
+                    <th style="width:145px;">Sinh viên 1</th>
+                    <th style="width:145px;">Sinh viên 2</th>
+                    <th style="width:64px;" class="text-center">Slot</th>
+                    <th style="width:110px;" class="text-center">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var t in Model.Topics)
                 {
-                    // Ưu tiên dữ liệu từ SQL (nguồn sự thật), fallback về sheet
                     var reg = Model.GetRegistration(t.RowIndex);
-                    var sv1Id = reg?.StudentId1 ?? t.Mssv1;
                     var sv1Name = reg?.StudentName1 ?? t.Student1;
-                    var sv2Id = reg?.StudentId2 ?? t.Mssv2;
                     var sv2Name = reg?.StudentName2 ?? t.Student2;
+                    bool isFull = reg != null || t.Registered >= t.MaxSlot;
 
-                    // Đề tài "đầy" nếu SQL đã có đăng ký HOẶC sheet đã đầy
-                    var fullBySql = reg != null;
-                    var fullBySlot = t.Registered >= t.MaxSlot;
-                    var full = fullBySql || fullBySlot;
-
-                    <tr class="@(full ? "table-secondary" : "")">
-                        <td class="text-center">@t.Stt</td>
-                        <td>
-                            <div class="fw-semibold">@t.TopicName</div>
-                            @if (!string.IsNullOrEmpty(t.Note))
-                            {
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>@t.Note
-                                </small>
-                            }
+                    <tr class="@(isFull ? "row-full" : "")">
+                        <td data-label="STT" class="text-center">@t.Stt</td>
+                        <td data-label="Tên đề tài">
+                            <div class="topic-name">@t.TopicName</div>
                             @if (!string.IsNullOrEmpty(t.EducationType))
                             {
-                                <span class="badge bg-light text-dark border ms-1">@t.EducationType</span>
+                                <span class="sb sb-gray" style="font-size:10px; margin-top:3px; display:inline-block;">@t.EducationType</span>
                             }
-                            @* Badge trạng thái sync *@
+                            @if (!string.IsNullOrEmpty(t.Note))
+                            {
+                                <div class="topic-note">@t.Note</div>
+                            }
                             @if (reg != null)
                             {
-                                @if (reg.SyncStatus == SyncStatus.Synced)
+                                string syncCls = reg.SyncStatus switch
                                 {
-                                    <span class="badge bg-success ms-1" title="Đã đồng bộ lên Google Sheet">
-                                        <i class="fas fa-check me-1"></i>Đã sync
-                                    </span>
-                                }
-                                else if (reg.SyncStatus == SyncStatus.Pending)
+                                    SyncStatus.Synced  => "sync-synced",
+                                    SyncStatus.Pending => "sync-pending",
+                                    _                  => "sync-failed"
+                                };
+                                string syncLabel = reg.SyncStatus switch
                                 {
-                                    <span class="badge bg-warning text-dark ms-1" title="Sẽ đồng bộ trong vài phút">
-                                        <i class="fas fa-clock me-1"></i>Chờ sync
-                                    </span>
-                                }
-                                else if (reg.SyncStatus == SyncStatus.Failed)
+                                    SyncStatus.Synced  => "Đã sync",
+                                    SyncStatus.Pending => "Chờ sync",
+                                    _                  => "Lỗi sync"
+                                };
+                                string syncIcon = reg.SyncStatus switch
                                 {
-                                    <span class="badge bg-danger ms-1" title="@reg.SyncError">
-                                        <i class="fas fa-exclamation-triangle me-1"></i>Lỗi sync
-                                    </span>
-                                }
+                                    SyncStatus.Synced  => "bi-check-lg",
+                                    SyncStatus.Pending => "bi-clock",
+                                    _                  => "bi-exclamation-triangle"
+                                };
+                                <span class="sync-badge @syncCls mt-1"
+                                      title="@(reg.SyncStatus == SyncStatus.Failed ? reg.SyncError : "")">
+                                    <i class="bi @syncIcon me-1"></i>@syncLabel
+                                </span>
                             }
                         </td>
-                        <td>
-                            <div>@t.Lecturer</div>
-                            <small class="text-muted">@t.LecturerInfo</small>
+                        <td data-label="Giảng viên HD">
+                            <div style="font-size:13.5px; font-weight:600;">@t.Lecturer</div>
+                            @if (!string.IsNullOrEmpty(t.LecturerInfo))
+                            {
+                                <div style="font-size:12px; color:#6b7280;">@t.LecturerInfo</div>
+                            }
                         </td>
-                        <td>
+                        <td data-label="Sinh viên 1">
                             @if (!string.IsNullOrEmpty(sv1Name))
                             {
-                                <span class="badge bg-primary">@sv1Id</span>
-                                <div class="small mt-1">@sv1Name</div>
+                                <div style="font-size:13px; font-weight:600; color:#1d4ed8;">@sv1Name</div>
                             }
                             else
                             {
                                 <span class="text-muted">—</span>
                             }
                         </td>
-                        <td>
+                        <td data-label="Sinh viên 2">
                             @if (!string.IsNullOrEmpty(sv2Name))
                             {
-                                <span class="badge bg-primary">@sv2Id</span>
-                                <div class="small mt-1">@sv2Name</div>
+                                <div style="font-size:13px; font-weight:600; color:#1d4ed8;">@sv2Name</div>
                             }
                             else
                             {
                                 <span class="text-muted">—</span>
                             }
                         </td>
-                        <td class="text-center">
-                            <span class="badge @(full ? "bg-danger" : "bg-success") fs-6">
+                        <td data-label="Slot" class="text-center">
+                            <span class="sb @(isFull ? "sb-red" : "sb-green")"
+                                  style="font-size:12px; font-weight:700;">
                                 @t.Registered/@t.MaxSlot
                             </span>
                         </td>
-                        <td class="text-center">
-                            @if (!full)
+                        <td data-label="Thao tác" class="text-center">
+                            @if (!isFull)
                             {
-                                <form asp-action="Register" asp-controller="Topic" method="post">
+                                <form asp-area="" asp-controller="Topic" asp-action="Register" method="post">
                                     @Html.AntiForgeryToken()
-                                    <input type="hidden" name="sheetId" value="@Model.SheetId" />
-                                    <input type="hidden" name="periodId" value="@Model.PeriodId" />
+                                    <input type="hidden" name="sheetId"    value="@Model.SheetId" />
+                                    <input type="hidden" name="periodId"   value="@Model.PeriodId" />
                                     <input type="hidden" name="periodName" value="@Model.PeriodName" />
                                     <input type="hidden" name="courseName" value="@Model.CourseName" />
-                                    <input type="hidden" name="rowIndex" value="@t.RowIndex" />
-                                    <input type="hidden" name="topicName" value="@t.TopicName" />
-                                    <button type="button" class="btn btn-sm btn-primary"
+                                    <input type="hidden" name="rowIndex"   value="@t.RowIndex" />
+                                    <input type="hidden" name="topicName"  value="@t.TopicName" />
+                                    <button type="button" class="btn-act btn-act-primary"
                                             data-topic="@t.TopicName"
                                             data-row="@t.RowIndex"
                                             onclick="openRegisterModal(this)">
-                                        <i class="fas fa-check-circle me-1"></i>Đăng ký
+                                        Đăng ký
                                     </button>
                                 </form>
                             }
                             else
                             {
-                                <span class="text-danger fw-semibold small">Đã đủ</span>
+                                <span class="sb sb-gray" style="font-size:12px;">Đã đủ</span>
                             }
                         </td>
                     </tr>
@@ -169,33 +210,33 @@
             </tbody>
         </table>
     </div>
-</div>
+}
 
-@* Modal xác nhận đăng ký + nhập MSSV SV2 *@
-<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+@* Modal xác nhận đăng ký *@
+<div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="registerModalLabel">
-                    <i class="fas fa-check-circle me-2 text-primary"></i>Xác nhận đăng ký
-                </h5>
+                <h5 class="modal-title">Xác nhận đăng ký đề tài</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p class="mb-1">Đề tài:</p>
-                <p class="fw-semibold" id="modalTopicName"></p>
-                <hr />
-                <label class="form-label">
+            <div class="modal-body p-4">
+                <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:12px 16px; margin-bottom:16px;">
+                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#0369a1; margin-bottom:4px;">Đề tài</div>
+                    <div id="modalTopicName" style="font-size:14px; font-weight:600; color:#0c4a6e;"></div>
+                </div>
+                <label class="form-label fw-semibold" style="font-size:13px;">
                     MSSV sinh viên 2
-                    <span class="text-muted fw-normal">(tuỳ chọn — để trống nếu làm một mình)</span>
+                    <span class="text-muted fw-normal">(tuỳ chọn — bỏ trống nếu làm một mình)</span>
                 </label>
-                <input type="text" id="partnerIdInput" class="form-control"
-                       placeholder="Nhập MSSV của thành viên thứ 2..." />
+                <input type="text" id="partnerMssvInput" class="form-control"
+                       placeholder="VD: 2021001234" style="font-size:13px;" />
+                <div class="form-text">Nhập đúng MSSV của thành viên thứ hai trong hệ thống.</div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
                 <button type="button" class="btn btn-primary" id="confirmRegisterBtn">
-                    <i class="fas fa-check me-1"></i>Xác nhận đăng ký
+                    <i class="bi bi-check-lg me-1"></i>Xác nhận đăng ký
                 </button>
             </div>
         </div>
@@ -204,32 +245,35 @@
 
 @section Scripts {
     <script>
-        let _activeForm = null;
+    (function () {
+        var _activeForm = null;
 
-        function openRegisterModal(btn) {
+        // Expose ra global vì được gọi từ onclick attribute
+        window.openRegisterModal = function (btn) {
             _activeForm = btn.closest('form');
             document.getElementById('modalTopicName').textContent = btn.dataset.topic;
-            document.getElementById('partnerIdInput').value = '';
+            document.getElementById('partnerMssvInput').value = '';
             new bootstrap.Modal(document.getElementById('registerModal')).show();
-        }
+        };
 
         document.getElementById('confirmRegisterBtn').addEventListener('click', function () {
             if (!_activeForm) return;
 
-            const partnerId = document.getElementById('partnerIdInput').value.trim();
+            var mssv = document.getElementById('partnerMssvInput').value.trim();
 
-            // Thêm hoặc cập nhật input partnerId vào form
-            let partnerInput = _activeForm.querySelector('input[name="partnerId"]');
+            // Gắn hoặc cập nhật input partnerId (chứa MSSV)
+            var partnerInput = _activeForm.querySelector('input[name="partnerId"]');
             if (!partnerInput) {
                 partnerInput = document.createElement('input');
                 partnerInput.type = 'hidden';
                 partnerInput.name = 'partnerId';
                 _activeForm.appendChild(partnerInput);
             }
-            partnerInput.value = partnerId;
+            partnerInput.value = mssv;
 
             bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
             _activeForm.submit();
         });
+    })();
     </script>
 }
