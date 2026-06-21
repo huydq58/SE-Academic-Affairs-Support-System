@@ -184,7 +184,7 @@ else
                         <td data-label="Thao tác" class="text-center">
                             @if (!isFull)
                             {
-                                <form asp-area="" asp-controller="Topic" asp-action="Register" method="post">
+                                <form asp-area="" asp-controller="Topic" asp-action="Register" method="post" hx-boost="false">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="sheetId"    value="@Model.SheetId" />
                                     <input type="hidden" name="periodId"   value="@Model.PeriodId" />

@@ -24,7 +24,7 @@
 
     <form asp-area="Admin" asp-controller="Account"
           asp-action="@(isEdit ? "Edit" : "Create")"
-          method="post">
+          method="post" hx-boost="false">
         @Html.AntiForgeryToken()
         @* Hidden field Id chỉ submit khi chỉnh sửa (IsEditMode = true) *@
         <input type="hidden" asp-for="Id" />

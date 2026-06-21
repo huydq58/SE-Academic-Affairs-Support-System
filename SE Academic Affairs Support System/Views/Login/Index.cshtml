@@ -104,7 +104,7 @@
                 </div>
             }
 
-            <form asp-action="Index" asp-controller="Login" method="post">
+            <form asp-action="Index" asp-controller="Login" method="post" hx-boost="false">
                 @Html.AntiForgeryToken()
 
                 <div class="mb-3">

@@ -105,7 +105,7 @@
     <div class="rg-card">
         <div class="rg-card-head">Quyết định</div>
         <div class="rg-card-body">
-            <form asp-action="Review" method="post">
+            <form asp-action="Review" method="post" hx-boost="false">
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="RegistrationId" />
 

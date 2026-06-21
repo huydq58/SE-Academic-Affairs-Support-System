@@ -131,11 +131,11 @@
                 @if (req.Status == "Pending")
                 {
                     <div class="req-actions">
-                        <form method="post" action="/Device/ApproveRequest/@req.RequestId" style="margin:0">
+                        <form method="post" action="/Device/ApproveRequest/@req.RequestId" style="margin:0" hx-boost="false">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn-act btn-act-success">Phê duyệt</button>
                         </form>
-                        <form method="post" action="/Device/RejectRequest/@req.RequestId" style="margin:0">
+                        <form method="post" action="/Device/RejectRequest/@req.RequestId" style="margin:0" hx-boost="false">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn-act btn-act-danger"
                                     onclick="return confirm('Xác nhận từ chối yêu cầu của @req.BorrowerName?')">

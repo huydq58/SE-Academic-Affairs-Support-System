@@ -59,7 +59,7 @@
     </div>
 
     <form asp-action="@(isEdit ? "EditPeriod" : "CreatePeriod")"
-          method="post" enctype="multipart/form-data">
+          method="post" enctype="multipart/form-data" hx-boost="false">
         @Html.AntiForgeryToken()
         @if (isEdit) { <input type="hidden" asp-for="Id" /> }
 

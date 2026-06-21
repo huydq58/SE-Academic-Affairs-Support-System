@@ -22,6 +22,16 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             => await _db.RegistrationPeriods
                 .FirstOrDefaultAsync(p => p.IsActive && p.StartDate <= DateTime.UtcNow && p.EndDate >= DateTime.UtcNow);
 
+        // Trả về đợt đang mở mà sinh viên được phép tham gia
+        public async Task<RegistrationPeriod?> GetActivePeriodForStudentAsync(int studentProfileId)
+            => await _db.RegistrationPeriods
+                .FirstOrDefaultAsync(p =>
+                    p.IsActive &&
+                    p.StartDate <= DateTime.UtcNow &&
+                    p.EndDate >= DateTime.UtcNow &&
+                    (!p.RestrictToAllowedStudents ||
+                     p.AllowedStudents.Any(s => s.StudentProfileId == studentProfileId)));
+
         public async Task<List<RegistrationPeriod>> GetAllPeriodsAsync()
             => await _db.RegistrationPeriods.OrderByDescending(p => p.StartDate).ToListAsync();
 
@@ -142,7 +152,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
         public async Task<TopicListViewModel?> GetTopicListForStudentAsync(
             int studentProfileId, string? keyword, int? lecturerId)
         {
-            var period = await GetActivePeriodAsync();
+            var period = await GetActivePeriodForStudentAsync(studentProfileId);
             if (period == null) return null;
 
             var query = _db.Topics
@@ -205,9 +215,9 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
         public async Task<(bool Success, string Message)> RegisterExistingTopicAsync(
             int studentProfileId, int topicId)
         {
-            var period = await GetActivePeriodAsync();
+            var period = await GetActivePeriodForStudentAsync(studentProfileId);
             if (period == null)
-                return (false, "Hiện tại không có đợt đăng ký nào đang mở.");
+                return (false, "Hiện tại không có đợt đăng ký nào đang mở hoặc bạn không có trong danh sách được phép đăng ký.");
 
             var topic = await _db.Topics
                 .Include(t => t.Registrations)
@@ -259,9 +269,9 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
         public async Task<(bool Success, string Message)> SubmitProposalAsync(
             int studentProfileId, ProposalViewModel vm)
         {
-            var period = await GetActivePeriodAsync();
+            var period = await GetActivePeriodForStudentAsync(studentProfileId);
             if (period == null)
-                return (false, "Hiện tại không có đợt đăng ký nào đang mở.");
+                return (false, "Hiện tại không có đợt đăng ký nào đang mở hoặc bạn không có trong danh sách được phép đăng ký.");
 
             bool hasApproved = await _db.Registrations
                 .AnyAsync(r => r.StudentProfileId == studentProfileId

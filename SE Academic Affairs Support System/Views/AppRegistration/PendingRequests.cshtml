@@ -378,10 +378,10 @@
                     <td data-label="Người phụ trách">
                         @if (User.IsInRole("Admin") && string.IsNullOrEmpty(item.AssignedLecturerId))
                         {
-                            <form asp-action="AssignLecturer" method="post"
+                            <form asp-action="AssignLecturer" method="post" hx-boost="false"
                                   class="d-flex gap-2 align-items-center flex-wrap">
                                 <input type="hidden" name="requestId" value="@item.RequestId" />
-                                <select name="lecturerId" class="form-select assign-select" required>
+                                <select name="lecturerId" class="form-select assign-select" aria-label="Chọn giảng viên phụ trách" required>
                                     <option value="">-- Chọn giảng viên --</option>
                                     @if (ViewBag.LecturerList != null)
                                     {
@@ -426,7 +426,7 @@
 
                             @if (item.Status != RequestStatus.Approved)
                             {
-                                <form asp-action="ApproveRequest" method="post"
+                                <form asp-action="ApproveRequest" method="post" hx-boost="false"
                                       onsubmit="return confirm('Xác nhận duyệt ứng dụng này?')">
                                     <input type="hidden" name="requestId" value="@item.RequestId" />
                                     <button type="submit" class="btn btn-sm btn-success">Duyệt</button>

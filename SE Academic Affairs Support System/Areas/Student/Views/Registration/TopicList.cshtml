@@ -223,7 +223,7 @@
                    placeholder="Tìm tên đề tài, mô tả..." />
         </div>
         <div class="tl-filter-lecturer" style="min-width: 200px; flex: 1;">
-            <select name="lecturerId" class="form-select" style="font-size:13px;">
+            <select name="lecturerId" class="form-select" aria-label="Lọc theo giảng viên" style="font-size:13px;">
                 <option value="">Tất cả giảng viên</option>
                 @foreach (var lec in Model.Lecturers)
                 {
@@ -311,7 +311,7 @@ else
                         }
                         else
                         {
-                            <form asp-action="Register" method="post">
+                            <form asp-action="Register" method="post" hx-boost="false">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="topicId" value="@topic.TopicId" />
                                 <button type="submit" class="btn-register"

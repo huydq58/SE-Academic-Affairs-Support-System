@@ -63,7 +63,7 @@
     <div class="filter-card d-flex flex-wrap gap-3 align-items-end">
         <div>
             <span class="filter-lbl">Trạng thái</span>
-            <select name="filterStatus" class="form-select form-select-sm" onchange="this.form.submit()">
+            <select name="filterStatus" class="form-select form-select-sm" aria-label="Lọc theo trạng thái" onchange="this.form.submit()">
                 <option value="">Tất cả</option>
                 <option value="Available"  selected="@(ViewBag.FilterStatus == "Available")">Sẵn sàng</option>
                 <option value="Borrowing"  selected="@(ViewBag.FilterStatus == "Borrowing")">Đang mượn</option>
@@ -72,7 +72,7 @@
         </div>
         <div>
             <span class="filter-lbl">Tình trạng</span>
-            <select name="filterCondition" class="form-select form-select-sm" onchange="this.form.submit()">
+            <select name="filterCondition" class="form-select form-select-sm" aria-label="Lọc theo tình trạng" onchange="this.form.submit()">
                 <option value="">Tất cả</option>
                 <option value="Good"   selected="@(ViewBag.FilterCondition == "Good")">Tốt</option>
                 <option value="Broken" selected="@(ViewBag.FilterCondition == "Broken")">Hỏng</option>
@@ -80,7 +80,7 @@
         </div>
         <div>
             <span class="filter-lbl">Loại thiết bị</span>
-            <select name="filterCategory" class="form-select form-select-sm" onchange="this.form.submit()">
+            <select name="filterCategory" class="form-select form-select-sm" aria-label="Lọc theo loại thiết bị" onchange="this.form.submit()">
                 <option value="">Tất cả</option>
                 @foreach (var cat in (List<string>)ViewBag.Categories)
                 {
@@ -131,7 +131,7 @@
                         </span>
                     </td>
                     <td data-label="Tình trạng">
-                        <form method="post" action="/Device/ChangeCondition/@d.DeviceId" style="margin:0">
+                        <form method="post" action="/Device/ChangeCondition/@d.DeviceId" style="margin:0" hx-boost="false">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="condition" value="@(d.Condition == "Good" ? "Broken" : "Good")" />
                             <button type="submit" class="cond-btn @(d.Condition == "Good" ? "cond-good" : "cond-broken")"
@@ -146,14 +146,14 @@
 
                             @if (d.Status == "Borrowing")
                             {
-                                <form method="post" action="/Device/MarkReturned/@d.DeviceId" style="margin:0">
+                                <form method="post" action="/Device/MarkReturned/@d.DeviceId" style="margin:0" hx-boost="false">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn-act btn-act-primary">Nhận trả</button>
                                 </form>
                             }
                             @if (d.Status == "Returned")
                             {
-                                <form method="post" action="/Device/MarkAvailable/@d.DeviceId" style="margin:0">
+                                <form method="post" action="/Device/MarkAvailable/@d.DeviceId" style="margin:0" hx-boost="false">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn-act btn-act-primary">Nhập kho</button>
                                 </form>
@@ -173,7 +173,7 @@
     </table>
 </div>
 
-<form id="deleteForm" method="post" style="display:none;">
+<form id="deleteForm" method="post" style="display:none;" hx-boost="false">
     @Html.AntiForgeryToken()
 </form>
 

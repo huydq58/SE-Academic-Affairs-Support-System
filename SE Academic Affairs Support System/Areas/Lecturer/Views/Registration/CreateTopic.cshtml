@@ -18,7 +18,7 @@
         <p>Đăng đề tài mới để sinh viên đăng ký thực hiện</p>
     </div>
 
-    <form asp-area="Lecturer" asp-action="CreateTopic" method="post">
+    <form asp-area="Lecturer" asp-action="CreateTopic" method="post" hx-boost="false">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="RegistrationPeriodId" />
 

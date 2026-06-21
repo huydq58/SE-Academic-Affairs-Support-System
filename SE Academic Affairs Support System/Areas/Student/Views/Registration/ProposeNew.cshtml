@@ -38,7 +38,7 @@
         </div>
     }
 
-    <form action="@formAction" method="post">
+    <form action="@formAction" method="post" hx-boost="false">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="RegistrationPeriodId" />
         @if (isRevision)

@@ -23,7 +23,7 @@
     <input type="text" name="keyword" value="@Model.SearchKeyword"
            class="form-control" style="max-width:240px; font-size:13px;"
            placeholder="Tìm tên, email, MSSV..." />
-    <select name="role" class="form-select" style="max-width:160px; font-size:13px;">
+    <select name="role" class="form-select" aria-label="Lọc theo vai trò" style="max-width:160px; font-size:13px;">
         <option value="">Tất cả vai trò</option>
         <option value="Admin"    selected="@(rf == "Admin"    ? "selected" : null)">Admin</option>
         <option value="Lecturer" selected="@(rf == "Lecturer" ? "selected" : null)">Giảng viên</option>
@@ -97,7 +97,7 @@ else
                                    asp-route-id="@u.Id"
                                    class="btn-act btn-act-outline">Sửa</a>
                                 <form asp-area="Admin" asp-controller="Account" asp-action="Delete"
-                                      method="post" style="margin:0"
+                                      method="post" style="margin:0" hx-boost="false"
                                       onsubmit="return confirm('Xóa tài khoản &quot;@u.FullName&quot;?')">
                                     <input type="hidden" name="id" value="@u.Id" />
                                     @Html.AntiForgeryToken()

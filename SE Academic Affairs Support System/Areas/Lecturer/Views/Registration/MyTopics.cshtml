@@ -75,7 +75,7 @@ else
                             </span>
                         </td>
                         <td data-label="Thao tác">
-                            <form asp-action="DeleteTopic" method="post" style="margin:0"
+                            <form asp-action="DeleteTopic" method="post" style="margin:0" hx-boost="false"
                                   onsubmit="return confirm('Xác nhận xóa đề tài này?')">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="topicId" value="@t.TopicId" />

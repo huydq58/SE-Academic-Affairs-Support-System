@@ -68,7 +68,10 @@ namespace SE_Academic_Affairs_Support_System.Areas.Student.Controllers
         // GET /Student/Registration/ProposeNew
         public async Task<IActionResult> ProposeNew()
         {
-            var period = await _svc.GetActivePeriodAsync();
+            var studentId = await GetStudentProfileIdAsync();
+            if (studentId == null) return Forbid();
+
+            var period = await _svc.GetActivePeriodForStudentAsync(studentId.Value);
             if (period == null)
                 return View("NoPeriod");
 
@@ -172,12 +175,15 @@ namespace SE_Academic_Affairs_Support_System.Areas.Student.Controllers
         }
         public async Task<IActionResult> ActivePeriods()
         {
-            var now = DateTime.Now;
+            var studentId = await GetStudentProfileIdAsync();
+            if (studentId == null) return Forbid();
 
-            // Lọc các đợt đăng ký đang trong thời gian mở và được kích hoạt
+            var now = DateTime.Now;
             var activePeriods = await _db.RegistrationPeriods
                 .Where(p => p.IsActive && p.StartDate <= now && p.EndDate >= now)
-                .OrderByDescending(p => p.EndDate) // Đợt nào sắp hết hạn hiện lên đầu
+                .Where(p => !p.RestrictToAllowedStudents ||
+                            p.AllowedStudents.Any(s => s.StudentProfileId == studentId.Value))
+                .OrderByDescending(p => p.EndDate)
                 .ToListAsync();
 
             return View(activePeriods);

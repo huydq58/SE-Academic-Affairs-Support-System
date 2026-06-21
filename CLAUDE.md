@@ -18,28 +18,58 @@ Các tính năng chính:
 ```
 SE Academic Affairs Support System/
 ├── Areas/
-│   ├── Admin/Controllers/Admin.cs          # Quản lý đợt đăng ký, xem toàn bộ dữ liệu
-│   ├── Lecturer/Controllers/Lecturer.cs    # GV: tạo đề tài, duyệt đề xuất, chấm điểm
-│   └── Student/Controllers/Student.cs      # SV: đăng ký, đề xuất đề tài, xem kết quả
+│   ├── Admin/
+│   │   ├── Controllers/
+│   │   │   ├── AccountController.cs        # Quản lý tài khoản (CRUD user)
+│   │   │   └── RegistrationController.cs   # Quản lý đợt đăng ký đề tài
+│   │   └── Views/
+│   │       ├── Account/Index.cshtml, CreateEdit.cshtml
+│   │       └── Registration/Periods.cshtml, CreatePeriod.cshtml
+│   ├── Lecturer/
+│   │   ├── Controllers/Lecturer.cs         # GV: tạo đề tài, duyệt đề xuất, chấm điểm
+│   │   └── Views/Registration/
+│   │       ├── Inbox.cshtml, Review.cshtml
+│   │       ├── MyTopics.cshtml, CreateTopic.cshtml, ActivePeriods.cshtml
+│   └── Student/
+│       ├── Controllers/Student.cs          # SV: đăng ký, đề xuất đề tài, xem kết quả
+│       └── Views/Registration/
+│           ├── TopicList.cshtml, ProposeNew.cshtml, ReviseProposal.cshtml
+│           ├── MyRegistrations.cshtml, ActivePeriods.cshtml, NoPeriod.cshtml
 ├── Controllers/
-│   ├── HomeController.cs                   # Trang chủ, đặt phòng
+│   ├── HomeController.cs                   # Trang chủ (dashboard theo role)
 │   ├── LoginController.cs                  # Đăng nhập / đăng xuất
-│   ├── TopicController.cs                  # API phụ trợ cho đề tài
+│   ├── TopicController.cs                  # Xem danh sách đề tài từ Google Sheet
 │   ├── GradingController.cs                # Chấm điểm (tích hợp Google Sheets)
-│   ├── DeviceController.cs                 # Mượn thiết bị
-│   ├── RoomController.cs                   # Đặt phòng
-│   └── AppRegistrationController.cs        # Đăng ký phần mềm
+│   ├── DeviceController.cs                 # Mượn thiết bị (CRUD + duyệt yêu cầu)
+│   ├── RoomController.cs                   # Đặt phòng học
+│   ├── AppRegistrationController.cs        # Đăng ký phần mềm
+│   └── SeedAdminController.cs             # Tạo tài khoản test (dev only)
 ├── Models/                                 # EF Core entities thuần (không có logic)
 ├── ViewModels/                             # ViewModel riêng cho từng view
+│   ├── StudentViewModel.cs                 # ViewModels cho luồng Student
+│   ├── LecturerViewModel.cs                # ViewModels cho luồng Lecturer
+│   ├── GradingViewModel.cs                 # ViewModels cho chấm điểm
+│   ├── AdminViewModel.cs                   # ViewModels cho Admin
+│   └── AccountViewModel.cs                 # UserListViewModel, UserFormViewModel
 ├── Services/
 │   ├── ProjectRegistration/
 │   │   ├── IRegistrationService.cs
-│   │   └── RegistrationService.cs          # Toàn bộ nghiệp vụ đăng ký đề tài
+│   │   ├── RegistrationService.cs          # Toàn bộ nghiệp vụ đăng ký đề tài
+│   │   ├── IRegistrationPeriodStudentService.cs
+│   │   └── RegistrationPeriodStudentService.cs  # Quản lý SV trong đợt đăng ký
+│   ├── AccountManagement/
+│   │   ├── IAccountService.cs
+│   │   └── AccountService.cs               # CRUD tài khoản (Admin)
+│   ├── Email/
+│   │   ├── IEmailService.cs
+│   │   └── EmailService.cs                 # Gửi email thông báo
 │   ├── GoogleSheetServices/GoogleSheetServices.cs  # HTTP client gọi Google Apps Script
 │   ├── TopicSyncServices/TopicSyncService.cs       # BackgroundService đồng bộ đăng ký
 │   ├── GradeSyncService/GradeSyncService.cs        # BackgroundService đồng bộ điểm
+│   ├── PeriodAutoClose/PeriodAutoCloseService.cs   # BackgroundService tự đóng đợt hết hạn
 │   ├── NotificationSevices/NotificationService.cs  # Thông báo in-app
-│   └── AppRegistration/AppRegistrationService.cs
+│   ├── AppRegistration/AppRegistrationService.cs
+│   └── AuthService.cs                     # Helper xác thực
 ├── Data/AppDbContext.cs                    # DbContext duy nhất
 └── Program.cs                             # DI, middleware, routing setup
 ```
@@ -199,10 +229,13 @@ Mỗi đợt đăng ký có thể gắn một Google Sheet URL.
 AddScoped<IAppRegistrationService, AppRegistrationService>()
 AddScoped<INotificationService, NotificationService>()
 AddScoped<IRegistrationService, RegistrationService>()
+AddScoped<IAccountService, AccountService>()
+AddScoped<IRegistrationPeriodStudentService, RegistrationPeriodStudentService>()
 
 // Singleton background services
 AddHostedService<GradeSyncService>()
 AddHostedService<TopicSyncService>()
+AddHostedService<PeriodAutoCloseService>()   // tự đóng đợt khi quá EndDate
 
 // HttpClient
 AddHttpClient<GoogleSheetsService>()
@@ -250,3 +283,7 @@ Cookie auth: 8 giờ, sliding expiration. Login redirect về `/Home/Index`.
 | Auth & routing | `Program.cs`, `Areas/*/Controllers/*.cs` |
 | Chấm điểm | `Controllers/GradingController.cs`, `Models/GradeRecord.cs`, `Models/GradingSheet.cs` |
 | Đặt phòng | `Controllers/RoomController.cs`, `Models/RoomBooking.cs`, `Models/TimeSlot.cs` |
+| Quản lý tài khoản | `Areas/Admin/Controllers/AccountController.cs`, `Services/AccountManagement/AccountService.cs`, `ViewModels/AccountViewModel.cs` |
+| Quản lý đợt đăng ký | `Areas/Admin/Controllers/RegistrationController.cs`, `Models/RegistrationPeriod.cs` |
+| Mượn thiết bị | `Controllers/DeviceController.cs`, `Models/Device.cs`, `Models/DeviceRequest.cs` |
+| Đăng ký phần mềm | `Controllers/AppRegistrationController.cs`, `Services/AppRegistration/AppRegistrationService.cs`, `Models/AppRegistrationRequest.cs` |

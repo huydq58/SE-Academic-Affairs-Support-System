@@ -76,7 +76,7 @@ else
 
                                 @if (!p.IsActive)
                                 {
-                                    <form asp-action="ActivatePeriod" method="post" style="margin:0"
+                                    <form asp-action="ActivatePeriod" method="post" style="margin:0" hx-boost="false"
                                           onsubmit="return confirm('Mở đợt đăng ký này?')">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="periodId" value="@p.Id" />
@@ -86,7 +86,7 @@ else
 
                                 @if (p.IsActive)
                                 {
-                                    <form asp-action="ClosePeriod" method="post" style="margin:0"
+                                    <form asp-action="ClosePeriod" method="post" style="margin:0" hx-boost="false"
                                           onsubmit="return confirm('Chốt danh sách? Các đề xuất chưa duyệt sẽ bị hủy tự động.')">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="periodId" value="@p.Id" />

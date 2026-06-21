@@ -75,13 +75,13 @@
                     <td data-label="Số điện thoại">@item.PhoneNumber</td>
                     <td data-label="Thao tác">
                         <div class="d-flex gap-2 flex-wrap">
-                            <form asp-action="ApproveBooking" method="post" style="margin:0"
+                            <form asp-action="ApproveBooking" method="post" style="margin:0" hx-boost="false"
                                   onsubmit="return confirm('Xác nhận DUYỆT yêu cầu này? Các đơn trùng lịch sẽ bị từ chối.');">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@item.BookingId" />
                                 <button type="submit" class="btn-act btn-act-success">Duyệt</button>
                             </form>
-                            <form asp-action="RejectBooking" method="post" style="margin:0"
+                            <form asp-action="RejectBooking" method="post" style="margin:0" hx-boost="false"
                                   onsubmit="return confirm('Xác nhận TỪ CHỐI yêu cầu này?');">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@item.BookingId" />

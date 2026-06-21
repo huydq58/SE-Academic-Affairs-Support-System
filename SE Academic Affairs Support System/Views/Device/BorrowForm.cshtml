@@ -40,7 +40,7 @@
 
     @await Html.PartialAsync("_Alerts")
 
-    <form asp-action="BorrowForm" asp-controller="Device" method="post" novalidate>
+    <form asp-action="BorrowForm" asp-controller="Device" method="post" novalidate hx-boost="false">
         @Html.AntiForgeryToken()
 
         <!-- Device selection -->
@@ -66,8 +66,8 @@
                 else
                 {
                     <div>
-                        <label class="form-label">Thiết bị <span class="text-danger">*</span></label>
-                        <select name="DeviceId" class="form-select" required>
+                        <label class="form-label" for="DeviceId">Thiết bị <span class="text-danger">*</span></label>
+                        <select name="DeviceId" id="DeviceId" class="form-select" required>
                             <option value="">-- Chọn thiết bị muốn mượn --</option>
                             @foreach (var dev in availableDevices)
                             {

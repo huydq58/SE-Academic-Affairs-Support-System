@@ -37,7 +37,7 @@
         </div>
     </div>
 
-    <form asp-action="Edit" asp-controller="Device" asp-route-id="@Model.DeviceId" method="post" novalidate>
+    <form asp-action="Edit" asp-controller="Device" asp-route-id="@Model.DeviceId" method="post" novalidate hx-boost="false">
         @Html.AntiForgeryToken()
 
         <div class="dv-section">
@@ -73,7 +73,7 @@
 
                 <div class="row g-3">
                     <div class="col-12 col-sm-6">
-                        <label class="form-label">Trạng thái</label>
+                        <label class="form-label" for="Status">Trạng thái</label>
                         <select asp-for="Status" class="form-select">
                             <option value="Available">Sẵn sàng</option>
                             <option value="Borrowing">Đang mượn</option>
@@ -81,7 +81,7 @@
                         </select>
                     </div>
                     <div class="col-12 col-sm-6">
-                        <label class="form-label">Tình trạng</label>
+                        <label class="form-label" for="Condition">Tình trạng</label>
                         <select asp-for="Condition" class="form-select">
                             <option value="Good">Tốt</option>
                             <option value="Broken">Hỏng</option>

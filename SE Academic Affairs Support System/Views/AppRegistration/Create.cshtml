@@ -126,7 +126,7 @@
         <p>Điền đầy đủ thông tin bên dưới để gửi yêu cầu xét duyệt ứng dụng lên ban học vụ</p>
     </div>
 
-    <form asp-action="Submit" asp-controller="AppRegistration" method="post" novalidate>
+    <form asp-action="Submit" asp-controller="AppRegistration" method="post" novalidate hx-boost="false">
         @Html.AntiForgeryToken()
 
         <div class="ar-section">

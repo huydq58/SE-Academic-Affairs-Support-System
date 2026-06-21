@@ -87,7 +87,7 @@ else
                     }
                     @if (reg.CanCancel)
                     {
-                        <form asp-action="Cancel" method="post" style="margin:0">
+                        <form asp-action="Cancel" method="post" style="margin:0" hx-boost="false">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="registrationId" value="@reg.RegistrationId" />
                             <button type="submit" class="btn-cancel"

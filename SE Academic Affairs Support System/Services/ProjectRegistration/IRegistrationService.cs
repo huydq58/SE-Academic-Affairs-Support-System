@@ -7,6 +7,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
     {
         // Period
         Task<RegistrationPeriod?> GetActivePeriodAsync();
+        Task<RegistrationPeriod?> GetActivePeriodForStudentAsync(int studentProfileId);
         Task<List<RegistrationPeriod>> GetAllPeriodsAsync();
         Task CreatePeriodAsync(PeriodFormViewModel vm);
         Task UpdatePeriodAsync(PeriodFormViewModel vm);

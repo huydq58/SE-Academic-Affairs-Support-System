@@ -129,7 +129,7 @@
             <i class="bi bi-star-fill me-2"></i>@(isUpdate ? "Cập nhật điểm" : "Nhập điểm")
         </div>
         <div class="dv-section-body">
-            <form asp-action="Grade" method="post">
+            <form asp-action="Grade" method="post" hx-boost="false">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="periodId" value="@Model.PeriodId" />
                 <input type="hidden" name="sheetId" value="@Model.SheetId" />
