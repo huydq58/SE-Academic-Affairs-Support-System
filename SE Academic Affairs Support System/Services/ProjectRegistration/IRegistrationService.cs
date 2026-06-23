@@ -7,6 +7,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
     {
         // Period
         Task<RegistrationPeriod?> GetActivePeriodAsync();
+        Task<List<RegistrationPeriod>> GetActivePeriodsAsync();
         Task<RegistrationPeriod?> GetActivePeriodForStudentAsync(int studentProfileId);
         Task<List<RegistrationPeriod>> GetAllPeriodsAsync();
         Task CreatePeriodAsync(PeriodFormViewModel vm);
@@ -15,7 +16,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
         Task ClosePeriodAndAutoRejectPendingAsync(int periodId);
 
         // Topics (Lecturer)
-        Task<List<TopicManageRow>> GetLecturerTopicsAsync(int lecturerProfileId);
+        Task<List<TopicManageRow>> GetLecturerTopicsAsync(int lecturerProfileId, int? periodId = null);
         Task CreateTopicAsync(CreateTopicViewModel vm, int lecturerProfileId);
         Task DeleteTopicAsync(int topicId, int lecturerProfileId);
 

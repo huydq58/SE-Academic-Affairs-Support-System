@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SE_Academic_Affairs_Support_System.Data;
+using SE_Academic_Affairs_Support_System.Helper;
 using SE_Academic_Affairs_Support_System.Models;
+using SE_Academic_Affairs_Support_System.Services.Email;
 using SE_Academic_Affairs_Support_System.Services.NotificationSevices;
 using SE_Academic_Affairs_Support_System.ViewModels;
 
@@ -10,17 +12,34 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
     {
         private readonly AppDbContext _db;
         private readonly INotificationService _notif;
+        private readonly GoogleSheetsService _sheets;
+        private readonly IEmailService _email;
+        private readonly ILogger<RegistrationService> _logger;
 
-        public RegistrationService(AppDbContext db, INotificationService notif)
+        public RegistrationService(
+            AppDbContext db,
+            INotificationService notif,
+            GoogleSheetsService sheets,
+            IEmailService email,
+            ILogger<RegistrationService> logger)
         {
             _db = db;
             _notif = notif;
+            _sheets = sheets;
+            _email = email;
+            _logger = logger;
         }
 
         // ── Periods ───────────────────────────────────────────────────────────
         public async Task<RegistrationPeriod?> GetActivePeriodAsync()
             => await _db.RegistrationPeriods
                 .FirstOrDefaultAsync(p => p.IsActive && p.StartDate <= DateTime.UtcNow && p.EndDate >= DateTime.UtcNow);
+
+        public async Task<List<RegistrationPeriod>> GetActivePeriodsAsync()
+            => await _db.RegistrationPeriods
+                .Where(p => p.IsActive && p.StartDate <= DateTime.UtcNow && p.EndDate >= DateTime.UtcNow)
+                .OrderByDescending(p => p.EndDate)
+                .ToListAsync();
 
         // Trả về đợt đang mở mà sinh viên được phép tham gia
         public async Task<RegistrationPeriod?> GetActivePeriodForStudentAsync(int studentProfileId)
@@ -102,26 +121,45 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
         }
 
         // ── Lecturer Topics ───────────────────────────────────────────────────
-        public async Task<List<TopicManageRow>> GetLecturerTopicsAsync(int lecturerProfileId)
+        public async Task<List<TopicManageRow>> GetLecturerTopicsAsync(int lecturerProfileId, int? periodId = null)
         {
-            return await _db.Topics
+            var topics = await _db.Topics
                 .Where(t => t.LecturerProfileId == lecturerProfileId)
+                .Where(t => !periodId.HasValue || t.RegistrationPeriodId == periodId.Value)
                 .Include(t => t.RegistrationPeriod)
-                .Select(t => new TopicManageRow
+                .Include(t => t.Registrations)
+                    .ThenInclude(r => r.Student)
+                        .ThenInclude(s => s.User)
+                .ToListAsync();
+
+            return topics.Select(t =>
+            {
+                var approved = t.Registrations
+                    .Where(r => r.Status == RegistrationStatus.APPROVED)
+                    .OrderBy(r => r.Id)
+                    .ToList();
+                return new TopicManageRow
                 {
                     TopicId = t.Id,
+                    PeriodId = t.RegistrationPeriodId,
                     Title = t.Title,
                     MaxStudents = t.MaxStudents,
-                    RegisteredCount = t.Registrations.Count(r => r.Status == RegistrationStatus.APPROVED),
+                    RegisteredCount = approved.Count,
                     Status = t.Status,
-                    PeriodName = t.RegistrationPeriod.Name
-                })
-                .ToListAsync();
+                    PeriodName = t.RegistrationPeriod.Name,
+                    StudentName1 = approved.ElementAtOrDefault(0)?.Student?.User?.FullName,
+                    StudentName2 = approved.ElementAtOrDefault(1)?.Student?.User?.FullName
+                };
+            }).ToList();
         }
 
         public async Task CreateTopicAsync(CreateTopicViewModel vm, int lecturerProfileId)
         {
-            _db.Topics.Add(new Topic
+            var lecturer = await _db.LecturerProfiles
+                .Include(l => l.User)
+                .FirstOrDefaultAsync(l => l.Id == lecturerProfileId);
+
+            var topic = new Topic
             {
                 Title = vm.Title,
                 Description = vm.Description,
@@ -130,7 +168,25 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                 MaxStudents = vm.MaxStudents,
                 Status = TopicStatus.Open,
                 LecturerProfileId = lecturerProfileId,
-                RegistrationPeriodId = vm.RegistrationPeriodId
+                RegistrationPeriodId = vm.RegistrationPeriodId,
+                Note = vm.Note
+            };
+            _db.Topics.Add(topic);
+            await _db.SaveChangesAsync();
+
+            // Outbox: queue topic creation to Google Sheets
+            _db.TopicSyncRecords.Add(new TopicSyncRecord
+            {
+                TopicId = topic.Id,
+                PeriodId = vm.RegistrationPeriodId,
+                TopicTitle = vm.Title,
+                TopicDescription = vm.Description,
+                Technologies = vm.Technologies,
+                Requirements = vm.Requirements,
+                MaxStudents = vm.MaxStudents,
+                LecturerName = lecturer?.User?.FullName ?? string.Empty,
+                LecturerCode = lecturer?.LecturerCode ?? string.Empty,
+                Note = vm.Note
             });
             await _db.SaveChangesAsync();
         }
@@ -155,6 +211,59 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             var period = await GetActivePeriodForStudentAsync(studentProfileId);
             if (period == null) return null;
 
+            // IDs của đề tài SV đã đăng ký trong đợt (để đánh dấu "Đã đăng ký")
+            var registeredTopicIds = await _db.Registrations
+                .Where(r => r.StudentProfileId == studentProfileId
+                         && r.Status != RegistrationStatus.REJECTED
+                         && r.RegistrationPeriodId == period.Id)
+                .Select(r => r.TopicId)
+                .ToListAsync();
+
+            // Ưu tiên load từ Google Sheet nếu đợt đã được gắn sheet link
+            var sheetId = GoogleSheetHelper.ExtractSheetId(period.GoogleSheetLink);
+            if (sheetId != null)
+            {
+                List<TopicSheet> sheetTopics;
+                try { sheetTopics = await _sheets.GetTopicsAsync(sheetId); }
+                catch { sheetTopics = []; }
+
+                // Chỉ lấy đề tài còn chỗ (Registered < MaxSlot)
+                var available = sheetTopics.Where(t => t.Registered < t.MaxSlot).ToList();
+
+                if (!string.IsNullOrWhiteSpace(keyword))
+                {
+                    var kw = keyword.Trim();
+                    available = available.Where(t =>
+                        t.TopicName.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
+                        t.Description.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
+                        t.LecturerInfo.Contains(kw, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                var cards = available.Select(t => new TopicCardViewModel
+                {
+                    TopicId = t.TopicId,
+                    Title = t.TopicName,
+                    Description = t.Description,
+                    Requirements = t.Requirements,
+                    Technologies = t.Technologies,
+                    LecturerName = t.Lecturer,
+                    LecturerProfileId = 0,          // không dùng cho filter khi có sheet
+                    MaxStudents = t.MaxSlot,
+                    RegisteredCount = t.Registered,
+                    AlreadyRegistered = registeredTopicIds.Contains(t.TopicId)
+                }).ToList();
+
+                return new TopicListViewModel
+                {
+                    Period = period,
+                    Topics = cards,
+                    SearchKeyword = keyword,
+                    FilterLecturerId = null,
+                    Lecturers = []
+                };
+            }
+
+            // Fallback: load từ DB
             var query = _db.Topics
                 .Where(t => t.RegistrationPeriodId == period.Id && t.Status == TopicStatus.Open)
                 .Include(t => t.Lecturer).ThenInclude(l => l.User)
@@ -167,16 +276,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             if (lecturerId.HasValue)
                 query = query.Where(t => t.LecturerProfileId == lecturerId.Value);
 
-            var registeredTopicIds = await _db.Registrations
-                .Where(r => r.StudentProfileId == studentProfileId
-                         && r.Status != RegistrationStatus.REJECTED
-                         && r.RegistrationPeriodId == period.Id)
-                .Select(r => r.TopicId)
-                .ToListAsync();
-
-            var topics = await query.ToListAsync();
-
-            var cards = await query
+            var dbCards = await query
                 .Select(t => new TopicCardViewModel
                 {
                     TopicId = t.Id,
@@ -192,6 +292,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                     AlreadyRegistered = registeredTopicIds.Contains(t.Id)
                 })
                 .ToListAsync();
+
             var lecturers = await _db.LecturerProfiles
                 .Include(l => l.User)
                 .Select(l => new LecturerSelectItem
@@ -204,7 +305,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             return new TopicListViewModel
             {
                 Period = period,
-                Topics = cards,
+                Topics = dbCards,
                 SearchKeyword = keyword,
                 FilterLecturerId = lecturerId,
                 Lecturers = lecturers
@@ -219,50 +320,87 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             if (period == null)
                 return (false, "Hiện tại không có đợt đăng ký nào đang mở hoặc bạn không có trong danh sách được phép đăng ký.");
 
-            var topic = await _db.Topics
-                .Include(t => t.Registrations)
-                .FirstOrDefaultAsync(t => t.Id == topicId);
-
-            if (topic == null || topic.Status != TopicStatus.Open)
-                return (false, "Đề tài không tồn tại hoặc đã đóng đăng ký.");
-
-            // Check slot
-            int approvedCount = topic.Registrations.Count(r => r.Status == RegistrationStatus.APPROVED);
-            if (approvedCount >= topic.MaxStudents)
-                return (false, "Đề tài đã hết chỗ.");
-
-            // Check duplicate
-            bool alreadyRegistered = await _db.Registrations
-                .AnyAsync(r => r.StudentProfileId == studentProfileId
-                            && r.TopicId == topicId
-                            && r.Status != RegistrationStatus.REJECTED);
-            if (alreadyRegistered)
-                return (false, "Bạn đã đăng ký đề tài này rồi.");
-
-            // Check if student already has an approved registration this period
-            bool hasApproved = await _db.Registrations
-                .AnyAsync(r => r.StudentProfileId == studentProfileId
-                            && r.RegistrationPeriodId == period.Id
-                            && r.Status == RegistrationStatus.APPROVED);
-            if (hasApproved)
-                return (false, "Bạn đã có đề tài được duyệt trong đợt này.");
-
-            _db.Registrations.Add(new Registration
+            // Serializable transaction để ngăn race condition (hai SV đăng ký cùng lúc)
+            using var tx = await _db.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable);
+            try
             {
-                StudentProfileId = studentProfileId,
-                TopicId = topicId,
-                LecturerProfileId = topic.LecturerProfileId,
-                RegistrationPeriodId = period.Id,
-                Status = RegistrationStatus.APPROVED, // auto-approve for existing topic
-                UpdatedAt = DateTime.UtcNow
-            });
+                var topic = await _db.Topics
+                    .Include(t => t.Registrations)
+                    .FirstOrDefaultAsync(t => t.Id == topicId);
 
-            // Close topic if now full
-            if (approvedCount + 1 >= topic.MaxStudents)
-                topic.Status = TopicStatus.Closed;
+                if (topic == null || topic.Status != TopicStatus.Open)
+                    return (false, "Đề tài không tồn tại hoặc đã đóng đăng ký.");
 
-            await _db.SaveChangesAsync();
-            return (true, "Đăng ký thành công!");
+                // Check slot
+                int approvedCount = topic.Registrations.Count(r => r.Status == RegistrationStatus.APPROVED);
+                if (approvedCount >= topic.MaxStudents)
+                    return (false, "Đề tài đã hết chỗ.");
+
+                // Check duplicate
+                bool alreadyRegistered = await _db.Registrations
+                    .AnyAsync(r => r.StudentProfileId == studentProfileId
+                                && r.TopicId == topicId
+                                && r.Status != RegistrationStatus.REJECTED);
+                if (alreadyRegistered)
+                    return (false, "Bạn đã đăng ký đề tài này rồi.");
+
+                // Check if student already has an approved registration this period
+                bool hasApproved = await _db.Registrations
+                    .AnyAsync(r => r.StudentProfileId == studentProfileId
+                                && r.RegistrationPeriodId == period.Id
+                                && r.Status == RegistrationStatus.APPROVED);
+                if (hasApproved)
+                    return (false, "Bạn đã có đề tài được duyệt trong đợt này.");
+
+                var student = await _db.StudentProfiles
+                    .Include(s => s.User)
+                    .FirstOrDefaultAsync(s => s.Id == studentProfileId);
+
+                _db.Registrations.Add(new Registration
+                {
+                    StudentProfileId = studentProfileId,
+                    TopicId = topicId,
+                    LecturerProfileId = topic.LecturerProfileId,
+                    RegistrationPeriodId = period.Id,
+                    Status = RegistrationStatus.APPROVED,
+                    UpdatedAt = DateTime.UtcNow
+                });
+
+                // Close topic if now full
+                if (approvedCount + 1 >= topic.MaxStudents)
+                    topic.Status = TopicStatus.Closed;
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                // Cập nhật sheet nếu topic đã được sync (có SheetRowIndex)
+                if (topic.SheetRowIndex.HasValue)
+                {
+                    var sheetId = GoogleSheetHelper.ExtractSheetId(period.GoogleSheetLink);
+                    if (sheetId != null && student != null)
+                    {
+                        try
+                        {
+                            await _sheets.RegisterAsync(new RegisterTopicRequest
+                            {
+                                SheetId = sheetId,
+                                RowIndex = topic.SheetRowIndex.Value,
+                                StudentId = student.StudentCode,
+                                StudentName = student.User.FullName
+                            });
+                        }
+                        catch { /* sheet update không ảnh hưởng nghiệp vụ DB */ }
+                    }
+                }
+
+                return (true, "Đăng ký thành công!");
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
         }
 
         // ── Flow B: Submit Proposal ───────────────────────────────────────────
@@ -318,13 +456,39 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             _db.Registrations.Add(registration);
             await _db.SaveChangesAsync();
 
-            // Notify lecturer
+            // Notify lecturer (in-app)
             var lecturer = await _db.LecturerProfiles.Include(l => l.User)
                 .FirstOrDefaultAsync(l => l.Id == vm.LecturerProfileId);
             if (lecturer != null)
                 await _notif.SendAsync(lecturer.UserId,
                     $"Sinh viên vừa gửi đề xuất đề tài mới chờ bạn duyệt.",
                     $"/Lecturer/Registration/Review/{registration.Id}");
+
+            // Email lecturer
+            var student = await _db.StudentProfiles.Include(s => s.User)
+                .FirstOrDefaultAsync(s => s.Id == studentProfileId);
+            if (lecturer?.User?.Email != null && student != null)
+            {
+                try
+                {
+                    await _email.SendTopicProposalToLecturerAsync(
+                        toEmail: lecturer.User.Email,
+                        lecturerName: lecturer.User.FullName ?? lecturer.LecturerCode,
+                        studentName: student.User.FullName ?? student.StudentCode,
+                        studentCode: student.StudentCode,
+                        topicTitle: vm.Title,
+                        description: vm.Description,
+                        reviewUrl: $"/Lecturer/Registration/Review/{registration.Id}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Không thể gửi email thông báo cho GV {LecturerId}", lecturer.Id);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Giảng viên {LecturerId} không có email — bỏ qua gửi email thông báo đề xuất.", vm.LecturerProfileId);
+            }
 
             return (true, "Đề xuất của bạn đã được gửi thành công. Vui lòng chờ giảng viên xem xét.");
         }
@@ -356,13 +520,37 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
 
             await _db.SaveChangesAsync();
 
-            // Notify lecturer
+            // Notify lecturer (in-app + email)
             var lecturer = await _db.LecturerProfiles.Include(l => l.User)
                 .FirstOrDefaultAsync(l => l.Id == vm.LecturerProfileId);
             if (lecturer != null)
                 await _notif.SendAsync(lecturer.UserId,
                     $"Sinh viên đã gửi lại đề xuất sau khi chỉnh sửa (lần {reg.RevisionCount}).",
                     $"/Lecturer/Registration/Review/{reg.Id}");
+
+            if (lecturer?.User?.Email != null)
+            {
+                var student2 = await _db.StudentProfiles.Include(s => s.User)
+                    .FirstOrDefaultAsync(s => s.Id == studentProfileId);
+                if (student2 != null)
+                {
+                    try
+                    {
+                        await _email.SendTopicProposalToLecturerAsync(
+                            toEmail: lecturer.User.Email,
+                            lecturerName: lecturer.User.FullName ?? lecturer.LecturerCode,
+                            studentName: student2.User.FullName ?? student2.StudentCode,
+                            studentCode: student2.StudentCode,
+                            topicTitle: vm.Title,
+                            description: vm.Description,
+                            reviewUrl: $"/Lecturer/Registration/Review/{reg.Id}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Không thể gửi email thông báo chỉnh sửa cho GV {LecturerId}", lecturer.Id);
+                    }
+                }
+            }
 
             return (true, "Đề xuất đã được cập nhật và gửi lại thành công.");
         }
@@ -533,11 +721,34 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                 case "approve":
                     reg.Status = RegistrationStatus.APPROVED;
                     reg.LecturerNote = vm.Note;
-                    reg.Topic.Status = TopicStatus.Closed; 
+                    reg.Topic.Status = TopicStatus.Closed;
+
+                    // Đồng bộ đề tài được duyệt lên sheet với ghi chú mã GV + thời gian
+                    {
+                        var lec = await _db.LecturerProfiles
+                            .Include(l => l.User)
+                            .FirstOrDefaultAsync(l => l.Id == lecturerProfileId);
+                        var approveNote = $"Duyệt bởi {lec?.LecturerCode ?? "GV"} lúc {DateTime.Now:dd/MM/yyyy HH:mm}";
+
+                        _db.TopicSyncRecords.Add(new TopicSyncRecord
+                        {
+                            TopicId = reg.TopicId,
+                            PeriodId = reg.RegistrationPeriodId,
+                            TopicTitle = reg.ProposedTitle ?? reg.Topic.Title,
+                            TopicDescription = reg.ProposedDescription ?? reg.Topic.Description,
+                            Technologies = reg.ProposedTechnologies,
+                            MaxStudents = 1,
+                            LecturerName = lec?.User?.FullName ?? string.Empty,
+                            LecturerCode = lec?.LecturerCode ?? string.Empty,
+                            Note = approveNote
+                        });
+                    }
 
                     await _notif.SendAsync(reg.Student.UserId,
                         "Đề xuất đề tài của bạn đã được DUYỆT! Chúc mừng.",
                         "/Student/Registration/MyRegistrations");
+
+                    await TrySendDecisionEmailAsync(reg, TopicDecisionType.Approve, vm.Note, "/Student/Registration/MyRegistrations");
                     break;
 
                 case "revise":
@@ -550,6 +761,8 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                     await _notif.SendAsync(reg.Student.UserId,
                         $"Giảng viên yêu cầu bạn chỉnh sửa đề xuất: {vm.Note}",
                         $"/Student/Registration/ReviseProposal/{reg.Id}");
+
+                    await TrySendDecisionEmailAsync(reg, TopicDecisionType.Revise, vm.Note, $"/Student/Registration/ReviseProposal/{reg.Id}");
                     break;
 
                 case "reject":
@@ -560,6 +773,8 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                     await _notif.SendAsync(reg.Student.UserId,
                         "Đề xuất đề tài của bạn đã bị từ chối. Vui lòng chọn đề tài khác hoặc đề xuất lại.",
                         "/Student/Registration/TopicList");
+
+                    await TrySendDecisionEmailAsync(reg, TopicDecisionType.Reject, vm.Note, "/Student/Registration/TopicList");
                     break;
 
                 default:
@@ -569,6 +784,33 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             reg.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
             return (true, "Đã xử lý thành công.");
+        }
+
+        // Helper: gửi email quyết định cho sinh viên, không throw nếu thất bại
+        private async Task TrySendDecisionEmailAsync(
+            Registration reg, TopicDecisionType decision, string? note, string actionPath)
+        {
+            var studentEmail = reg.Student?.User?.Email;
+            if (string.IsNullOrEmpty(studentEmail))
+            {
+                _logger.LogWarning("Sinh viên {StudentId} không có email — bỏ qua gửi email quyết định.", reg.StudentProfileId);
+                return;
+            }
+
+            try
+            {
+                await _email.SendTopicDecisionToStudentAsync(
+                    toEmail: studentEmail,
+                    studentName: reg.Student!.User.FullName ?? studentEmail,
+                    topicTitle: reg.ProposedTitle ?? reg.Topic?.Title ?? string.Empty,
+                    decision: decision,
+                    reason: note,
+                    actionUrl: actionPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không thể gửi email quyết định cho SV {StudentId}", reg.StudentProfileId);
+            }
         }
 
         // ── Admin Export ──────────────────────────────────────────────────────

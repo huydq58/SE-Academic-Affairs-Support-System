@@ -1,21 +1,22 @@
 ﻿namespace SE_Academic_Affairs_Support_System.Models
 {
-    // Models/Topic.cs
+    // Models/TopicSheet.cs — ánh xạ DanhSachDeTai sheet
     public class TopicSheet
     {
         public int RowIndex { get; set; }
-        public string Stt { get; set; } = "";
+        public int Stt { get; set; }           // STT (số nguyên)
+        public int TopicId { get; set; }       // DB Topic.Id
         public string TopicName { get; set; } = "";
-        public string Lecturer { get; set; } = "";
-        public string LecturerInfo { get; set; } = "";
-        public string Mssv1 { get; set; } = "";
-        public string Student1 { get; set; } = "";
-        public string Mssv2 { get; set; } = "";
-        public string Student2 { get; set; } = "";
-        public string EducationType { get; set; } = "";
-        public string Note { get; set; } = "";
-        public int Registered { get; set; }
+        public string Description { get; set; } = "";
+        public string Requirements { get; set; } = "";
+        public string Technologies { get; set; } = "";
         public int MaxSlot { get; set; }
+        public string Lecturer { get; set; } = "";
+        public string LecturerInfo { get; set; } = ""; // LecturerCode
+        public string Mssv1 { get; set; } = "";   // MSSV sinh viên đã đăng ký
+        public string Student1 { get; set; } = ""; // Tên sinh viên đã đăng ký
+        public string Note { get; set; } = "";     // Ghi chú (duyệt, hướng dẫn...)
+        public int Registered { get; set; }        // Số SV đã đăng ký (tính từ Mssv1)
     }
 
     // Models/RegisterTopicRequest.cs
@@ -36,6 +37,22 @@
     {
         public bool Success { get; set; }
         public string Message { get; set; } = "";
+        public int? RowIndex { get; set; }
+    }
+
+    // Models/AddTopicRequest.cs
+    public class AddTopicRequest
+    {
+        public string SheetId { get; set; } = string.Empty;
+        public int TopicId { get; set; }
+        public string TopicTitle { get; set; } = string.Empty;
+        public string TopicDescription { get; set; } = string.Empty;
+        public string? Technologies { get; set; }
+        public string? Requirements { get; set; }
+        public int MaxStudents { get; set; }
+        public string LecturerName { get; set; } = string.Empty;
+        public string LecturerCode { get; set; } = string.Empty;
+        public string? Note { get; set; }
     }
 
     // ViewModels/TopicListViewModel.cs

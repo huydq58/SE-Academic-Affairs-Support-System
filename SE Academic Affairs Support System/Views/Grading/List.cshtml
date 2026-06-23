@@ -6,7 +6,6 @@
     ViewData["Title"] = "Chấm điểm — " + Model.PeriodName;
     int gradedCount   = Model.Rows.Count(r => r.Score.HasValue);
     int ungradedCount = Model.Rows.Count(r => !r.Score.HasValue);
-    int pendingSync   = Model.Rows.Count(r => r.SyncStatus == SyncStatus.Pending || r.SyncStatus == SyncStatus.Failed);
 }
 
 <style>
@@ -20,10 +19,6 @@
     .score-mid  { background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe; }
     .score-low  { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
 
-    .sync-badge   { display:inline-block; font-size:11px; font-weight:600; border-radius:20px; padding:2px 8px; }
-    .sync-synced  { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
-    .sync-pending { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
-    .sync-failed  { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
 </style>
 
 @* Breadcrumb *@
@@ -48,12 +43,6 @@
         @if (ungradedCount > 0)
         {
             <span class="sb sb-amber">Chưa chấm: @ungradedCount</span>
-        }
-        @if (pendingSync > 0)
-        {
-            <span class="sb sb-gray" title="Sẽ đồng bộ lên Google Sheet trong 1 phút">
-                <i class="bi bi-arrow-repeat me-1"></i>Chờ sync: @pendingSync
-            </span>
         }
     </div>
 </div>
@@ -119,27 +108,6 @@ else
                     var r = Model.Rows[i];
                     bool graded = r.Score.HasValue;
                     string rowCls = graded ? "" : "row-ungraded";
-                    string syncCls = r.SyncStatus switch
-                    {
-                        SyncStatus.Synced  => "sync-synced",
-                        SyncStatus.Pending => "sync-pending",
-                        SyncStatus.Failed  => "sync-failed",
-                        _                  => ""
-                    };
-                    string syncIcon = r.SyncStatus switch
-                    {
-                        SyncStatus.Synced  => "bi-check-lg",
-                        SyncStatus.Pending => "bi-clock",
-                        SyncStatus.Failed  => "bi-exclamation-triangle",
-                        _                  => ""
-                    };
-                    string syncLabel = r.SyncStatus switch
-                    {
-                        SyncStatus.Synced  => "Đã sync",
-                        SyncStatus.Pending => "Chờ sync",
-                        SyncStatus.Failed  => "Lỗi sync",
-                        _                  => ""
-                    };
 
                     <tr class="@rowCls">
                         <td data-label="STT" class="text-center" style="color:#9ca3af;">@(i + 1)</td>
@@ -160,14 +128,6 @@ else
                                 double sv = r.Score!.Value;
                                 string scoreCls = sv >= 8 ? "score-high" : sv >= 5 ? "score-mid" : "score-low";
                                 <span class="score-val @scoreCls">@sv.ToString("0.#")</span>
-                                @if (r.SyncStatus.HasValue && syncCls.Length > 0)
-                                {
-                                    <div class="mt-1">
-                                        <span class="sync-badge @syncCls">
-                                            <i class="bi @syncIcon me-1"></i>@syncLabel
-                                        </span>
-                                    </div>
-                                }
                             }
                             else
                             {

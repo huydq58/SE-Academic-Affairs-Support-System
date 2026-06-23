@@ -25,6 +25,19 @@ public class GradingController : Controller
         _userManager = userManager;
     }
 
+    // Lấy danh sách dòng đề tài có SV từ DanhSachDeTai, map sang GradingSheetRow
+    private static List<GradingSheetRow> MapTopicsToGradingRows(List<TopicSheet> topics)
+        => topics
+            .Where(t => !string.IsNullOrWhiteSpace(t.Mssv1))
+            .Select(t => new GradingSheetRow
+            {
+                RowIndex    = t.RowIndex,
+                Mssv        = t.Mssv1,
+                StudentName = t.Student1,
+                TopicName   = t.TopicName,
+                Lecturer    = t.Lecturer
+            }).ToList();
+
     public async Task<IActionResult> List(int periodId, string? search)
     {
         var period = await _db.RegistrationPeriods.FindAsync(periodId);
@@ -34,33 +47,32 @@ public class GradingController : Controller
         if (sheetId == null)
             return BadRequest("Đợt này chưa có link Google Sheet hợp lệ.");
 
-        // Lấy danh sách từ sheet để hiển thị (bao gồm SV chưa có trong SQL)
-        var sheetRows = await _sheets.GetGradingRowsAsync(sheetId);
+        // Load từ DanhSachDeTai — lọc các dòng đã có SV đăng ký
+        var sheetTopics = await _sheets.GetTopicsAsync(sheetId);
+        var sheetRows   = MapTopicsToGradingRows(sheetTopics);
 
-        // Lấy điểm đã lưu trong SQL — ưu tiên hiển thị
+        // Merge với điểm đã lưu trong SQL
         var gradeRecords = await _db.GradeRecords
             .Where(g => g.PeriodId == periodId)
             .ToListAsync();
 
-        // Merge: nếu SQL đã có điểm thì dùng SQL, còn lại dùng sheet
         var rows = sheetRows.Select(s =>
         {
             var sql = gradeRecords.FirstOrDefault(g => g.Mssv == s.Mssv);
             return new GradingSheetRow
             {
-                RowIndex = s.RowIndex,
-                Mssv = s.Mssv,
+                RowIndex    = s.RowIndex,
+                Mssv        = s.Mssv,
                 StudentName = s.StudentName,
-                TopicName = s.TopicName,
-                Lecturer = s.Lecturer,
-                Score = sql?.Score != null ? (double?)((double)sql.Score) : s.Score,
-                GradedBy = sql?.GradedBy ?? s.GradedBy,
-                GradedAt = sql?.GradedAt.ToString("dd/MM/yyyy HH:mm") ?? s.GradedAt,
-                SyncStatus = sql?.SyncStatus   // null nếu chưa có trong SQL
+                TopicName   = s.TopicName,
+                Lecturer    = s.Lecturer,
+                Score       = sql?.Score != null ? (double?)((double)sql.Score) : null,
+                GradedBy    = sql?.GradedBy ?? string.Empty,
+                GradedAt    = sql?.GradedAt.ToString("dd/MM/yyyy HH:mm") ?? string.Empty,
+                SyncStatus  = sql?.SyncStatus
             };
         }).ToList();
 
-        // Tìm kiếm
         if (!string.IsNullOrWhiteSpace(search))
         {
             var q = search.Trim().ToLower();
@@ -73,11 +85,11 @@ public class GradingController : Controller
 
         var vm = new GradingListViewModel
         {
-            PeriodName = period.Name,
-            CourseName = period.CourseName,
-            SheetId = sheetId,
-            PeriodId = periodId,
-            Rows = rows,
+            PeriodName  = period.Name,
+            CourseName  = period.CourseName,
+            SheetId     = sheetId,
+            PeriodId    = periodId,
+            Rows        = rows,
             SearchQuery = search ?? string.Empty
         };
 
@@ -87,9 +99,19 @@ public class GradingController : Controller
     // ─── GET: /Grading/Grade?periodId=5&sheetId=xxx&mssv=yyy ─────────────
     public async Task<IActionResult> Grade(int periodId, string sheetId, string mssv)
     {
-        var sheetRows = await _sheets.GetGradingRowsAsync(sheetId);
-        var row = sheetRows.FirstOrDefault(r => r.Mssv == mssv);
-        if (row == null) return NotFound();
+        // Tìm dòng SV trong DanhSachDeTai
+        var sheetTopics = await _sheets.GetTopicsAsync(sheetId);
+        var topicRow    = sheetTopics.FirstOrDefault(t => t.Mssv1 == mssv);
+        if (topicRow == null) return NotFound();
+
+        var row = new GradingSheetRow
+        {
+            RowIndex    = topicRow.RowIndex,
+            Mssv        = topicRow.Mssv1,
+            StudentName = topicRow.Student1,
+            TopicName   = topicRow.TopicName,
+            Lecturer    = topicRow.Lecturer
+        };
 
         // Nếu SQL đã có điểm thì hiển thị điểm SQL
         var existing = await _db.GradeRecords
@@ -97,17 +119,18 @@ public class GradingController : Controller
 
         if (existing != null)
         {
-            row.Score = (float)existing.Score;
-            row.GradedBy = existing.GradedBy;
-            row.GradedAt = existing.GradedAt.ToString("dd/MM/yyyy HH:mm");
+            row.Score      = (double)existing.Score;
+            row.GradedBy   = existing.GradedBy;
+            row.GradedAt   = existing.GradedAt.ToString("dd/MM/yyyy HH:mm");
+            row.SyncStatus = existing.SyncStatus;
         }
 
         var vm = new GradeFormViewModel
         {
-            SheetId = sheetId,
+            SheetId  = sheetId,
             PeriodId = periodId,
-            Row = row,
-            Score = (decimal)(row.Score ?? 0)
+            Row      = row,
+            Score    = (decimal)(row.Score ?? 0)
         };
 
         return View(vm);
@@ -126,22 +149,18 @@ public class GradingController : Controller
             ModelState.AddModelError("Score", "Điểm phải trong khoảng 0 – 10.");
 
         if (!ModelState.IsValid)
-        {
-            // Reload form nếu lỗi validation
-            return RedirectToAction(nameof(Grade),
-                new { periodId, sheetId, mssv });
-        }
+            return RedirectToAction(nameof(Grade), new { periodId, sheetId, mssv });
 
         var period = await _db.RegistrationPeriods.FindAsync(periodId);
         if (period == null) return NotFound();
 
-        var user = await _userManager.GetUserAsync(User);
+        var user     = await _userManager.GetUserAsync(User);
         var gradedBy = user?.FullName ?? user?.UserName ?? "Unknown";
 
-        // Lấy thông tin SV từ sheet để lưu vào SQL
-        var sheetRows = await _sheets.GetGradingRowsAsync(sheetId);
-        var row = sheetRows.FirstOrDefault(r => r.Mssv == mssv);
-        if (row == null) return NotFound();
+        // Lấy thông tin SV từ DanhSachDeTai
+        var sheetTopics = await _sheets.GetTopicsAsync(sheetId);
+        var topicRow    = sheetTopics.FirstOrDefault(t => t.Mssv1 == mssv);
+        if (topicRow == null) return NotFound();
 
         // ── Upsert vào SQL ────────────────────────────────────────────────
         var existing = await _db.GradeRecords
@@ -149,34 +168,32 @@ public class GradingController : Controller
 
         if (existing == null)
         {
-            // Thêm mới
             _db.GradeRecords.Add(new GradeRecord
             {
-                PeriodId = periodId,
-                RowIndex = row.RowIndex,
-                Mssv = mssv,
-                StudentName = row.StudentName,
-                TopicName = row.TopicName,
-                Lecturer = row.Lecturer,
-                Score = score,
-                GradedBy = gradedBy,
-                GradedAt = DateTime.Now,
-                SyncStatus = SyncStatus.Pending,
+                PeriodId    = periodId,
+                RowIndex    = topicRow.RowIndex,
+                Mssv        = mssv,
+                StudentName = topicRow.Student1,
+                TopicName   = topicRow.TopicName,
+                Lecturer    = topicRow.Lecturer,
+                Score       = score,
+                GradedBy    = gradedBy,
+                GradedAt    = DateTime.Now,
+                SyncStatus  = SyncStatus.Pending,
             });
         }
         else
         {
-            // Cập nhật — đánh dấu Pending để sync lại
-            existing.Score = score;
-            existing.GradedBy = gradedBy;
-            existing.GradedAt = DateTime.Now;
+            existing.Score      = score;
+            existing.GradedBy   = gradedBy;
+            existing.GradedAt   = DateTime.Now;
             existing.SyncStatus = SyncStatus.Pending;
-            existing.SyncError = null;
+            existing.SyncError  = null;
         }
 
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = $"Đã lưu điểm {score:0.#} cho {row.StudentName}. Sẽ đồng bộ lên Google Sheet trong 1 phút.";
+        TempData["Success"] = $"Đã lưu điểm {score:0.#} cho {topicRow.Student1}. Sẽ đồng bộ lên Google Sheet trong 1 phút.";
 
         return RedirectToAction(nameof(List), new { periodId });
     }

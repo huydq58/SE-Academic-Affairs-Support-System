@@ -56,6 +56,34 @@ public class GoogleSheetsService
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
+    public async Task<ApiResponse> AddTopicAsync(AddTopicRequest req)
+    {
+        var payload = new
+        {
+            action = "addTopic",
+            sheetId = req.SheetId,
+            topicId = req.TopicId,
+            topicTitle = req.TopicTitle,
+            topicDescription = req.TopicDescription,
+            technologies = req.Technologies ?? string.Empty,
+            requirements = req.Requirements ?? string.Empty,
+            maxStudents = req.MaxStudents,
+            lecturerName = req.LecturerName,
+            lecturerCode = req.LecturerCode,
+            note = req.Note ?? string.Empty
+        };
+
+        var body = new StringContent(
+            JsonSerializer.Serialize(payload, Options()),
+            Encoding.UTF8, "application/json");
+
+        var res = await _http.PostAsync(_scriptUrl, body);
+        var responseText = await res.Content.ReadAsStringAsync();
+
+        return JsonSerializer.Deserialize<ApiResponse>(responseText, Options())
+               ?? new ApiResponse { Success = false, Message = "Lỗi không xác định" };
+    }
+
     public async Task<List<GradingSheetRow>> GetGradingRowsAsync(string sheetId)
     {
         var url = $"{_scriptUrl}?action=grading&sheetId={Uri.EscapeDataString(sheetId)}";

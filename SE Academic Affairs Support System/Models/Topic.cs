@@ -36,6 +36,12 @@ namespace SE_Academic_Affairs_Support_System.Models
         public int? ProposedByStudentId { get; set; }
         public StudentProfile? ProposedByStudent { get; set; }
 
+        [MaxLength(500)]
+        public string? Note { get; set; }
+
+        // Vị trí dòng trên sheet DanhSachDeTai (được điền sau khi sync thành công)
+        public int? SheetRowIndex { get; set; }
+
         public int RegistrationPeriodId { get; set; }
         public RegistrationPeriod RegistrationPeriod { get; set; } = null!;
 
