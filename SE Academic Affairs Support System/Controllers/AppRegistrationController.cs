@@ -18,15 +18,13 @@ namespace SE_Academic_Affairs_Support_System.Controllers
         private readonly IAppRegistrationService _service;
         private readonly AppDbContext _context;
         private readonly UserManager<User> _userManager;
-        private readonly IConfiguration _config;
-        private readonly EmailService _emailService;
-        public AppRegistrationController(IAppRegistrationService service, AppDbContext context, UserManager<User> userManager)
+        private readonly IEmailService _emailService;
+        public AppRegistrationController(IAppRegistrationService service, AppDbContext context, UserManager<User> userManager, IEmailService emailService)
         {
-            _emailService = new EmailService(_config);
-
             _service = service;
             _context = context;
             _userManager = userManager;
+            _emailService = emailService;
         }
 
         // GET: /AppRegistration

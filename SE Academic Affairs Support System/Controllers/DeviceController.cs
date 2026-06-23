@@ -11,14 +11,13 @@ namespace SE_Academic_Affairs_Support_System.Controllers
     public class DeviceController : Controller
     {
         private readonly AppDbContext _context;
-        private readonly IConfiguration _config;
-        private readonly EmailService _emailService; 
+        private readonly IEmailService _emailService;
         private readonly UserManager<User> _userManager;
-        public DeviceController(AppDbContext context, UserManager<User> userManager)
+        public DeviceController(AppDbContext context, UserManager<User> userManager, IEmailService emailService)
         {
             _context = context;
-            _emailService = new EmailService(_config);
-                        _userManager = userManager;
+            _emailService = emailService;
+            _userManager = userManager;
         }
 
 

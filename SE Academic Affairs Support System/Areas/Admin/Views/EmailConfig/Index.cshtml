@@ -1,0 +1,100 @@
+@model List<SE_Academic_Affairs_Support_System.ViewModels.EmailConfigListItemViewModel>
+@{
+    ViewData["Title"] = "Cấu hình Email";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+    <div class="rg-page-title mb-0">
+        <h2>Cấu hình Email</h2>
+        <p>Quản lý tài khoản email dùng để gửi thông báo hệ thống</p>
+    </div>
+    <a asp-area="Admin" asp-controller="EmailConfig" asp-action="Create"
+       class="btn btn-primary px-4">Thêm cấu hình</a>
+</div>
+
+<partial name="_Alerts" />
+
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <p style="font-size:16px; font-weight:600; color:#374151; margin-bottom:6px;">Chưa có cấu hình email nào.</p>
+        <p>Nhấn "Thêm cấu hình" để bắt đầu.</p>
+    </div>
+}
+else
+{
+    <div class="dt-wrap">
+        <table class="dt">
+            <thead>
+                <tr>
+                    <th>Tên hiển thị</th>
+                    <th>Email gửi</th>
+                    <th>SMTP</th>
+                    <th>Trạng thái</th>
+                    <th>Cập nhật</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td data-label="Tên hiển thị">
+                            <span class="fw-semibold" style="color:#1e3a8a;">@c.DisplayName</span>
+                        </td>
+                        <td data-label="Email gửi" style="color:#6b7280; font-size:13px;">
+                            @c.SenderEmail<br />
+                            <small>@c.SenderName</small>
+                        </td>
+                        <td data-label="SMTP" style="font-size:13px; color:#6b7280;">
+                            @c.SmtpHost:@c.SmtpPort
+                            @if (c.EnableSsl) { <span class="sb sb-green" style="font-size:10px; padding:1px 6px;">SSL</span> }
+                        </td>
+                        <td data-label="Trạng thái">
+                            @if (c.IsActive)
+                            {
+                                <span class="sb sb-green">Active</span>
+                            }
+                            else
+                            {
+                                <span class="sb sb-gray">Inactive</span>
+                            }
+                        </td>
+                        <td data-label="Cập nhật" style="color:#9ca3af; font-size:12px;">
+                            @c.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </td>
+                        <td data-label="Thao tác">
+                            <div class="d-flex flex-wrap gap-2">
+                                <a asp-area="Admin" asp-controller="EmailConfig" asp-action="Edit"
+                                   asp-route-id="@c.Id" class="btn-act btn-act-outline">Sửa</a>
+
+                                <a asp-area="Admin" asp-controller="EmailConfig" asp-action="TestSend"
+                                   asp-route-id="@c.Id" class="btn-act btn-act-outline">Test</a>
+
+                                @if (!c.IsActive)
+                                {
+                                    <form asp-area="Admin" asp-controller="EmailConfig" asp-action="SetActive"
+                                          method="post" style="margin:0"
+                                          onsubmit="return confirm('Đặt cấu hình này làm Active?\nCấu hình Active hiện tại sẽ bị tắt.')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@c.Id" />
+                                        <button type="submit" class="btn-act btn-act-success">Set Active</button>
+                                    </form>
+
+                                    <form asp-area="Admin" asp-controller="EmailConfig" asp-action="Delete"
+                                          method="post" style="margin:0"
+                                          onsubmit="return confirm('Xóa cấu hình &quot;@c.DisplayName&quot;?')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@c.Id" />
+                                        <button type="submit" class="btn-act btn-act-danger">Xóa</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

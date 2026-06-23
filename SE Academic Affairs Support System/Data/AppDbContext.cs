@@ -23,7 +23,9 @@ namespace SE_Academic_Affairs_Support_System.Data
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<TopicRegistration> TopicRegistrations { get; set; }
         public DbSet<GradeRecord> GradeRecords { get; set; }
+        public DbSet<TopicSyncRecord> TopicSyncRecords { get; set; }
         public DbSet<RegistrationPeriodStudent> RegistrationPeriodStudents => Set<RegistrationPeriodStudent>();
+        public DbSet<EmailConfiguration> EmailConfigurations => Set<EmailConfiguration>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -71,6 +73,24 @@ namespace SE_Academic_Affairs_Support_System.Data
                 .OnDelete(DeleteBehavior.NoAction);
 
             // Junction table: đợt đăng ký ↔ sinh viên được phép
+            // TopicSyncRecord FK — no cascade để tránh cycle
+            modelBuilder.Entity<TopicSyncRecord>()
+                .HasOne(r => r.Topic)
+                .WithMany()
+                .HasForeignKey(r => r.TopicId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<TopicSyncRecord>()
+                .HasOne(r => r.Period)
+                .WithMany()
+                .HasForeignKey(r => r.PeriodId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // GradeRecord.Score precision
+            modelBuilder.Entity<GradeRecord>()
+                .Property(g => g.Score)
+                .HasPrecision(5, 2);
+
             modelBuilder.Entity<RegistrationPeriodStudent>(e =>
             {
                 e.HasOne(rps => rps.RegistrationPeriod)

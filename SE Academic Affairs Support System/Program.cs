@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Models;
@@ -7,6 +8,8 @@ using SE_Academic_Affairs_Support_System.Services.AccountManagement;
 using SE_Academic_Affairs_Support_System.Services.AppRegistration;
 using SE_Academic_Affairs_Support_System.Services.NotificationSevices;
 using SE_Academic_Affairs_Support_System.Services.PeriodAutoClose;
+using SE_Academic_Affairs_Support_System.Services.Email;
+using SE_Academic_Affairs_Support_System.Services.EmailConfig;
 using SE_Academic_Affairs_Support_System.Services.ProjectRegistration;
 
 namespace SE_Academic_Affairs_Support_System
@@ -17,12 +20,22 @@ namespace SE_Academic_Affairs_Support_System
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // 1. Database
+            // 1. Data Protection — persist keys so encrypted passwords survive restarts
+            var keysFolder = new DirectoryInfo(
+                Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys"));
+            keysFolder.Create();
+            builder.Services.AddDataProtection()
+                .PersistKeysToFileSystem(keysFolder)
+                .SetApplicationName("SE_Academic_Affairs_Support_System");
+
+            // 2. Database
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("AzureConnection")));
             //builder.Services.AddDbContext<AppDbContext>(options =>
             //    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-            // 2. Services
+            // 3. Services
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IEmailConfigurationService, EmailConfigurationService>();
             builder.Services.AddScoped<IAppRegistrationService, AppRegistrationService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddScoped<IRegistrationService, RegistrationService>();
@@ -30,6 +43,7 @@ namespace SE_Academic_Affairs_Support_System
             builder.Services.AddScoped<IRegistrationPeriodStudentService, RegistrationPeriodStudentService>();
             builder.Services.AddHostedService<GradeSyncService>();
             builder.Services.AddHostedService<TopicSyncService>();
+            builder.Services.AddHostedService<TopicCreateSyncService>();
             builder.Services.AddHostedService<PeriodAutoCloseService>();
 
             builder.Services.AddHttpClient<GoogleSheetsService>()

@@ -19,13 +19,10 @@ namespace SE_Academic_Affairs_Support_System.Controllers
     public class RoomController : Controller
     {
         private readonly AppDbContext _context;
-        private readonly IConfiguration _config;
-        private readonly EmailService _emailService;
         private readonly UserManager<User> _userManager;
         public RoomController(AppDbContext context, UserManager<User> userManager)
         {
             _context = context;
-            _emailService = new EmailService(_config);
             _userManager = userManager;
         }
         [AllowAnonymous]
