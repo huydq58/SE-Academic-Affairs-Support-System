@@ -83,26 +83,56 @@ namespace SE_Academic_Affairs_Support_System.Areas.Lecturer.Controllers
         }
 
         // GET /Lecturer/Registration/MyTopics
-        public async Task<IActionResult> MyTopics()
+        public async Task<IActionResult> MyTopics(int? periodId)
         {
             var lecturerId = await GetLecturerProfileIdAsync();
             if (lecturerId == null) return Forbid();
 
-            var topics = await _svc.GetLecturerTopicsAsync(lecturerId.Value);
-            var period = await _svc.GetActivePeriodAsync();
-            return View(new LecturerTopicsViewModel { Topics = topics, ActivePeriod = period });
+            var topics = await _svc.GetLecturerTopicsAsync(lecturerId.Value, periodId);
+            var activePeriods = await _svc.GetActivePeriodsAsync();
+            var allPeriods = await _svc.GetAllPeriodsAsync();
+
+            // Lấy danh sách các đợt mà GV đã có đề tài
+            var topicPeriodIds = topics.Select(t => t.PeriodId).ToHashSet();
+            var lecturerPeriods = allPeriods.Where(p => topicPeriodIds.Contains(p.Id)).ToList();
+
+            int pendingCount = await _db.Registrations
+                .CountAsync(r => r.LecturerProfileId == lecturerId.Value
+                              && r.Status == RegistrationStatus.PENDING);
+
+            return View(new LecturerTopicsViewModel
+            {
+                Topics = topics,
+                ActivePeriod = activePeriods.FirstOrDefault(),
+                ActivePeriods = activePeriods,
+                LecturerPeriods = lecturerPeriods,
+                FilterPeriodId = periodId,
+                PendingProposalsCount = pendingCount
+            });
         }
 
         // GET /Lecturer/Registration/CreateTopic
         public async Task<IActionResult> CreateTopic()
         {
-            var period = await _svc.GetActivePeriodAsync();
-            if (period == null)
+            var activePeriods = await _svc.GetActivePeriodsAsync();
+            if (!activePeriods.Any())
             {
                 TempData["Info"] = "Chưa có đợt đăng ký nào đang mở để tạo đề tài.";
                 return RedirectToAction(nameof(MyTopics));
             }
-            return View(new CreateTopicViewModel { RegistrationPeriodId = period.Id });
+
+            var vm = new CreateTopicViewModel
+            {
+                RegistrationPeriodId = activePeriods.First().Id,
+                AvailablePeriods = activePeriods.Select(p => new PeriodSelectItem
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    StartDate = p.StartDate,
+                    EndDate = p.EndDate
+                }).ToList()
+            };
+            return View(vm);
         }
 
         // POST /Lecturer/Registration/CreateTopic
@@ -113,10 +143,20 @@ namespace SE_Academic_Affairs_Support_System.Areas.Lecturer.Controllers
             if (lecturerId == null) return Forbid();
 
             if (!ModelState.IsValid)
+            {
+                var activePeriods = await _svc.GetActivePeriodsAsync();
+                vm.AvailablePeriods = activePeriods.Select(p => new PeriodSelectItem
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    StartDate = p.StartDate,
+                    EndDate = p.EndDate
+                }).ToList();
                 return View(vm);
+            }
 
             await _svc.CreateTopicAsync(vm, lecturerId.Value);
-            TempData["Success"] = "Đã tạo đề tài thành công.";
+            TempData["Success"] = "Đã tạo đề tài thành công. Đề tài sẽ được đồng bộ lên Google Sheets trong vài phút.";
             return RedirectToAction(nameof(MyTopics));
         }
 

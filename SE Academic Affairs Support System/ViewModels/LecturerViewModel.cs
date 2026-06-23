@@ -47,16 +47,31 @@ namespace SE_Academic_Affairs_Support_System.ViewModels
     {
         public List<TopicManageRow> Topics { get; set; } = new();
         public RegistrationPeriod? ActivePeriod { get; set; }
+        public List<RegistrationPeriod> ActivePeriods { get; set; } = new();
+        public List<RegistrationPeriod> LecturerPeriods { get; set; } = new();
+        public int? FilterPeriodId { get; set; }
+        public int PendingProposalsCount { get; set; }
     }
 
     public class TopicManageRow
     {
         public int TopicId { get; set; }
+        public int PeriodId { get; set; }
         public string Title { get; set; } = string.Empty;
         public int MaxStudents { get; set; }
         public int RegisteredCount { get; set; }
         public TopicStatus Status { get; set; }
         public string PeriodName { get; set; } = string.Empty;
+        public string? StudentName1 { get; set; }
+        public string? StudentName2 { get; set; }
+    }
+
+    public class PeriodSelectItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
     }
 
     public class CreateTopicViewModel
@@ -82,6 +97,14 @@ namespace SE_Academic_Affairs_Support_System.ViewModels
         [Display(Name = "Số lượng SV tối đa")]
         public int MaxStudents { get; set; } = 1;
 
+        [Required(ErrorMessage = "Vui lòng chọn đợt đăng ký")]
+        [Display(Name = "Đợt đăng ký")]
         public int RegistrationPeriodId { get; set; }
+
+        [MaxLength(500)]
+        [Display(Name = "Ghi chú")]
+        public string? Note { get; set; }
+
+        public List<PeriodSelectItem> AvailablePeriods { get; set; } = new();
     }
 }

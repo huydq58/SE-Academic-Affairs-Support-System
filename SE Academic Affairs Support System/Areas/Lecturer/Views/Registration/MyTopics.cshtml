@@ -7,33 +7,81 @@
 
 <style>
     .slot-badge { font-size:13px; font-weight:700; }
-    .slot-full { color:#dc2626; }
-    .slot-ok   { color:#16a34a; }
+    .slot-full  { color:#dc2626; }
+    .slot-ok    { color:#16a34a; }
 
     .btn-del { display:inline-flex; align-items:center; padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid #fecaca; background:#fff; color:#dc2626; transition:all .15s; }
     .btn-del:hover { background:#fee2e2; border-color:#fca5a5; }
+
+    .period-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+    .period-tab  { padding:6px 16px; border-radius:20px; font-size:13px; font-weight:600; border:1.5px solid #e5e7eb; background:#fff; color:#6b7280; text-decoration:none; transition:all .15s; }
+    .period-tab:hover  { border-color:#93c5fd; color:#1d4ed8; background:#eff6ff; }
+    .period-tab.active { border-color:#3b82f6; background:#3b82f6; color:#fff; }
+
+    .sync-badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:12px; }
+    .sync-pending { background:#fef3c7; color:#92400e; }
 </style>
 
-<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
     <div class="rg-page-title mb-0">
         <h2>Đề Tài Của Tôi</h2>
-        <p>Quản lý các đề tài đã tạo trong đợt đăng ký</p>
+        <p>Quản lý các đề tài theo từng đợt đăng ký</p>
     </div>
-    @if (Model.ActivePeriod != null)
-    {
-        <a asp-action="CreateTopic" class="btn btn-primary flex-shrink-0">Tạo đề tài mới</a>
-    }
+    <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+        <a asp-action="Inbox" class="btn @(Model.PendingProposalsCount > 0 ? "btn-warning" : "btn-outline-secondary") position-relative">
+            <i class="bi bi-inbox me-1"></i>Hộp thư đề xuất
+            @if (Model.PendingProposalsCount > 0)
+            {
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                      style="font-size:10px;">
+                    @Model.PendingProposalsCount
+                </span>
+            }
+        </a>
+        @if (Model.ActivePeriods.Any())
+        {
+            <a asp-action="CreateTopic" class="btn btn-primary">+ Tạo đề tài mới</a>
+        }
+    </div>
 </div>
 
 <partial name="_Alerts" />
 
+@* Period filter tabs *@
+@if (Model.LecturerPeriods.Any())
+{
+    <div class="period-tabs">
+        <a asp-action="MyTopics"
+           class="period-tab @(Model.FilterPeriodId == null ? "active" : "")">
+            Tất cả (@Model.Topics.Count)
+        </a>
+        @foreach (var p in Model.LecturerPeriods)
+        {
+            var count = Model.FilterPeriodId == null
+                ? Model.Topics.Count(t => t.PeriodId == p.Id)
+                : Model.Topics.Count;
+            var isActive = Model.ActivePeriods.Any(ap => ap.Id == p.Id);
+            <a asp-action="MyTopics" asp-route-periodId="@p.Id"
+               class="period-tab @(Model.FilterPeriodId == p.Id ? "active" : "")">
+                @p.Name
+                @if (isActive)
+                {
+                    <span style="margin-left:4px; font-size:10px; background:#dcfce7; color:#166534; border-radius:10px; padding:1px 6px;">Đang mở</span>
+                }
+            </a>
+        }
+    </div>
+}
+
 @if (!Model.Topics.Any())
 {
     <div class="text-center py-5" style="color:#9ca3af;">
-        <p style="font-size:16px; font-weight:600; margin-bottom:8px; color:#374151;">Bạn chưa có đề tài nào.</p>
-        @if (Model.ActivePeriod != null)
+        <p style="font-size:16px; font-weight:600; margin-bottom:8px; color:#374151;">
+            @(Model.FilterPeriodId.HasValue ? "Đợt này chưa có đề tài nào." : "Bạn chưa có đề tài nào.")
+        </p>
+        @if (Model.ActivePeriods.Any())
         {
-            <a asp-action="CreateTopic" class="btn btn-primary mt-2">Tạo đề tài mới</a>
+            <a asp-action="CreateTopic" class="btn btn-primary mt-2">+ Tạo đề tài mới</a>
         }
         else
         {
@@ -48,10 +96,12 @@ else
             <thead>
                 <tr>
                     <th>Tên đề tài</th>
-                    <th>SV đăng ký</th>
+                    <th style="width:64px;" class="text-center">Slot</th>
+                    <th style="width:145px;">Sinh viên 1</th>
+                    <th style="width:145px;">Sinh viên 2</th>
                     <th>Đợt</th>
                     <th>Trạng thái</th>
-                    <th>Thao tác</th>
+                    <th style="width:70px;">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
@@ -61,10 +111,37 @@ else
                         <td data-label="Tên đề tài">
                             <span class="fw-semibold" style="color:#1e3a8a;">@t.Title</span>
                         </td>
-                        <td data-label="SV đăng ký">
+                        <td data-label="Slot" class="text-center">
                             <span class="slot-badge @(t.RegisteredCount >= t.MaxStudents ? "slot-full" : "slot-ok")">
-                                @t.RegisteredCount / @t.MaxStudents
+                                @t.RegisteredCount/@t.MaxStudents
                             </span>
+                        </td>
+                        <td data-label="Sinh viên 1">
+                            @if (!string.IsNullOrEmpty(t.StudentName1))
+                            {
+                                <span style="font-size:13px; font-weight:600; color:#1d4ed8;">@t.StudentName1</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted" style="font-size:12px;">Chưa có</span>
+                            }
+                        </td>
+                        <td data-label="Sinh viên 2">
+                            @if (t.MaxStudents >= 2)
+                            {
+                                @if (!string.IsNullOrEmpty(t.StudentName2))
+                                {
+                                    <span style="font-size:13px; font-weight:600; color:#1d4ed8;">@t.StudentName2</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted" style="font-size:12px;">Chưa có</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted" style="font-size:12px;">—</span>
+                            }
                         </td>
                         <td data-label="Đợt">
                             <span style="font-size:13px; color:#6b7280;">@t.PeriodName</span>

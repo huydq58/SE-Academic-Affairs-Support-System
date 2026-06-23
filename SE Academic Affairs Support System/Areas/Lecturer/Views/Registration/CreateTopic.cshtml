@@ -4,7 +4,6 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-
 <div style="max-width:700px;">
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
@@ -20,7 +19,37 @@
 
     <form asp-area="Lecturer" asp-action="CreateTopic" method="post" hx-boost="false">
         @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="RegistrationPeriodId" />
+
+        <div class="rg-form-card">
+            <div class="rg-form-head">Chọn đợt đăng ký</div>
+            <div class="rg-form-body">
+
+                <div class="mb-3">
+                    <label asp-for="RegistrationPeriodId" class="form-label fw-semibold">Đợt đăng ký</label>
+                    @if (Model.AvailablePeriods.Count == 1)
+                    {
+                        <input type="hidden" asp-for="RegistrationPeriodId" />
+                        <div class="form-control bg-light" style="cursor:default; color:#374151;">
+                            <strong>@Model.AvailablePeriods[0].Name</strong>
+                            <span style="font-size:12px; color:#6b7280; margin-left:8px;">
+                                (@Model.AvailablePeriods[0].StartDate.ToString("dd/MM/yyyy") – @Model.AvailablePeriods[0].EndDate.ToString("dd/MM/yyyy"))
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <select asp-for="RegistrationPeriodId" class="form-select">
+                            @foreach (var p in Model.AvailablePeriods)
+                            {
+                                <option value="@p.Id">@p.Name (@p.StartDate.ToString("dd/MM/yyyy") – @p.EndDate.ToString("dd/MM/yyyy"))</option>
+                            }
+                        </select>
+                    }
+                    <span asp-validation-for="RegistrationPeriodId" class="text-danger small"></span>
+                </div>
+
+            </div>
+        </div>
 
         <div class="rg-form-card">
             <div class="rg-form-head">Thông tin đề tài</div>
@@ -52,16 +81,26 @@
                            placeholder="ASP.NET Core, SQL Server, React (phân cách bằng dấu phẩy)" />
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-3">
                     <label asp-for="MaxStudents" class="form-label fw-semibold">Số sinh viên tối đa</label>
                     <input asp-for="MaxStudents" type="number" min="1" max="10"
                            class="form-control" style="max-width:120px" />
                     <span asp-validation-for="MaxStudents" class="text-danger small"></span>
                 </div>
 
-                <div class="d-flex gap-2">
+                <div class="mb-4">
+                    <label asp-for="Note" class="form-label fw-semibold"></label>
+                    <textarea asp-for="Note" class="form-control" rows="2"
+                              placeholder="Ghi chú bổ sung cho đề tài (tuỳ chọn)..."></textarea>
+                    <span asp-validation-for="Note" class="text-danger small"></span>
+                </div>
+
+                <div class="d-flex gap-2 align-items-center">
                     <button type="submit" class="btn btn-primary px-4">Tạo đề tài</button>
                     <a asp-action="MyTopics" class="btn btn-outline-secondary">Hủy</a>
+                    <span class="text-muted" style="font-size:12px;">
+                        Đề tài sẽ tự động đồng bộ lên Google Sheets sau khi tạo.
+                    </span>
                 </div>
 
             </div>
