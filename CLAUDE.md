@@ -158,17 +158,19 @@ Student xem TopicList (Open topics)
 ```
 Student POST ProposeNew(vm)
   → Tạo Topic(Status=Proposed) + Registration(Status=PENDING)
-  → Notify GV
+  → Notify GV (in-app notification + email qua IEmailService)
+  → Email: SendTopicProposalToLecturerAsync — bắt exception, log warning nếu thất bại
 
-GV xem Inbox → Review(id)
+GV xem Inbox → MyTopics (hiển thị badge pending count) → Review(id)
   → POST Review(decision: "approve"|"revise"|"reject")
-    → approve: Registration=APPROVED, Topic=Closed, notify SV
-    → revise:  Registration=REVISION_REQUIRED, notify SV với note
-    → reject:  Registration=REJECTED, Topic=Closed, notify SV
+    → approve: Registration=APPROVED, Topic=Closed, notify SV, email SV, tạo TopicSyncRecord
+    → revise:  Registration=REVISION_REQUIRED, notify SV với note, email SV (bắt buộc note)
+    → reject:  Registration=REJECTED, Topic=Closed, notify SV, email SV
+  → Email: SendTopicDecisionToStudentAsync — bắt exception, log warning nếu thất bại
 
 SV ReviseProposal(id)  [chỉ khi Status=REVISION_REQUIRED]
   → Cập nhật Topic + Registration, tăng RevisionCount
-  → Status trở về PENDING, notify GV
+  → Status trở về PENDING, notify GV + email GV
 ```
 
 ### State machine `RegistrationStatus`
@@ -226,6 +228,7 @@ Mỗi đợt đăng ký có thể gắn một Google Sheet URL.
 
 ```csharp
 // Scoped services
+AddScoped<IEmailService, EmailService>()            // email thông báo
 AddScoped<IAppRegistrationService, AppRegistrationService>()
 AddScoped<INotificationService, NotificationService>()
 AddScoped<IRegistrationService, RegistrationService>()
@@ -235,7 +238,8 @@ AddScoped<IRegistrationPeriodStudentService, RegistrationPeriodStudentService>()
 // Singleton background services
 AddHostedService<GradeSyncService>()
 AddHostedService<TopicSyncService>()
-AddHostedService<PeriodAutoCloseService>()   // tự đóng đợt khi quá EndDate
+AddHostedService<TopicCreateSyncService>()  // đồng bộ tạo đề tài lên Google Sheet
+AddHostedService<PeriodAutoCloseService>()  // tự đóng đợt khi quá EndDate
 
 // HttpClient
 AddHttpClient<GoogleSheetsService>()
@@ -273,6 +277,43 @@ Cookie auth: 8 giờ, sliding expiration. Login redirect về `/Home/Index`.
 
 ---
 
+## Email Service
+
+`IEmailService` / `EmailService` — đăng ký DI là `Scoped`. SMTP: Gmail hardcoded (app password).
+
+Các method hiện có:
+| Method | Mục đích |
+|---|---|
+| `SendConfirmRoomAsync` | Xác nhận đặt phòng |
+| `SendConfirmDeviceAsync` | Xác nhận mượn thiết bị |
+| `SendConfirmAppAsync` | Xác nhận đăng ký phần mềm |
+| `SendTopicProposalToLecturerAsync` | Thông báo GV khi SV gửi đề xuất đề tài (trả `Task<bool>`) |
+| `SendTopicDecisionToStudentAsync` | Thông báo SV khi GV duyệt/từ chối/yêu cầu sửa (trả `Task<bool>`) |
+
+`TopicDecisionType` enum: `Approve`, `Revise`, `Reject` — dùng cho `SendTopicDecisionToStudentAsync`.
+
+**Gotcha:** Các method cũ (Room/Device/App) được gọi với `new EmailService(config)` trực tiếp trong controller — chưa dùng DI. Chỉ 2 method topic mới dùng DI qua `RegistrationService`. Khi refactor, hãy chuyển các controller đó sang inject `IEmailService`.
+
+**Email failure handling:** Trong `RegistrationService`, mọi email gọi đều được bọc trong try-catch, log `ILogger.LogWarning` nếu thất bại, không làm fail nghiệp vụ DB.
+
+---
+
+## Google Sheets — Cấu trúc sheet DanhSachDeTai
+
+Sheet "DanhSachDeTai" (cột 1-indexed):
+```
+A: STT | B: TopicId (DB) | C: Tên đề tài | D: Mô tả | E: Yêu cầu đầu vào
+F: Công nghệ | G: Số SV tối đa | H: Tên GV | I: Mã GV | J: MSSV SV | K: Tên SV | L: Ghi chú
+```
+
+AppScript (`AppScript.js` ở root repo) sử dụng dynamic column detection (`buildColMap` / `findColIdx`) để chịu được sheet cũ và mới.
+
+`Topic.SheetRowIndex` lưu vị trí dòng trên sheet sau khi sync thành công. Dùng để cập nhật sheet khi SV đăng ký (gọi `registerStudent` action).
+
+`TopicCreateSyncService` — background worker đồng bộ đề tài mới lên sheet (outbox: `TopicSyncRecords` table). Sau khi sync thành công, cập nhật `Topic.SheetRowIndex` trong DB.
+
+---
+
 ## Các file cần đọc đầu tiên khi làm việc với tính năng
 
 | Tính năng | File chính |
@@ -280,6 +321,7 @@ Cookie auth: 8 giờ, sliding expiration. Login redirect về `/Home/Index`.
 | Đăng ký đề tài (toàn bộ) | `Services/ProjectRegistration/RegistrationService.cs` |
 | Model quan hệ | `Data/AppDbContext.cs`, `Models/Topic.cs`, `Models/Registration.cs`, `Models/RegistrationPeriod.cs` |
 | Google Sheets sync | `Services/GoogleSheetServices/GoogleSheetServices.cs`, `Services/TopicSyncServices/TopicSyncService.cs`, `Services/GradeSyncService/GradeSyncService.cs` |
+| Google Apps Script | `AppScript.js` (root repo, ngoài project folder) |
 | Auth & routing | `Program.cs`, `Areas/*/Controllers/*.cs` |
 | Chấm điểm | `Controllers/GradingController.cs`, `Models/GradeRecord.cs`, `Models/GradingSheet.cs` |
 | Đặt phòng | `Controllers/RoomController.cs`, `Models/RoomBooking.cs`, `Models/TimeSlot.cs` |
@@ -287,3 +329,4 @@ Cookie auth: 8 giờ, sliding expiration. Login redirect về `/Home/Index`.
 | Quản lý đợt đăng ký | `Areas/Admin/Controllers/RegistrationController.cs`, `Models/RegistrationPeriod.cs` |
 | Mượn thiết bị | `Controllers/DeviceController.cs`, `Models/Device.cs`, `Models/DeviceRequest.cs` |
 | Đăng ký phần mềm | `Controllers/AppRegistrationController.cs`, `Services/AppRegistration/AppRegistrationService.cs`, `Models/AppRegistrationRequest.cs` |
+| Email thông báo đề tài | `Services/Email/IEmailService.cs`, `Services/Email/EmailService.cs` |
