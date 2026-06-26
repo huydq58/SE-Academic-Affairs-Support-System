@@ -236,6 +236,20 @@ namespace SE_Academic_Affairs_Support_System.Services.Email
             }
         }
 
+        public async Task SendAsync(string toEmail, string subject, string htmlBody)
+        {
+            var (smtp, senderEmail, senderName) = await CreateSmtpAsync();
+            var mail = new MailMessage
+            {
+                From = new MailAddress(senderEmail, senderName),
+                Subject = subject,
+                Body = htmlBody,
+                IsBodyHtml = true
+            };
+            mail.To.Add(toEmail);
+            await smtp.SendMailAsync(mail);
+        }
+
         private async Task<(SmtpClient Smtp, string SenderEmail, string SenderName)> CreateSmtpAsync()
         {
             var active = await _db.EmailConfigurations.FirstOrDefaultAsync(e => e.IsActive);

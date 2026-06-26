@@ -10,7 +10,9 @@ using SE_Academic_Affairs_Support_System.Services.NotificationSevices;
 using SE_Academic_Affairs_Support_System.Services.PeriodAutoClose;
 using SE_Academic_Affairs_Support_System.Services.Email;
 using SE_Academic_Affairs_Support_System.Services.EmailConfig;
+using SE_Academic_Affairs_Support_System.Services.EmailNotification;
 using SE_Academic_Affairs_Support_System.Services.ProjectRegistration;
+using SE_Academic_Affairs_Support_System.Middleware;
 
 namespace SE_Academic_Affairs_Support_System
 {
@@ -35,6 +37,7 @@ namespace SE_Academic_Affairs_Support_System
             //    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             // 3. Services
             builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>();
             builder.Services.AddScoped<IEmailConfigurationService, EmailConfigurationService>();
             builder.Services.AddScoped<IAppRegistrationService, AppRegistrationService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
@@ -83,11 +86,16 @@ namespace SE_Academic_Affairs_Support_System
 
 
 
-            if (!app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment())
             {
-                app.UseExceptionHandler("/Home/Error");
+                app.UseDeveloperExceptionPage(); // outer: catches re-throws from ExceptionHandlingMiddleware
+            }
+            else
+            {
                 app.UseHsts();
             }
+
+            app.UseMiddleware<ExceptionHandlingMiddleware>(); // inner: catches all unhandled exceptions first
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
@@ -102,6 +110,32 @@ namespace SE_Academic_Affairs_Support_System
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}"
 );
+
+            // Seed admin account on startup if not exists
+            using (var scope = app.Services.CreateScope())
+            {
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+                if (!await roleManager.RoleExistsAsync("Admin"))
+                    await roleManager.CreateAsync(new IdentityRole("Admin"));
+
+                if (await userManager.FindByNameAsync("admin") == null)
+                {
+                    var adminUser = new User
+                    {
+                        UserName = "admin",
+                        Email = "admin@localhost",
+                        FullName = "Administrator",
+                        Role = "Admin",
+                        EmailConfirmed = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    var result = await userManager.CreateAsync(adminUser, "a123123");
+                    if (result.Succeeded)
+                        await userManager.AddToRoleAsync(adminUser, "Admin");
+                }
+            }
 
             app.Run();
         }

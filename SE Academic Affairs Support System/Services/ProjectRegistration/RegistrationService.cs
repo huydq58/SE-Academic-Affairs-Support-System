@@ -3,6 +3,7 @@ using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Helper;
 using SE_Academic_Affairs_Support_System.Models;
 using SE_Academic_Affairs_Support_System.Services.Email;
+using SE_Academic_Affairs_Support_System.Services.EmailNotification;
 using SE_Academic_Affairs_Support_System.Services.NotificationSevices;
 using SE_Academic_Affairs_Support_System.ViewModels;
 
@@ -14,6 +15,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
         private readonly INotificationService _notif;
         private readonly GoogleSheetsService _sheets;
         private readonly IEmailService _email;
+        private readonly IEmailNotificationService _emailNotif;
         private readonly ILogger<RegistrationService> _logger;
 
         public RegistrationService(
@@ -21,12 +23,14 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             INotificationService notif,
             GoogleSheetsService sheets,
             IEmailService email,
+            IEmailNotificationService emailNotif,
             ILogger<RegistrationService> logger)
         {
             _db = db;
             _notif = notif;
             _sheets = sheets;
             _email = email;
+            _emailNotif = emailNotif;
             _logger = logger;
         }
 
@@ -94,6 +98,9 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
 
         public async Task ClosePeriodAndAutoRejectPendingAsync(int periodId)
         {
+            var period = await _db.RegistrationPeriods.FindAsync(periodId);
+            var periodName = period?.Name ?? string.Empty;
+
             var pending = await _db.Registrations
                 .Where(r => r.RegistrationPeriodId == periodId && r.Status == RegistrationStatus.PENDING)
                 .ToListAsync();
@@ -109,12 +116,20 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                     .FirstOrDefaultAsync(s => s.Id == reg.StudentProfileId);
 
                 if (studentUser != null)
+                {
                     await _notif.SendAsync(studentUser.UserId,
                         "Đề xuất đề tài của bạn đã bị hủy do đợt đăng ký kết thúc.",
                         $"/Student/Registration/MyRegistrations");
+
+                    if (studentUser.User?.Email != null)
+                        await _emailNotif.NotifyTopicAutoRejectedAsync(
+                            studentUser.User.Email,
+                            studentUser.User.FullName ?? studentUser.StudentCode,
+                            reg.ProposedTitle ?? "đề tài của bạn",
+                            periodName);
+                }
             }
 
-            var period = await _db.RegistrationPeriods.FindAsync(periodId);
             if (period != null) period.IsActive = false;
 
             await _db.SaveChangesAsync();
@@ -327,6 +342,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             {
                 var topic = await _db.Topics
                     .Include(t => t.Registrations)
+                    .Include(t => t.Lecturer).ThenInclude(l => l.User)
                     .FirstOrDefaultAsync(t => t.Id == topicId);
 
                 if (topic == null || topic.Status != TopicStatus.Open)
@@ -392,6 +408,17 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                         }
                         catch { /* sheet update không ảnh hưởng nghiệp vụ DB */ }
                     }
+                }
+
+                if (student?.User?.Email != null)
+                {
+                    var lecturerName = topic.Lecturer?.User?.FullName ?? topic.Lecturer?.LecturerCode ?? string.Empty;
+                    await _emailNotif.NotifyTopicRegisteredAsync(
+                        student.User.Email,
+                        student.User.FullName ?? student.StudentCode,
+                        topic.Title,
+                        lecturerName,
+                        period.Name);
                 }
 
                 return (true, "Đăng ký thành công!");

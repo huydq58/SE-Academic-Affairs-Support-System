@@ -13,15 +13,18 @@ public class TopicController : Controller
     private readonly GoogleSheetsService _sheets;
     private readonly AppDbContext _db;
     private readonly UserManager<User> _userManager;
+    private readonly ILogger<TopicController> _logger;
 
     public TopicController(
         GoogleSheetsService sheets,
         AppDbContext db,
-        UserManager<User> userManager)
+        UserManager<User> userManager,
+        ILogger<TopicController> logger)
     {
         _sheets = sheets;
         _db = db;
         _userManager = userManager;
+        _logger = logger;
     }
 
     // ─── GET: /Topic/List?periodId=5 ─────────────────────────────────────
@@ -35,7 +38,17 @@ public class TopicController : Controller
             return BadRequest("Đợt này chưa có link Google Sheet hợp lệ.");
 
         // Lấy danh sách đề tài từ Google Sheet
-        var topics = await _sheets.GetTopicsAsync(sheetId);
+        List<TopicSheet> topics;
+        try
+        {
+            topics = await _sheets.GetTopicsAsync(sheetId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Google Sheets call failed in Topic.List for sheetId {SheetId}", sheetId);
+            TempData["Error"] = "Không thể tải danh sách đề tài từ Google Sheet. Vui lòng thử lại sau.";
+            return RedirectToAction("Index", "Home");
+        }
 
         // Lấy các đăng ký trong đợt này từ SQL để hiển thị trạng thái chính xác
         var registrations = await _db.TopicRegistrations
@@ -167,7 +180,17 @@ public class TopicController : Controller
         string sheetId, int periodId, string periodName, string courseName,
         string statusMessage, bool isSuccess)
     {
-        var topics = await _sheets.GetTopicsAsync(sheetId);
+        List<TopicSheet> topics;
+        try
+        {
+            topics = await _sheets.GetTopicsAsync(sheetId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Google Sheets call failed in Topic.ReturnListView for sheetId {SheetId}", sheetId);
+            TempData["Error"] = "Không thể tải danh sách đề tài từ Google Sheet. Vui lòng thử lại sau.";
+            return RedirectToAction("Index", "Home");
+        }
         var registrations = await _db.TopicRegistrations
             .Where(r => r.PeriodId == periodId)
             .ToListAsync();

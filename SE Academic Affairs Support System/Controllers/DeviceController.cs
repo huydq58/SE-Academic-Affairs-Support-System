@@ -5,18 +5,21 @@ using Microsoft.EntityFrameworkCore;
 using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Models;
 using SE_Academic_Affairs_Support_System.Services.Email;
+using SE_Academic_Affairs_Support_System.Services.EmailNotification;
 
 namespace SE_Academic_Affairs_Support_System.Controllers
 {
     public class DeviceController : Controller
     {
         private readonly AppDbContext _context;
-        private readonly IEmailService _emailService;
+        private readonly IEmailNotificationService _emailNotif;
         private readonly UserManager<User> _userManager;
-        public DeviceController(AppDbContext context, UserManager<User> userManager, IEmailService emailService)
+
+        public DeviceController(AppDbContext context, UserManager<User> userManager,
+            IEmailNotificationService emailNotif)
         {
             _context = context;
-            _emailService = emailService;
+            _emailNotif = emailNotif;
             _userManager = userManager;
         }
 
@@ -174,11 +177,13 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             // Lưu toàn bộ thay đổi (bao gồm đơn được duyệt, trạng thái thiết bị, và các đơn bị từ chối) vào DB
             _context.SaveChanges();
 
-            // Thêm thông báo chi tiết hơn một chút để người quản lý biết hệ thống vừa làm gì
+            await _emailNotif.NotifyDeviceBorrowApprovedAsync(
+                request.BorrowerEmail, request.BorrowerName,
+                request.Device.DeviceName, request.Purpose ?? string.Empty);
+
             string autoRejectMsg = conflictingRequests.Any()
                 ? $" Đồng thời tự động từ chối {conflictingRequests.Count} yêu cầu trùng lặp."
                 : "";
-            await _emailService.SendConfirmDeviceAsync(request.BorrowerEmail,request.BorrowerName,request);
             TempData["Success"] = $"Đã duyệt yêu cầu mượn của {request.BorrowerName} — {request.Device.DeviceName}.{autoRejectMsg}";
 
             return RedirectToAction(nameof(BorrowRequests));
@@ -186,10 +191,11 @@ namespace SE_Academic_Affairs_Support_System.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult RejectRequest(int id, string rejectReason = "") // Đổi requestId thành id
+        public async Task<IActionResult> RejectRequest(int id, string rejectReason = "")
         {
-            // Load kèm Device để lấy tên thiết bị hiển thị thông báo nếu cần (tùy chọn)
-            var request = _context.DeviceRequests.Find(id);
+            var request = await _context.DeviceRequests
+                .Include(r => r.Device)
+                .FirstOrDefaultAsync(r => r.RequestId == id);
 
             if (request == null) return NotFound();
 
@@ -197,13 +203,17 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             request.RejectReason = rejectReason;
             _context.SaveChanges();
 
+            await _emailNotif.NotifyDeviceBorrowRejectedAsync(
+                request.BorrowerEmail, request.BorrowerName,
+                request.Device?.DeviceName ?? "thiết bị", rejectReason);
+
             TempData["Success"] = $"Đã từ chối yêu cầu mượn của {request.BorrowerName}.";
             return RedirectToAction(nameof(BorrowRequests));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult MarkReturned(int id)
+        public async Task<IActionResult> MarkReturned(int id)
         {
             var device = _context.Devices.Find(id);
             if (device == null) return NotFound();
@@ -228,6 +238,13 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             }
 
             _context.SaveChanges();
+
+            if (activeRequest != null)
+            {
+                await _emailNotif.NotifyDeviceReturnedAsync(
+                    activeRequest.BorrowerEmail, activeRequest.BorrowerName, device.DeviceName);
+            }
+
             TempData["Success"] = $"Thiết bị \"{device.DeviceName}\" đã được đánh dấu là Đã trả.";
             return RedirectToAction(nameof(Index));
         }

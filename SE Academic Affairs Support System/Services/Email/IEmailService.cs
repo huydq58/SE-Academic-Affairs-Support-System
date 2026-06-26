@@ -20,5 +20,7 @@ namespace SE_Academic_Affairs_Support_System.Services.Email
             string toEmail, string studentName,
             string topicTitle, TopicDecisionType decision,
             string? reason, string? actionUrl);
+
+        Task SendAsync(string toEmail, string subject, string htmlBody);
     }
 }

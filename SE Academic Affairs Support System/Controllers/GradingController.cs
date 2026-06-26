@@ -14,15 +14,18 @@ public class GradingController : Controller
     private readonly GoogleSheetsService _sheets;
     private readonly AppDbContext _db;
     private readonly UserManager<User> _userManager;
+    private readonly ILogger<GradingController> _logger;
 
     public GradingController(
         GoogleSheetsService sheets,
         AppDbContext db,
-        UserManager<User> userManager)
+        UserManager<User> userManager,
+        ILogger<GradingController> logger)
     {
         _sheets = sheets;
         _db = db;
         _userManager = userManager;
+        _logger = logger;
     }
 
     // Lấy danh sách dòng đề tài có SV từ DanhSachDeTai, map sang GradingSheetRow
@@ -48,7 +51,17 @@ public class GradingController : Controller
             return BadRequest("Đợt này chưa có link Google Sheet hợp lệ.");
 
         // Load từ DanhSachDeTai — lọc các dòng đã có SV đăng ký
-        var sheetTopics = await _sheets.GetTopicsAsync(sheetId);
+        List<TopicSheet> sheetTopics;
+        try
+        {
+            sheetTopics = await _sheets.GetTopicsAsync(sheetId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Google Sheets call failed in Grading.List for sheetId {SheetId}", sheetId);
+            TempData["Error"] = "Không thể tải danh sách từ Google Sheet. Vui lòng thử lại sau.";
+            return RedirectToAction("Index", "Home");
+        }
         var sheetRows   = MapTopicsToGradingRows(sheetTopics);
 
         // Merge với điểm đã lưu trong SQL
@@ -100,7 +113,17 @@ public class GradingController : Controller
     public async Task<IActionResult> Grade(int periodId, string sheetId, string mssv)
     {
         // Tìm dòng SV trong DanhSachDeTai
-        var sheetTopics = await _sheets.GetTopicsAsync(sheetId);
+        List<TopicSheet> sheetTopics;
+        try
+        {
+            sheetTopics = await _sheets.GetTopicsAsync(sheetId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Google Sheets call failed in Grading.Grade GET for sheetId {SheetId}", sheetId);
+            TempData["Error"] = "Không thể tải dữ liệu từ Google Sheet. Vui lòng thử lại sau.";
+            return RedirectToAction(nameof(List), new { periodId });
+        }
         var topicRow    = sheetTopics.FirstOrDefault(t => t.Mssv1 == mssv);
         if (topicRow == null) return NotFound();
 
@@ -158,7 +181,17 @@ public class GradingController : Controller
         var gradedBy = user?.FullName ?? user?.UserName ?? "Unknown";
 
         // Lấy thông tin SV từ DanhSachDeTai
-        var sheetTopics = await _sheets.GetTopicsAsync(sheetId);
+        List<TopicSheet> sheetTopics;
+        try
+        {
+            sheetTopics = await _sheets.GetTopicsAsync(sheetId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Google Sheets call failed in Grading.Grade POST for sheetId {SheetId}", sheetId);
+            TempData["Error"] = "Không thể kết nối Google Sheet để lưu điểm. Vui lòng thử lại sau.";
+            return RedirectToAction(nameof(List), new { periodId });
+        }
         var topicRow    = sheetTopics.FirstOrDefault(t => t.Mssv1 == mssv);
         if (topicRow == null) return NotFound();
 

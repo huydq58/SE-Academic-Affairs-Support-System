@@ -8,7 +8,7 @@ using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Models;
 using SE_Academic_Affairs_Support_System.Services;
 using SE_Academic_Affairs_Support_System.Services.AppRegistration;
-using SE_Academic_Affairs_Support_System.Services.Email;
+using SE_Academic_Affairs_Support_System.Services.EmailNotification;
 
 
 namespace SE_Academic_Affairs_Support_System.Controllers
@@ -18,13 +18,15 @@ namespace SE_Academic_Affairs_Support_System.Controllers
         private readonly IAppRegistrationService _service;
         private readonly AppDbContext _context;
         private readonly UserManager<User> _userManager;
-        private readonly IEmailService _emailService;
-        public AppRegistrationController(IAppRegistrationService service, AppDbContext context, UserManager<User> userManager, IEmailService emailService)
+        private readonly IEmailNotificationService _emailNotif;
+
+        public AppRegistrationController(IAppRegistrationService service, AppDbContext context,
+            UserManager<User> userManager, IEmailNotificationService emailNotif)
         {
             _service = service;
             _context = context;
             _userManager = userManager;
-            _emailService = emailService;
+            _emailNotif = emailNotif;
         }
 
         // GET: /AppRegistration
@@ -59,6 +61,10 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             }
 
             await _service.CreateRequestAsync(model);
+
+            await _emailNotif.NotifyAppSubmittedAsync(
+                model.StudentEmail, model.StudentInfo ?? string.Empty,
+                model.AppName, model.RequestId);
 
             TempData["SuccessMessage"] = $"Yêu cầu \"{model.AppName}\" đã được gửi thành công! Mã yêu cầu: {model.RequestId}";
             return RedirectToAction("Create");
@@ -156,9 +162,11 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                         request.AssignedLecturerId = currentUserId;
                     }
                 }
-                await _emailService.SendConfirmAppAsync(request.StudentEmail, request.StudentInfo, request);
-
                 await _context.SaveChangesAsync();
+
+                await _emailNotif.NotifyAppApprovedAsync(
+                    request.StudentEmail, request.StudentInfo ?? string.Empty, request.AppName);
+
                 TempData["SuccessMessage"] = $"Đã duyệt ứng dụng {request.AppName} thành công!";
             }
 

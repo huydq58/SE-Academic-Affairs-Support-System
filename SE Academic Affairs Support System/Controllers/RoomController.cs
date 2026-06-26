@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Models;
 using SE_Academic_Affairs_Support_System.Services.Email;
+using SE_Academic_Affairs_Support_System.Services.EmailNotification;
 using SE_Academic_Affairs_Support_System.ViewModels;
 
 namespace SE_Academic_Affairs_Support_System.Controllers
@@ -20,10 +21,14 @@ namespace SE_Academic_Affairs_Support_System.Controllers
     {
         private readonly AppDbContext _context;
         private readonly UserManager<User> _userManager;
-        public RoomController(AppDbContext context, UserManager<User> userManager)
+        private readonly IEmailNotificationService _emailNotif;
+
+        public RoomController(AppDbContext context, UserManager<User> userManager,
+            IEmailNotificationService emailNotif)
         {
             _context = context;
             _userManager = userManager;
+            _emailNotif = emailNotif;
         }
         [AllowAnonymous]
         public async Task<IActionResult> WeeklySchedule(int roomId, DateTime? selectedDate)
@@ -157,6 +162,12 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                 // Commit transaction
                 await transaction.CommitAsync();
 
+                await _emailNotif.NotifyRoomBookingConfirmedAsync(
+                    model.UserEmail ?? string.Empty, model.UserName ?? string.Empty,
+                    model.RoomName ?? string.Empty,
+                    model.BookingDate, model.StartTime, model.EndTime,
+                    model.Purpose ?? string.Empty);
+
                 TempData["SuccessMessage"] = "Đặt phòng thành công!";
 
                 return RedirectToAction("WeeklySchedule",
@@ -248,29 +259,32 @@ namespace SE_Academic_Affairs_Support_System.Controllers
         [HttpGet]
         public async Task<IActionResult> GetBookingsForCalendar(int roomId)
         {
-            // Lấy các đơn đặt phòng (cả Approved và Pending)
-            var bookings = await _context.RoomBookings
-                .Where(b => b.RoomId == roomId && (b.Status == "Approved" ))
-                .ToListAsync();
-
-            // Chuyển đổi dữ liệu sang định dạng FullCalendar hiểu được
-            var eventList = bookings.Select(b => new
+            try
             {
-                id = b.BookingId,
-                title = b.UserName,
-                purpose = b.Purpose,
-                start = b.BookingDate.Add(b.StartTime).ToString("yyyy-MM-ddTHH:mm:ss"),
-                end = b.BookingDate.Add(b.EndTime).ToString("yyyy-MM-ddTHH:mm:ss"),
+                var bookings = await _context.RoomBookings
+                    .Where(b => b.RoomId == roomId && (b.Status == "Approved"))
+                    .ToListAsync();
 
+                var eventList = bookings.Select(b => new
+                {
+                    id = b.BookingId,
+                    title = b.UserName,
+                    purpose = b.Purpose,
+                    start = b.BookingDate.Add(b.StartTime).ToString("yyyy-MM-ddTHH:mm:ss"),
+                    end = b.BookingDate.Add(b.EndTime).ToString("yyyy-MM-ddTHH:mm:ss"),
+                    color = b.Status == "Approved" ? "#dc3545" : "#ffc107",
+                    textColor = b.Status == "Approved" ? "#ffffff" : "#000000",
+                    status = b.Status
+                });
 
-                // Trạng thái Approved màu đỏ, Pending màu cam/vàng
-                color = b.Status == "Approved" ? "#dc3545" : "#ffc107",
-                textColor = b.Status == "Approved" ? "#ffffff" : "#000000",
-
-                status = b.Status // Truyền thêm dữ liệu phụ để dùng trên View nếu cần
-            });
-
-            return Json(eventList);
+                return Json(eventList);
+            }
+            catch (Exception ex)
+            {
+                var logger = HttpContext.RequestServices.GetRequiredService<ILogger<RoomController>>();
+                logger.LogError(ex, "Error loading bookings for calendar, roomId {RoomId}", roomId);
+                return Json(Array.Empty<object>());
+            }
         }
     }
 }
