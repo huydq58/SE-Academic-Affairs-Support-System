@@ -365,3 +365,6 @@ appsettings.json
 appsettings.*.json
 /SE Academic Affairs Support System/Migrations
 /SE Academic Affairs Support System/appsettings.json
+
+# Data Protection Keys (sensitive)
+DataProtectionKeys/
