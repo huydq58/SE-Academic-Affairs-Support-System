@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SE_Academic_Affairs_Support_System.Models;
 using SE_Academic_Affairs_Support_System.Services.ProjectRegistration;
 using SE_Academic_Affairs_Support_System.ViewModels;
 
@@ -158,6 +159,40 @@ namespace SE_Academic_Affairs_Support_System.Areas.Admin.Controllers
             await _svc.ClosePeriodAndAutoRejectPendingAsync(periodId);
             TempData["Success"] = "Đã chốt danh sách. Các đề xuất chưa duyệt đã bị hủy tự động.";
             return RedirectToAction(nameof(Periods));
+        }
+
+        // GET /Admin/Registration/ImportTopics/{id}
+        public async Task<IActionResult> ImportTopics(int id)
+        {
+            var periods = await _svc.GetAllPeriodsAsync();
+            var period = periods.FirstOrDefault(p => p.Id == id);
+            if (period == null) return NotFound();
+
+            return View(new ImportTopicsViewModel { PeriodId = id, PeriodName = period.Name });
+        }
+
+        // POST /Admin/Registration/ImportTopics
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> ImportTopics(ImportTopicsViewModel vm)
+        {
+            if (vm.File == null || vm.File.Length == 0)
+            {
+                ModelState.AddModelError(nameof(vm.File), "Vui lòng chọn file để import.");
+                return View(vm);
+            }
+
+            var periods = await _svc.GetAllPeriodsAsync();
+            var period = periods.FirstOrDefault(p => p.Id == vm.PeriodId);
+            vm.PeriodName = period?.Name ?? string.Empty;
+
+            var (created, skipped, errors) = await _svc.ImportTopicsFromFileAsync(vm.PeriodId, vm.File);
+            vm.Created = created;
+            vm.Skipped = skipped;
+            vm.Errors = errors;
+            vm.IsProcessed = true;
+            vm.File = null;
+
+            return View(vm);
         }
 
         // GET /Admin/Registration/Export/{periodId}

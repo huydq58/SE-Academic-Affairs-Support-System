@@ -73,6 +73,7 @@ else
                         <td data-label="Thao tác">
                             <div class="d-flex flex-wrap gap-2">
                                 <a asp-action="EditPeriod" asp-route-id="@p.Id" class="btn-act btn-act-outline">Sửa</a>
+                                <a asp-action="ImportTopics" asp-route-id="@p.Id" class="btn-act btn-act-outline">Import đề tài</a>
 
                                 @if (!p.IsActive)
                                 {

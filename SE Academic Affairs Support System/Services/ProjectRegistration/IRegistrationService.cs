@@ -50,5 +50,8 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
 
         // Admin export
         Task<List<ExportRowViewModel>> GetExportDataAsync(int periodId);
+
+        // Admin import topics from file
+        Task<(int Created, int Skipped, List<string> Errors)> ImportTopicsFromFileAsync(int periodId, IFormFile file);
     }
 }

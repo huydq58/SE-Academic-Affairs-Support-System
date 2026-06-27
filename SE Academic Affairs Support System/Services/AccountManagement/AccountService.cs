@@ -135,6 +135,24 @@ namespace SE_Academic_Affairs_Support_System.Services.AccountManagement
             if (!updateResult.Succeeded)
                 return (false, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
 
+            // Sync profile code khi Mssv thay đổi
+            if (!string.IsNullOrWhiteSpace(vm.Mssv))
+            {
+                var newCode = vm.Mssv.Trim();
+                var lecturerProfile = await _db.LecturerProfiles.FirstOrDefaultAsync(l => l.UserId == user.Id);
+                if (lecturerProfile != null && lecturerProfile.LecturerCode != newCode)
+                {
+                    lecturerProfile.LecturerCode = newCode;
+                    await _db.SaveChangesAsync();
+                }
+                var studentProfile = await _db.StudentProfiles.FirstOrDefaultAsync(s => s.UserId == user.Id);
+                if (studentProfile != null && studentProfile.StudentCode != newCode)
+                {
+                    studentProfile.StudentCode = newCode;
+                    await _db.SaveChangesAsync();
+                }
+            }
+
             if (!string.IsNullOrWhiteSpace(vm.Password))
             {
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);

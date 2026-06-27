@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ClosedXML.Excel;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Helper;
 using SE_Academic_Affairs_Support_System.Models;
@@ -17,6 +19,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
         private readonly IEmailService _email;
         private readonly IEmailNotificationService _emailNotif;
         private readonly ILogger<RegistrationService> _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         public RegistrationService(
             AppDbContext db,
@@ -24,7 +27,8 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             GoogleSheetsService sheets,
             IEmailService email,
             IEmailNotificationService emailNotif,
-            ILogger<RegistrationService> logger)
+            ILogger<RegistrationService> logger,
+            IServiceScopeFactory scopeFactory)
         {
             _db = db;
             _notif = notif;
@@ -32,6 +36,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             _email = email;
             _emailNotif = emailNotif;
             _logger = logger;
+            _scopeFactory = scopeFactory;
         }
 
         // ── Periods ───────────────────────────────────────────────────────────
@@ -215,6 +220,15 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                 .AnyAsync(r => r.TopicId == topicId && r.Status == RegistrationStatus.APPROVED);
             if (hasApproved) throw new InvalidOperationException("Không thể xóa đề tài đã có SV được duyệt.");
 
+            // Xóa các bản ghi liên quan trước (cascade delete bị tắt)
+            var syncRecords = await _db.TopicSyncRecords.Where(r => r.TopicId == topicId).ToListAsync();
+            _db.TopicSyncRecords.RemoveRange(syncRecords);
+
+            var pendingRegs = await _db.Registrations
+                .Where(r => r.TopicId == topicId && r.Status != RegistrationStatus.APPROVED)
+                .ToListAsync();
+            _db.Registrations.RemoveRange(pendingRegs);
+
             _db.Topics.Remove(topic);
             await _db.SaveChangesAsync();
         }
@@ -234,51 +248,6 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                 .Select(r => r.TopicId)
                 .ToListAsync();
 
-            // Ưu tiên load từ Google Sheet nếu đợt đã được gắn sheet link
-            var sheetId = GoogleSheetHelper.ExtractSheetId(period.GoogleSheetLink);
-            if (sheetId != null)
-            {
-                List<TopicSheet> sheetTopics;
-                try { sheetTopics = await _sheets.GetTopicsAsync(sheetId); }
-                catch { sheetTopics = []; }
-
-                // Chỉ lấy đề tài còn chỗ (Registered < MaxSlot)
-                var available = sheetTopics.Where(t => t.Registered < t.MaxSlot).ToList();
-
-                if (!string.IsNullOrWhiteSpace(keyword))
-                {
-                    var kw = keyword.Trim();
-                    available = available.Where(t =>
-                        t.TopicName.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
-                        t.Description.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
-                        t.LecturerInfo.Contains(kw, StringComparison.OrdinalIgnoreCase)).ToList();
-                }
-
-                var cards = available.Select(t => new TopicCardViewModel
-                {
-                    TopicId = t.TopicId,
-                    Title = t.TopicName,
-                    Description = t.Description,
-                    Requirements = t.Requirements,
-                    Technologies = t.Technologies,
-                    LecturerName = t.Lecturer,
-                    LecturerProfileId = 0,          // không dùng cho filter khi có sheet
-                    MaxStudents = t.MaxSlot,
-                    RegisteredCount = t.Registered,
-                    AlreadyRegistered = registeredTopicIds.Contains(t.TopicId)
-                }).ToList();
-
-                return new TopicListViewModel
-                {
-                    Period = period,
-                    Topics = cards,
-                    SearchKeyword = keyword,
-                    FilterLecturerId = null,
-                    Lecturers = []
-                };
-            }
-
-            // Fallback: load từ DB
             var query = _db.Topics
                 .Where(t => t.RegistrationPeriodId == period.Id && t.Status == TopicStatus.Open)
                 .Include(t => t.Lecturer).ThenInclude(l => l.User)
@@ -335,25 +304,27 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             if (period == null)
                 return (false, "Hiện tại không có đợt đăng ký nào đang mở hoặc bạn không có trong danh sách được phép đăng ký.");
 
-            // Serializable transaction để ngăn race condition (hai SV đăng ký cùng lúc)
-            using var tx = await _db.Database.BeginTransactionAsync(
-                System.Data.IsolationLevel.Serializable);
+            // ReadCommitted + UPDLOCK trên đúng row đề tài:
+            // - Hai transaction đồng thời không thể cùng giữ UPDLOCK trên cùng một row
+            //   → ngăn race condition đếm slot mà không cần range lock toàn bảng (Serializable).
+            // - Các row khác trong Topics và Registrations không bị ảnh hưởng.
+            using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
             try
             {
                 var topic = await _db.Topics
-                    .Include(t => t.Registrations)
-                    .Include(t => t.Lecturer).ThenInclude(l => l.User)
-                    .FirstOrDefaultAsync(t => t.Id == topicId);
+                    .FromSqlRaw("SELECT * FROM Topics WITH (UPDLOCK, ROWLOCK) WHERE Id = {0}", topicId)
+                    .FirstOrDefaultAsync();
 
                 if (topic == null || topic.Status != TopicStatus.Open)
                     return (false, "Đề tài không tồn tại hoặc đã đóng đăng ký.");
 
-                // Check slot
-                int approvedCount = topic.Registrations.Count(r => r.Status == RegistrationStatus.APPROVED);
+                // COUNT trong SQL — không load toàn bộ Registrations vào memory
+                int approvedCount = await _db.Registrations
+                    .CountAsync(r => r.TopicId == topicId && r.Status == RegistrationStatus.APPROVED);
+
                 if (approvedCount >= topic.MaxStudents)
                     return (false, "Đề tài đã hết chỗ.");
 
-                // Check duplicate
                 bool alreadyRegistered = await _db.Registrations
                     .AnyAsync(r => r.StudentProfileId == studentProfileId
                                 && r.TopicId == topicId
@@ -361,17 +332,12 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                 if (alreadyRegistered)
                     return (false, "Bạn đã đăng ký đề tài này rồi.");
 
-                // Check if student already has an approved registration this period
                 bool hasApproved = await _db.Registrations
                     .AnyAsync(r => r.StudentProfileId == studentProfileId
                                 && r.RegistrationPeriodId == period.Id
                                 && r.Status == RegistrationStatus.APPROVED);
                 if (hasApproved)
                     return (false, "Bạn đã có đề tài được duyệt trong đợt này.");
-
-                var student = await _db.StudentProfiles
-                    .Include(s => s.User)
-                    .FirstOrDefaultAsync(s => s.Id == studentProfileId);
 
                 _db.Registrations.Add(new Registration
                 {
@@ -383,43 +349,82 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                     UpdatedAt = DateTime.UtcNow
                 });
 
-                // Close topic if now full
                 if (approvedCount + 1 >= topic.MaxStudents)
                     topic.Status = TopicStatus.Closed;
 
                 await _db.SaveChangesAsync();
                 await tx.CommitAsync();
 
-                // Cập nhật sheet nếu topic đã được sync (có SheetRowIndex)
-                if (topic.SheetRowIndex.HasValue)
-                {
-                    var sheetId = GoogleSheetHelper.ExtractSheetId(period.GoogleSheetLink);
-                    if (sheetId != null && student != null)
-                    {
-                        try
-                        {
-                            await _sheets.RegisterAsync(new RegisterTopicRequest
-                            {
-                                SheetId = sheetId,
-                                RowIndex = topic.SheetRowIndex.Value,
-                                StudentId = student.StudentCode,
-                                StudentName = student.User.FullName
-                            });
-                        }
-                        catch { /* sheet update không ảnh hưởng nghiệp vụ DB */ }
-                    }
-                }
+                // Capture primitives for background task (không capture DbContext của request)
+                var capturedStudentId = studentProfileId;
+                var capturedLecturerProfileId = topic.LecturerProfileId;
+                var capturedSheetRowIndex = topic.SheetRowIndex;
+                var capturedTopicTitle = topic.Title;
+                var capturedSheetLink = period.GoogleSheetLink;
+                var capturedPeriodName = period.Name;
 
-                if (student?.User?.Email != null)
+                // Fire-and-forget: sheet sync + email chạy song song với response.
+                // IServiceScopeFactory tạo scope độc lập với DbContext riêng,
+                // tránh ObjectDisposedException khi scope của request kết thúc.
+                _ = Task.Run(async () =>
                 {
-                    var lecturerName = topic.Lecturer?.User?.FullName ?? topic.Lecturer?.LecturerCode ?? string.Empty;
-                    await _emailNotif.NotifyTopicRegisteredAsync(
-                        student.User.Email,
-                        student.User.FullName ?? student.StudentCode,
-                        topic.Title,
-                        lecturerName,
-                        period.Name);
-                }
+                    try
+                    {
+                        using var scope = _scopeFactory.CreateScope();
+                        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                        var emailNotif = scope.ServiceProvider.GetRequiredService<IEmailNotificationService>();
+
+                        var student = await db.StudentProfiles
+                            .AsNoTracking()
+                            .Where(s => s.Id == capturedStudentId)
+                            .Select(s => new { s.StudentCode, s.User.Email, DisplayName = s.User.FullName ?? s.StudentCode })
+                            .FirstOrDefaultAsync();
+
+                        if (capturedSheetRowIndex.HasValue && student != null)
+                        {
+                            var sheetId = GoogleSheetHelper.ExtractSheetId(capturedSheetLink);
+                            if (sheetId != null)
+                            {
+                                try
+                                {
+                                    await _sheets.RegisterAsync(new RegisterTopicRequest
+                                    {
+                                        SheetId = sheetId,
+                                        RowIndex = capturedSheetRowIndex.Value,
+                                        StudentId = student.StudentCode,
+                                        StudentName = student.DisplayName
+                                    });
+                                }
+                                catch { }
+                            }
+                        }
+
+                        if (student?.Email != null)
+                        {
+                            var lecturerName = await db.LecturerProfiles
+                                .AsNoTracking()
+                                .Where(l => l.Id == capturedLecturerProfileId)
+                                .Select(l => l.User.FullName ?? l.LecturerCode)
+                                .FirstOrDefaultAsync() ?? string.Empty;
+
+                            try
+                            {
+                                await emailNotif.NotifyTopicRegisteredAsync(
+                                    student.Email,
+                                    student.DisplayName,
+                                    capturedTopicTitle,
+                                    lecturerName,
+                                    capturedPeriodName);
+                            }
+                            catch { }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Post-commit notification failed for studentId={StudentId} topicId={TopicId}",
+                            capturedStudentId, topicId);
+                    }
+                });
 
                 return (true, "Đăng ký thành công!");
             }
@@ -858,6 +863,148 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                 })
                 .ToListAsync();
         }
+
+        public async Task<(int Created, int Skipped, List<string> Errors)> ImportTopicsFromFileAsync(int periodId, IFormFile file)
+        {
+            var period = await _db.RegistrationPeriods.FindAsync(periodId);
+            if (period == null) return (0, 0, ["Không tìm thấy đợt đăng ký."]);
+
+            var errors = new List<string>();
+            var (rows, parseError) = await ParseTopicFileAsync(file);
+            if (parseError != null && rows.Count == 0) return (0, 0, [parseError]);
+            if (parseError != null) errors.Add(parseError);
+
+            var lecturers = await _db.LecturerProfiles.Include(l => l.User).ToListAsync();
+            var topicsToCreate = new List<(Topic topic, LecturerProfile lecturer)>();
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                int rowNum = i + 2;
+
+                if (string.IsNullOrWhiteSpace(row.LecturerCode) || string.IsNullOrWhiteSpace(row.Title))
+                {
+                    errors.Add($"Dòng {rowNum}: thiếu LecturerCode hoặc Title, bỏ qua.");
+                    continue;
+                }
+
+                var code = row.LecturerCode.Trim();
+                var lecturer = lecturers.FirstOrDefault(l =>
+                    l.LecturerCode.Trim().Equals(code, StringComparison.OrdinalIgnoreCase) ||
+                    (l.User?.Mssv != null && l.User.Mssv.Trim().Equals(code, StringComparison.OrdinalIgnoreCase)));
+
+                if (lecturer == null)
+                {
+                    errors.Add($"Dòng {rowNum}: không tìm thấy giảng viên \"{row.LecturerCode.Trim()}\", bỏ qua.");
+                    continue;
+                }
+
+                var topic = new Topic
+                {
+                    Title = row.Title.Trim(),
+                    Description = string.IsNullOrWhiteSpace(row.Description) ? string.Empty : row.Description.Trim(),
+                    Requirements = string.IsNullOrWhiteSpace(row.Requirements) ? null : row.Requirements.Trim(),
+                    Technologies = string.IsNullOrWhiteSpace(row.Technologies) ? null : row.Technologies.Trim(),
+                    MaxStudents = row.MaxStudents > 0 ? row.MaxStudents : 1,
+                    Status = TopicStatus.Open,
+                    LecturerProfileId = lecturer.Id,
+                    RegistrationPeriodId = periodId,
+                    Note = string.IsNullOrWhiteSpace(row.Note) ? null : row.Note.Trim()
+                };
+                topicsToCreate.Add((topic, lecturer));
+            }
+
+            int skipped = rows.Count - topicsToCreate.Count;
+            if (topicsToCreate.Count == 0) return (0, skipped, errors);
+
+            _db.Topics.AddRange(topicsToCreate.Select(x => x.topic));
+            await _db.SaveChangesAsync();
+
+            _db.TopicSyncRecords.AddRange(topicsToCreate.Select(x => new TopicSyncRecord
+            {
+                TopicId = x.topic.Id,
+                PeriodId = periodId,
+                TopicTitle = x.topic.Title,
+                TopicDescription = x.topic.Description,
+                Technologies = x.topic.Technologies,
+                Requirements = x.topic.Requirements,
+                MaxStudents = x.topic.MaxStudents,
+                LecturerName = x.lecturer.User?.FullName ?? string.Empty,
+                LecturerCode = x.lecturer.LecturerCode,
+                Note = x.topic.Note
+            }));
+            await _db.SaveChangesAsync();
+
+            return (topicsToCreate.Count, skipped, errors);
+        }
+
+        private static async Task<(List<TopicImportRow> Rows, string? Error)> ParseTopicFileAsync(IFormFile file)
+        {
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            var rows = new List<TopicImportRow>();
+
+            if (ext == ".xlsx")
+            {
+                using var stream = file.OpenReadStream();
+                using var workbook = new XLWorkbook(stream);
+                var ws = workbook.Worksheets.First();
+                int lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
+                for (int r = 2; r <= lastRow; r++)
+                {
+                    var row = ws.Row(r);
+                    if (row.IsEmpty()) continue;
+                    rows.Add(new TopicImportRow(
+                        row.Cell(1).GetString().Trim(),
+                        row.Cell(2).GetString().Trim(),
+                        row.Cell(3).GetString().Trim(),
+                        row.Cell(4).GetString().Trim(),
+                        row.Cell(5).GetString().Trim(),
+                        int.TryParse(row.Cell(6).GetString().Trim(), out var ms) ? ms : 1,
+                        row.Cell(7).GetString().Trim()
+                    ));
+                }
+            }
+            else if (ext is ".csv" or ".txt")
+            {
+                using var reader = new StreamReader(file.OpenReadStream());
+                string? line;
+                bool isHeader = true;
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    if (isHeader) { isHeader = false; continue; }
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var parts = line.Split(',');
+                    rows.Add(new TopicImportRow(
+                        GetCsvCell(parts, 0),
+                        GetCsvCell(parts, 1),
+                        GetCsvCell(parts, 2),
+                        GetCsvCell(parts, 3),
+                        GetCsvCell(parts, 4),
+                        int.TryParse(GetCsvCell(parts, 5), out var ms) ? ms : 1,
+                        GetCsvCell(parts, 6)
+                    ));
+                }
+            }
+            else
+            {
+                return (rows, "Định dạng file không hỗ trợ. Vui lòng dùng .xlsx, .csv hoặc .txt.");
+            }
+
+            return (rows, null);
+        }
+
+        private static string GetCsvCell(string[] parts, int idx) =>
+            idx < parts.Length ? parts[idx].Trim().Trim('"') : string.Empty;
+
+        private record TopicImportRow(
+            string LecturerCode,
+            string Title,
+            string Description,
+            string? Requirements,
+            string? Technologies,
+            int MaxStudents,
+            string? Note
+        );
     }
 
 }

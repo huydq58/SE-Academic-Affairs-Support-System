@@ -46,6 +46,19 @@ namespace SE_Academic_Affairs_Support_System.ViewModels
         public List<StudentCheckboxItem> AvailableStudents { get; set; } = new();
     }
 
+    // ── Admin: Import Topics ──────────────────────────────────────────────────
+    public class ImportTopicsViewModel
+    {
+        public int PeriodId { get; set; }
+        public string PeriodName { get; set; } = string.Empty;
+        public IFormFile? File { get; set; }
+        // Results (populated after POST)
+        public bool IsProcessed { get; set; }
+        public int Created { get; set; }
+        public int Skipped { get; set; }
+        public List<string> Errors { get; set; } = [];
+    }
+
     // ── Admin: Export ─────────────────────────────────────────────────────────
     public class ExportRowViewModel
     {

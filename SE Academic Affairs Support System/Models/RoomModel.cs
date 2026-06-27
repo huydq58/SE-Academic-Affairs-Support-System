@@ -7,7 +7,8 @@ namespace SE_Academic_Affairs_Support_System.Models
         [Key]
         public int RoomID { get; set; }
         public string RoomName { get; set; }
-
         public string Condition { get; set; }
+
+        public static readonly string[] Conditions = { "Good", "Maintenance", "Inactive" };
     }
 }
