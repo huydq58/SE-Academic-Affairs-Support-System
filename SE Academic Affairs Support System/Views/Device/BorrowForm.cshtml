@@ -1,8 +1,6 @@
-@model SE_Academic_Affairs_Support_System.Models.DeviceRequest
+@model SE_Academic_Affairs_Support_System.Models.CreateBorrowViewModel
 @{
     ViewData["Title"] = "Đăng ký mượn thiết bị";
-    var availableDevices = ViewBag.AvailableDevices as List<SE_Academic_Affairs_Support_System.Models.Device> ?? new();
-    var preSelected = ViewBag.PreSelectedDevice as SE_Academic_Affairs_Support_System.Models.Device;
 }
 
 <style>
@@ -19,9 +17,16 @@
     .bf-wrap .form-select:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); outline:none; }
     .bf-wrap .form-control.is-invalid { border-color:#dc2626; background-image:none; }
 
-    .device-preview { background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:14px 16px; margin-top:4px; }
-    .device-preview .dp-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#0369a1; margin-bottom:4px; }
-    .device-preview .dp-val { font-size:14px; font-weight:600; color:#0c4a6e; }
+    .device-pick-list { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; }
+    .device-pick-row { display:flex; align-items:center; gap:12px; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; }
+    .device-pick-row:hover { border-color:#bfdbfe; background:#f8fbff; }
+    .dp-check { display:flex; align-items:center; gap:10px; flex:1; margin:0; cursor:pointer; }
+    .dp-check .dp-cb { width:17px; height:17px; }
+    .dp-name { font-size:14px; color:#1f2937; font-weight:500; }
+    .dp-cat { font-size:12px; color:#6b7280; margin-left:4px; }
+    .dp-qty { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+    .dp-qty label { font-size:11px; font-weight:700; color:#9ca3af; margin:0; }
+    .dp-qty input { width:74px; }
 
     .commit-box { background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:14px 16px; }
     .commit-box p { font-size:13px; color:#78350f; margin:0 0 10px 0; line-height:1.6; }
@@ -35,7 +40,7 @@
 
     <div class="dv-page-title">
         <h2>Đăng ký mượn thiết bị</h2>
-        <p>Điền thông tin để gửi yêu cầu mượn thiết bị đến quản lý</p>
+        <p>Chọn một hoặc nhiều thiết bị và điền thông tin để gửi yêu cầu mượn</p>
     </div>
 
     @await Html.PartialAsync("_Alerts")
@@ -43,43 +48,48 @@
     <form asp-action="BorrowForm" asp-controller="Device" method="post" novalidate hx-boost="false">
         @Html.AntiForgeryToken()
 
-        <!-- Device selection -->
-        <div class="bf-section">
-            <div class="bf-section-head">Chọn thiết bị</div>
-            <div class="bf-section-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
 
-                @if (preSelected != null)
+        <!-- Device selection (multi) -->
+        <div class="bf-section">
+            <div class="bf-section-head">Chọn thiết bị (có thể chọn nhiều)</div>
+            <div class="bf-section-body">
+                @if (!Model.Items.Any())
                 {
-                    <input type="hidden" name="DeviceId" value="@preSelected.DeviceId" />
-                    <div class="device-preview">
-                        <div class="dp-lbl">Thiết bị đã chọn</div>
-                        <div class="dp-val">@preSelected.DeviceName</div>
-                        @if (!string.IsNullOrEmpty(preSelected.Category))
-                        {
-                            <div style="font-size:12px; color:#0369a1; margin-top:4px;">@preSelected.Category</div>
-                        }
-                    </div>
-                    <div class="mt-2">
-                        <a href="/Device/Catalog" style="font-size:13px; color:#2563eb;">Chọn thiết bị khác</a>
-                    </div>
+                    <p class="text-muted" style="font-size:13px; margin:0;">
+                        Hiện không có thiết bị nào sẵn sàng để mượn.
+                    </p>
                 }
                 else
                 {
-                    <div>
-                        <label class="form-label" for="DeviceId">Thiết bị <span class="text-danger">*</span></label>
-                        <select name="DeviceId" id="DeviceId" class="form-select" required>
-                            <option value="">-- Chọn thiết bị muốn mượn --</option>
-                            @foreach (var dev in availableDevices)
-                            {
-                                <option value="@dev.DeviceId" selected="@(Model.DeviceId == dev.DeviceId)">
-                                    @dev.DeviceName@(!string.IsNullOrEmpty(dev.Category) ? $" ({dev.Category})" : "")
-                                </option>
-                            }
-                        </select>
-                        <span asp-validation-for="DeviceId" class="text-danger small"></span>
+                    <div class="device-pick-list">
+                        @for (int i = 0; i < Model.Items.Count; i++)
+                        {
+                            <div class="device-pick-row">
+                                <input type="hidden" asp-for="Items[i].DeviceId" />
+                                <input type="hidden" asp-for="Items[i].DeviceName" />
+                                <input type="hidden" asp-for="Items[i].Category" />
+                                <input type="hidden" asp-for="Items[i].Available" />
+                                <label class="dp-check">
+                                    <input type="checkbox" asp-for="Items[i].Selected" class="dp-cb" />
+                                    <span class="dp-name">
+                                        @Model.Items[i].DeviceName
+                                        @if (!string.IsNullOrEmpty(Model.Items[i].Category))
+                                        {
+                                            <span class="dp-cat">(@Model.Items[i].Category)</span>
+                                        }
+                                        <span class="dp-cat" style="color:#16a34a;">• còn @Model.Items[i].Available</span>
+                                    </span>
+                                </label>
+                                <div class="dp-qty">
+                                    <label>SL</label>
+                                    <input type="number" asp-for="Items[i].Quantity" min="1" max="@Model.Items[i].Available"
+                                           class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
-
             </div>
         </div>
 
@@ -90,8 +100,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
-                    <input asp-for="BorrowerName" class="form-control"
-                           placeholder="Nguyễn Văn A" />
+                    <input asp-for="BorrowerName" class="form-control" placeholder="Nguyễn Văn A" />
                     <span asp-validation-for="BorrowerName" class="text-danger small"></span>
                 </div>
 
@@ -109,14 +118,12 @@
         <div class="bf-section">
             <div class="bf-section-head">Mục đích sử dụng</div>
             <div class="bf-section-body">
-
                 <div>
                     <label class="form-label">Mô tả mục đích <span class="text-danger">*</span></label>
                     <textarea asp-for="Purpose" class="form-control" rows="3"
                               placeholder="Mô tả ngắn gọn mục đích mượn thiết bị..."></textarea>
                     <span asp-validation-for="Purpose" class="text-danger small"></span>
                 </div>
-
             </div>
         </div>
 

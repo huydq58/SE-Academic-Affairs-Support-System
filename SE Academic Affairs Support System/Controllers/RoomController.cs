@@ -286,5 +286,95 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                 return Json(Array.Empty<object>());
             }
         }
+
+        // ── Admin: Quản lý / hủy lịch đặt phòng ───────────────────────────────
+        // GET /Room/ManageBookings — danh sách lịch đã đặt (sắp tới) để admin xử lý.
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> ManageBookings()
+        {
+            var today = DateTime.Today;
+            var bookings = await _context.RoomBookings
+                .Include(b => b.Room)
+                .Where(b => b.Status == "Approved" && b.BookingDate >= today)
+                .OrderBy(b => b.BookingDate).ThenBy(b => b.StartTime)
+                .ToListAsync();
+            return View(bookings);
+        }
+
+        // POST /Room/CancelBooking — admin hủy slot khi Khoa có việc. Gửi mail từ chối (fail-safe).
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelBooking(int id, string cancelReason)
+        {
+            var booking = await _context.RoomBookings
+                .Include(b => b.Room)
+                .FirstOrDefaultAsync(b => b.BookingId == id);
+
+            if (booking == null) return NotFound();
+            if (booking.Status == "Cancelled")
+            {
+                TempData["Error"] = "Lịch đặt phòng này đã được hủy trước đó.";
+                return RedirectToAction(nameof(ManageBookings));
+            }
+
+            bool mailOk = await CancelBookingCoreAsync(booking, cancelReason);
+            TempData["Success"] = mailOk
+                ? $"Đã hủy lịch đặt phòng của {booking.UserName} và gửi email thông báo."
+                : $"Đã hủy lịch của {booking.UserName}. (Gửi email thông báo thất bại — thông tin slot đã được lưu lại để xử lý.)";
+            return RedirectToAction(nameof(ManageBookings));
+        }
+
+        // POST /Room/CancelBookingAjax — hủy slot ngay trên lịch (FullCalendar), trả JSON.
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelBookingAjax(int id, string cancelReason)
+        {
+            var booking = await _context.RoomBookings
+                .Include(b => b.Room)
+                .FirstOrDefaultAsync(b => b.BookingId == id);
+
+            if (booking == null)
+                return Json(new { success = false, message = "Không tìm thấy lịch đặt phòng." });
+            if (booking.Status == "Cancelled")
+                return Json(new { success = false, message = "Lịch này đã được hủy trước đó." });
+
+            bool mailOk = await CancelBookingCoreAsync(booking, cancelReason);
+            return Json(new
+            {
+                success = true,
+                message = mailOk
+                    ? $"Đã hủy lịch của {booking.UserName} và gửi email thông báo."
+                    : $"Đã hủy lịch của {booking.UserName}. (Gửi email thất bại — đã lưu thông tin để xử lý.)"
+            });
+        }
+
+        // Lõi hủy: lưu thông tin slot (commit DB trước) rồi gửi mail fail-safe. Trả về true nếu mail gửi OK.
+        private async Task<bool> CancelBookingCoreAsync(RoomBooking booking, string? cancelReason)
+        {
+            booking.Status = "Cancelled";
+            booking.CancelReason = string.IsNullOrWhiteSpace(cancelReason) ? null : cancelReason.Trim();
+            booking.CancelledAt = DateTime.Now;
+            booking.CancelledBy = (await _userManager.GetUserAsync(User))?.FullName ?? User.Identity?.Name;
+            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _emailNotif.NotifyRoomBookingCancelledAsync(
+                    booking.UserEmail ?? string.Empty, booking.UserName ?? string.Empty,
+                    booking.Room?.RoomName ?? "phòng",
+                    booking.BookingDate, booking.StartTime, booking.EndTime,
+                    booking.CancelReason);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                HttpContext.RequestServices.GetRequiredService<ILogger<RoomController>>()
+                    .LogWarning(ex, "Đã hủy đặt phòng {BookingId} nhưng gửi mail thất bại.", booking.BookingId);
+                return false;
+            }
+        }
     }
 }

@@ -30,6 +30,10 @@ namespace SE_Academic_Affairs_Support_System.Models
         // Trạng thái mặc định khi tạo mới là Pending
         public RequestStatus Status { get; set; } = RequestStatus.Pending;
 
+        // Ngày gửi yêu cầu (giờ địa phương, dùng để lọc thời gian khi export)
+        [Display(Name = "Ngày yêu cầu")]
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
         // Lưu ID của Lecturer được Admin chọn
         public string? AssignedLecturerId { get; set; }
 

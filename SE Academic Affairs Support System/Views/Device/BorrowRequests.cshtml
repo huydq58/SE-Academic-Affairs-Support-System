@@ -1,4 +1,4 @@
-@model List<SE_Academic_Affairs_Support_System.Models.DeviceRequestViewModel>
+@model List<SE_Academic_Affairs_Support_System.Models.DeviceRequest>
 @{
     ViewData["Title"] = "Duyệt Yêu Cầu Mượn";
 }
@@ -30,8 +30,53 @@
         <h2>Duyệt Yêu Cầu Mượn Thiết bị</h2>
         <p>Xem xét và phê duyệt các yêu cầu mượn thiết bị</p>
     </div>
-    <a href="/Device/Index" class="btn btn-outline-secondary btn-sm px-3">Quản lý kho</a>
+    <div class="d-flex gap-2 align-items-end flex-wrap">
+        <form action="/Device/ExportBorrowed" method="get" hx-boost="false"
+              class="d-flex flex-wrap align-items-end gap-2 export-filter">
+            <div>
+                <label class="ef-lbl">Thời gian mượn</label>
+                <select name="TimeMode" class="form-select form-select-sm"
+                        onchange="this.closest('form').querySelector('.range-box').style.display=(this.value==='Range'?'flex':'none')">
+                    <option value="All">Tất cả</option>
+                    <option value="Today">Hôm nay</option>
+                    <option value="ThisWeek">Tuần này</option>
+                    <option value="Range">Khoảng thời gian</option>
+                </select>
+            </div>
+            <div class="range-box gap-2" style="display:none;">
+                <div>
+                    <label class="ef-lbl">Từ ngày</label>
+                    <input type="date" name="FromDate" class="form-control form-control-sm" />
+                </div>
+                <div>
+                    <label class="ef-lbl">Đến ngày</label>
+                    <input type="date" name="ToDate" class="form-control form-control-sm" />
+                </div>
+            </div>
+            <div>
+                <label class="ef-lbl">Trạng thái</label>
+                <select name="Status" class="form-select form-select-sm">
+                    <option value="">Tất cả</option>
+                    <option value="NotReturned">Chưa trả</option>
+                    <option value="Returned">Đã trả</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-outline-success btn-sm px-3">
+                <i class="bi bi-file-earmark-excel me-1"></i>Xuất Excel
+            </button>
+        </form>
+        <a href="/Device/DamageReports" class="btn btn-outline-danger btn-sm px-3">
+            <i class="bi bi-exclamation-triangle me-1"></i>Báo cáo hư hỏng
+        </a>
+        <a href="/Device/Index" class="btn btn-outline-secondary btn-sm px-3">Quản lý kho</a>
+    </div>
 </div>
+
+<style>
+    .export-filter .ef-lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; margin-bottom:3px; display:block; }
+    .export-filter .range-box { display:none; }
+    .export-filter select, .export-filter input { border-color:#d1d5db; }
+</style>
 
 @await Html.PartialAsync("_Alerts")
 
@@ -39,13 +84,13 @@
 <div class="row g-3 mb-4">
     <div class="col-6 col-sm-4">
         <div class="stat-box">
-            <div class="stat-num sn-amber">@Model.Count(r => r.Request.Status == "Pending")</div>
+            <div class="stat-num sn-amber">@Model.Count(r => r.Status == "Pending")</div>
             <div class="stat-lbl">Chờ duyệt</div>
         </div>
     </div>
     <div class="col-6 col-sm-4">
         <div class="stat-box">
-            <div class="stat-num sn-green">@Model.Count(r => r.Request.Status == "Approved")</div>
+            <div class="stat-num sn-green">@Model.Count(r => r.Status == "Approved")</div>
             <div class="stat-lbl">Đã duyệt</div>
         </div>
     </div>
@@ -74,10 +119,8 @@
             <p>Chưa có yêu cầu mượn thiết bị nào.</p>
         </div>
     }
-    @foreach (var vm in Model)
+    @foreach (var req in Model)
     {
-        var req    = vm.Request;
-        var device = vm.Device;
         var statusLabel = req.Status == "Pending"  ? "Chờ duyệt"   :
                           req.Status == "Approved" ? "Đã duyệt"    :
                           req.Status == "Rejected" ? "Đã từ chối"  :
@@ -85,10 +128,13 @@
         var statusClass = req.Status == "Pending"  ? "sb-amber" :
                           req.Status == "Approved" ? "sb-green"  :
                           req.Status == "Rejected" ? "sb-red"    : "sb-gray";
+        var deviceSummary = req.Items.Any()
+            ? string.Join(", ", req.Items.Select(i => (i.Device?.DeviceName ?? "(đã xóa)") + (i.Quantity > 1 ? $" ×{i.Quantity}" : "")))
+            : "Thiết bị không xác định";
 
         <div class="req-card status-@req.Status" data-status="@req.Status">
             <div class="req-header">
-                <span class="req-title">@(device?.DeviceName ?? "Thiết bị không xác định")</span>
+                <span class="req-title">@deviceSummary</span>
                 <span class="sb @statusClass">@statusLabel</span>
             </div>
             <div class="req-body">
@@ -112,6 +158,17 @@
                             <div class="meta-val">@req.ReturnDate.Value.ToString("dd/MM/yyyy")</div>
                         </div>
                     }
+                    <div style="grid-column:1/-1;">
+                        <div class="meta-lbl">Thiết bị (@req.Items.Count)</div>
+                        <div class="meta-val">
+                            <ul style="margin:0; padding-left:18px;">
+                                @foreach (var it in req.Items)
+                                {
+                                    <li>@(it.Device?.DeviceName ?? "(đã xóa)") <span style="color:#6b7280;">× @it.Quantity</span></li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
                     @if (!string.IsNullOrEmpty(req.Purpose))
                     {
                         <div style="grid-column:1/-1;">
@@ -142,6 +199,14 @@
                                 Từ chối
                             </button>
                         </form>
+                    </div>
+                }
+                else if (req.Status == "Approved")
+                {
+                    <div class="req-actions">
+                        <a href="/Device/ReturnForm/@req.RequestId" class="btn-act btn-act-success">
+                            Nhận trả / ghi nhận hư hỏng
+                        </a>
                     </div>
                 }
             </div>

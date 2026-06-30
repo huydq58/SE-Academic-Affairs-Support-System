@@ -12,6 +12,8 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
         Task<List<RegistrationPeriod>> GetAllPeriodsAsync();
         Task CreatePeriodAsync(PeriodFormViewModel vm);
         Task UpdatePeriodAsync(PeriodFormViewModel vm);
+        // Gửi (nền) thông báo hạn nộp báo cáo cho SV đã được duyệt đề tài trong đợt
+        void QueueReportDeadlineAnnouncement(int periodId);
         Task SetPeriodActiveAsync(int periodId);
         Task ClosePeriodAndAutoRejectPendingAsync(int periodId);
 
@@ -53,5 +55,9 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
 
         // Admin import topics from file
         Task<(int Created, int Skipped, List<string> Errors)> ImportTopicsFromFileAsync(int periodId, IFormFile file);
+
+        // Lecturer bulk import own topics from Excel (auto-assign current lecturer + chosen open period)
+        Task<(int Created, int Skipped, List<string> Errors)> ImportLecturerTopicsAsync(
+            int lecturerProfileId, int periodId, IFormFile file);
     }
 }

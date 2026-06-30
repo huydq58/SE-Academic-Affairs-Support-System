@@ -20,8 +20,15 @@ namespace SE_Academic_Affairs_Support_System.Models
         public TimeSpan EndTime { get; set; }
 
         public string Purpose { get; set; }
-        public string Status { get; set; } = "Pending";
+        public string Status { get; set; } = "Pending"; // Pending / Approved / Cancelled
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // Thông tin hủy (admin hủy lịch khi khoa có việc) — lưu để xử lý về sau
+        [MaxLength(500)]
+        public string? CancelReason { get; set; }
+        public DateTime? CancelledAt { get; set; }
+        [MaxLength(200)]
+        public string? CancelledBy { get; set; }
 
         public RoomModel Room { get; set; }
 

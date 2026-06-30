@@ -12,7 +12,10 @@ using SE_Academic_Affairs_Support_System.Services.Email;
 using SE_Academic_Affairs_Support_System.Services.EmailConfig;
 using SE_Academic_Affairs_Support_System.Services.EmailNotification;
 using SE_Academic_Affairs_Support_System.Services.ProjectRegistration;
+using SE_Academic_Affairs_Support_System.Services.Excel;
+using SE_Academic_Affairs_Support_System.Services.ReportDeadline;
 using SE_Academic_Affairs_Support_System.Middleware;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace SE_Academic_Affairs_Support_System
 {
@@ -21,6 +24,15 @@ namespace SE_Academic_Affairs_Support_System
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // 0. Giới hạn upload 500MB (nộp báo cáo đồ án)
+            builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 524_288_000);
+            builder.Services.Configure<FormOptions>(o =>
+            {
+                o.MultipartBodyLengthLimit = 524_288_000;
+                o.ValueLengthLimit = int.MaxValue;
+                o.MultipartHeadersLengthLimit = int.MaxValue;
+            });
 
             // 1. Data Protection — persist keys so encrypted passwords survive restarts
             var keysFolder = new DirectoryInfo(
@@ -44,10 +56,12 @@ namespace SE_Academic_Affairs_Support_System
             builder.Services.AddScoped<IRegistrationService, RegistrationService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IRegistrationPeriodStudentService, RegistrationPeriodStudentService>();
+            builder.Services.AddScoped<IExcelService, ExcelService>();
             builder.Services.AddHostedService<GradeSyncService>();
             builder.Services.AddHostedService<TopicSyncService>();
             builder.Services.AddHostedService<TopicCreateSyncService>();
             builder.Services.AddHostedService<PeriodAutoCloseService>();
+            builder.Services.AddHostedService<ReportDeadlineReminderService>();
 
             builder.Services.AddHttpClient<GoogleSheetsService>()
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler

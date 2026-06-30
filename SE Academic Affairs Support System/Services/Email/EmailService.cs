@@ -61,7 +61,7 @@ namespace SE_Academic_Affairs_Support_System.Services.Email
 <p>Phòng Quản lý Học vụ xác nhận yêu cầu mượn thiết bị của bạn đã được phê duyệt.</p>
 
 <p><strong>Thông tin chi tiết đơn mượn:</strong><br />
-- Thiết bị: {deviceRequest.Device.DeviceName}<br />
+- Thiết bị: {string.Join(", ", deviceRequest.Items.Select(i => i.Device?.DeviceName ?? "thiết bị"))}<br />
 - Địa điểm sử dụng: Phòng E7.3 - Tòa nhà E</p>
 
 <p><strong>Lưu ý dành cho người mượn:</strong><br />

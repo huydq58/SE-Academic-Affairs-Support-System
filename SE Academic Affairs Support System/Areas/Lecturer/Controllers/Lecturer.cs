@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SE_Academic_Affairs_Support_System.Data;
 using SE_Academic_Affairs_Support_System.Models;
+using SE_Academic_Affairs_Support_System.Services.Excel;
 using SE_Academic_Affairs_Support_System.Services.ProjectRegistration;
 using SE_Academic_Affairs_Support_System.ViewModels;
 
@@ -17,16 +18,22 @@ namespace SE_Academic_Affairs_Support_System.Areas.Lecturer.Controllers
         private readonly IRegistrationService _svc;
         private readonly UserManager<User> _userMgr;
         private readonly AppDbContext _db;
+        private readonly IExcelService _excel;
 
         public RegistrationController(
             IRegistrationService svc,
             UserManager<User> userMgr,
-            AppDbContext db)
+            AppDbContext db,
+            IExcelService excel)
         {
             _svc = svc;
             _userMgr = userMgr;
             _db = db;
+            _excel = excel;
         }
+
+        private static readonly string[] TopicTemplateHeaders =
+            { "Tên đề tài", "Mô tả", "Yêu cầu đầu vào", "Công nghệ gợi ý", "Số SV tối đa", "Ghi chú" };
 
         private async Task<int?> GetLecturerProfileIdAsync()
         {
@@ -178,6 +185,78 @@ namespace SE_Academic_Affairs_Support_System.Areas.Lecturer.Controllers
             }
             return RedirectToAction(nameof(MyTopics));
         }
+
+        // GET /Lecturer/Registration/ImportTopics
+        public async Task<IActionResult> ImportTopics()
+        {
+            var activePeriods = await _svc.GetActivePeriodsAsync();
+            if (!activePeriods.Any())
+            {
+                TempData["Info"] = "Chưa có đợt đăng ký nào đang mở để import đề tài.";
+                return RedirectToAction(nameof(MyTopics));
+            }
+
+            return View(new ImportLecturerTopicsViewModel
+            {
+                PeriodId = activePeriods.First().Id,
+                AvailablePeriods = ToPeriodItems(activePeriods)
+            });
+        }
+
+        // POST /Lecturer/Registration/ImportTopics
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> ImportTopics(ImportLecturerTopicsViewModel vm)
+        {
+            var lecturerId = await GetLecturerProfileIdAsync();
+            if (lecturerId == null) return Forbid();
+
+            var activePeriods = await _svc.GetActivePeriodsAsync();
+            vm.AvailablePeriods = ToPeriodItems(activePeriods);
+
+            var fileError = _excel.ValidateUploadedFile(vm.File);
+            if (fileError != null)
+            {
+                ModelState.AddModelError(nameof(vm.File), fileError);
+                return View(vm);
+            }
+
+            if (!activePeriods.Any(p => p.Id == vm.PeriodId))
+            {
+                ModelState.AddModelError(nameof(vm.PeriodId), "Đợt đăng ký không hợp lệ hoặc đã đóng.");
+                return View(vm);
+            }
+
+            var (created, skipped, errors) = await _svc.ImportLecturerTopicsAsync(lecturerId.Value, vm.PeriodId, vm.File!);
+            vm.Created = created;
+            vm.Skipped = skipped;
+            vm.Errors = errors;
+            vm.IsProcessed = true;
+            vm.File = null;
+
+            if (created > 0)
+                TempData["Success"] = $"Đã import {created} đề tài. Đề tài sẽ được đồng bộ lên Google Sheets trong vài phút.";
+
+            return View(vm);
+        }
+
+        // GET /Lecturer/Registration/DownloadTopicTemplate
+        public IActionResult DownloadTopicTemplate()
+        {
+            var sample = new[] { "Hệ thống quản lý thư viện", "Xây dựng web quản lý mượn/trả sách", "Biết C#, SQL", "ASP.NET Core, SQL Server", "2", "Ưu tiên SV năm 4" };
+            var bytes = _excel.BuildTemplate("DeTai", TopicTemplateHeaders, sample);
+            return File(bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "mau-import-de-tai.xlsx");
+        }
+
+        private static List<PeriodSelectItem> ToPeriodItems(IEnumerable<RegistrationPeriod> periods) =>
+            periods.Select(p => new PeriodSelectItem
+            {
+                Id = p.Id,
+                Name = p.Name,
+                StartDate = p.StartDate,
+                EndDate = p.EndDate
+            }).ToList();
 
 
         private async Task<int?> GetStudentProfileIdAsync()

@@ -17,23 +17,24 @@
 
     @await Html.PartialAsync("_Alerts")
 
-    <!-- Status strip (read-only info) -->
+    @{ var borrowedNow = (int)(ViewBag.Borrowed ?? 0); var availableNow = Model.TotalQuantity - Model.BrokenQuantity - borrowedNow; }
+    <!-- Inventory strip (read-only info) -->
     <div class="status-strip">
         <div class="strip-item">
             <div class="strip-lbl">Mã TB</div>
-            <span style="font-family:monospace; font-size:14px; color:#6b7280;">#@Model.DeviceId</span>
+            <span style="font-family:monospace; font-size:14px; color:#6b7280;">@(string.IsNullOrEmpty(Model.DeviceCode) ? $"#{Model.DeviceId}" : Model.DeviceCode)</span>
         </div>
         <div class="strip-item">
-            <div class="strip-lbl">Trạng thái hiện tại</div>
-            <span class="sb @(Model.Status == "Available" ? "sb-green" : Model.Status == "Borrowing" ? "sb-blue" : "sb-amber")">
-                @(Model.Status == "Available" ? "Sẵn sàng" : Model.Status == "Borrowing" ? "Đang mượn" : "Đã trả")
-            </span>
+            <div class="strip-lbl">Tổng</div>
+            <span class="sb sb-gray">@Model.TotalQuantity</span>
         </div>
         <div class="strip-item">
-            <div class="strip-lbl">Tình trạng hiện tại</div>
-            <span class="sb @(Model.Condition == "Good" ? "sb-green" : "sb-red")">
-                @(Model.Condition == "Good" ? "Tốt" : "Hỏng")
-            </span>
+            <div class="strip-lbl">Đang mượn</div>
+            <span class="sb sb-blue">@borrowedNow</span>
+        </div>
+        <div class="strip-item">
+            <div class="strip-lbl">Còn lại</div>
+            <span class="sb @(availableNow > 0 ? "sb-green" : "sb-red")">@availableNow</span>
         </div>
     </div>
 
@@ -43,6 +44,15 @@
         <div class="dv-section">
             <div class="dv-section-head">Thông tin thiết bị</div>
             <div class="dv-section-body">
+
+                <div class="mb-3">
+                    <label class="form-label">Mã thiết bị</label>
+                    <input asp-for="DeviceCode"
+                           class="form-control @(ViewData.ModelState["DeviceCode"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                           placeholder="Ví dụ: MC01 (để trống nếu không có)" />
+                    <span asp-validation-for="DeviceCode" class="invalid-feedback d-block small"></span>
+                    <div class="form-text" style="font-size:12px;">Mã định danh duy nhất, có thể để trống.</div>
+                </div>
 
                 <div class="mb-3">
                     <label class="form-label">Tên thiết bị <span class="text-danger">*</span></label>
@@ -68,24 +78,20 @@
         </div>
 
         <div class="dv-section">
-            <div class="dv-section-head">Trạng thái & Tình trạng</div>
+            <div class="dv-section-head">Tồn kho</div>
             <div class="dv-section-body">
 
                 <div class="row g-3">
                     <div class="col-12 col-sm-6">
-                        <label class="form-label" for="Status">Trạng thái</label>
-                        <select asp-for="Status" class="form-select">
-                            <option value="Available">Sẵn sàng</option>
-                            <option value="Borrowing">Đang mượn</option>
-                            <option value="Returned">Đã trả</option>
-                        </select>
+                        <label class="form-label">Tổng số lượng <span class="text-danger">*</span></label>
+                        <input asp-for="TotalQuantity" type="number" min="1" class="form-control" />
+                        <span asp-validation-for="TotalQuantity" class="invalid-feedback d-block small"></span>
+                        <div class="form-text" style="font-size:12px;">Không được nhỏ hơn số đang mượn (@borrowedNow).</div>
                     </div>
                     <div class="col-12 col-sm-6">
-                        <label class="form-label" for="Condition">Tình trạng</label>
-                        <select asp-for="Condition" class="form-select">
-                            <option value="Good">Tốt</option>
-                            <option value="Broken">Hỏng</option>
-                        </select>
+                        <label class="form-label">Số lượng hỏng</label>
+                        <input asp-for="BrokenQuantity" type="number" min="0" class="form-control" />
+                        <span asp-validation-for="BrokenQuantity" class="invalid-feedback d-block small"></span>
                     </div>
                 </div>
 

@@ -1,20 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Runtime.Serialization;
+using System.ComponentModel.DataAnnotations;
 
 namespace SE_Academic_Affairs_Support_System.Models
 {
+    // Phiếu mượn (header) — một phiếu gồm NHIỀU thiết bị (xem DeviceRequestItem).
+    // Trạng thái trả nằm ở MỨC PHIẾU: ReturnDate/Status áp cho cả phiếu (trả đồng loạt).
     public class DeviceRequest
     {
         [Key]
         public int RequestId { get; set; }
-
-        [Required]
-        public int DeviceId { get; set; }
-
-        [ForeignKey("DeviceId")]
-
-        public Device? Device { get; set; }
 
         [Required]
         [Display(Name = "Họ tên người mượn")]
@@ -25,7 +18,6 @@ namespace SE_Academic_Affairs_Support_System.Models
 
         [Display(Name = "Mục đích mượn")]
         public string Purpose { get; set; }
-
 
         [Display(Name = "Trạng thái")]
         public string Status { get; set; } = "Pending";
@@ -38,5 +30,8 @@ namespace SE_Academic_Affairs_Support_System.Models
 
         [Display(Name = "Ngày trả")]
         public DateTime? ReturnDate { get; set; }
+
+        // Chi tiết mượn: mỗi dòng 1 thiết bị + số lượng
+        public ICollection<DeviceRequestItem> Items { get; set; } = new List<DeviceRequestItem>();
     }
 }

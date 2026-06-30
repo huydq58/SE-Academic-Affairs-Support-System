@@ -179,11 +179,34 @@
                                 <i class="bi bi-house me-1"></i>Trang chủ
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link fw-semibold custom-nav-hover" asp-area="" asp-controller="Home" asp-action="RoomList">
-                                <i class="bi bi-door-closed me-1"></i>Đặt phòng
-                            </a>
-                        </li>
+                        @if (SignInManager.IsSignedIn(User) && User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link fw-semibold custom-nav-hover dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-door-closed me-1"></i>Đặt phòng
+                                </a>
+                                <ul class="dropdown-menu shadow-sm border-0 dropdown-menu-accent">
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="Home" asp-action="RoomList">
+                                            <i class="bi bi-door-closed me-2 text-primary"></i>Đặt phòng
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="Room" asp-action="ManageBookings">
+                                            <i class="bi bi-calendar-x me-2 text-primary"></i>Quản lý đặt phòng
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold custom-nav-hover" asp-area="" asp-controller="Home" asp-action="RoomList">
+                                    <i class="bi bi-door-closed me-1"></i>Đặt phòng
+                                </a>
+                            </li>
+                        }
 
                         @if (SignInManager.IsSignedIn(User) && User.IsInRole("Admin"))
                         {
@@ -200,6 +223,16 @@
                                     <li>
                                         <a class="dropdown-item" asp-area="" asp-controller="Device" asp-action="Index">
                                             <i class="bi bi-sliders me-2 text-primary"></i>Quản lý thiết bị
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="Device" asp-action="BorrowRequests">
+                                            <i class="bi bi-clipboard-check me-2 text-primary"></i>Duyệt yêu cầu mượn
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="Device" asp-action="DamageReports">
+                                            <i class="bi bi-exclamation-triangle me-2 text-danger"></i>Báo cáo hư hỏng
                                         </a>
                                     </li>
                                 </ul>
@@ -234,6 +267,26 @@
                                 </ul>
                             </li>
                         }
+                        else if (SignInManager.IsSignedIn(User) && User.IsInRole("Lecturer"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link fw-semibold custom-nav-hover dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-phone me-1"></i>Ứng dụng
+                                </a>
+                                <ul class="dropdown-menu shadow-sm border-0 dropdown-menu-accent">
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="AppRegistration" asp-action="Create">
+                                            <i class="bi bi-cloud-upload me-2 text-primary"></i>Đăng tải ứng dụng
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="AppRegistration" asp-action="PendingRequests">
+                                            <i class="bi bi-check2-circle me-2 text-primary"></i>Yêu cầu cần xử lý
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
                         else
                         {
                             <li class="nav-item">
@@ -248,6 +301,11 @@
                             <li class="nav-item">
                                 <a class="nav-link fw-semibold custom-nav-hover" asp-area="Admin" asp-controller="Registration" asp-action="Periods">
                                     <i class="bi bi-calendar3 me-1"></i>Đợt đăng ký
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold custom-nav-hover" asp-area="" asp-controller="Report" asp-action="Submissions">
+                                    <i class="bi bi-file-earmark-text me-1"></i>Bài nộp
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -288,6 +346,11 @@
                             <li class="nav-item">
                                 <a class="nav-link fw-semibold custom-nav-hover" asp-area="Student" asp-controller="Registration" asp-action="ActivePeriods">
                                     <i class="bi bi-journal-text me-1"></i>Đăng ký đề tài
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold custom-nav-hover" asp-area="" asp-controller="Report" asp-action="MyReports">
+                                    <i class="bi bi-cloud-upload me-1"></i>Nộp báo cáo
                                 </a>
                             </li>
                         }

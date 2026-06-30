@@ -97,6 +97,7 @@ namespace SE_Academic_Affairs_Support_System.Areas.Admin.Controllers
                 GoogleSheetLink = period.GoogleSheetLink,
                 StartDate = period.StartDate,
                 EndDate = period.EndDate,
+                ReportDeadline = period.ReportDeadline,
                 IsActive = period.IsActive,
                 RestrictToAllowedStudents = period.RestrictToAllowedStudents,
                 AvailableStudents = await _studentSvc.GetAvailableStudentsAsync(id)

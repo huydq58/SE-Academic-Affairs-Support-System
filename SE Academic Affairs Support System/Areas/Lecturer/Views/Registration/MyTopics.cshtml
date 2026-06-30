@@ -40,6 +40,9 @@
         </a>
         @if (Model.ActivePeriods.Any())
         {
+            <a asp-action="ImportTopics" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-excel me-1"></i>Import Excel
+            </a>
             <a asp-action="CreateTopic" class="btn btn-primary">+ Tạo đề tài mới</a>
         }
     </div>

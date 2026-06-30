@@ -33,6 +33,10 @@ namespace SE_Academic_Affairs_Support_System.ViewModels
         [Required]
         [Display(Name = "Ngày kết thúc")]
         public DateTime EndDate { get; set; } = DateTime.Today.AddDays(14);
+
+        [Display(Name = "Hạn nộp báo cáo")]
+        public DateTime? ReportDeadline { get; set; }
+
         [Required]
         [Url(ErrorMessage = "Link Google Sheet không hợp lệ")]
         public string? GoogleSheetLink { get; set; }

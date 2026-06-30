@@ -76,6 +76,7 @@ namespace SE_Academic_Affairs_Support_System.ViewModels
     public class RegistrationRowViewModel
     {
         public int RegistrationId { get; set; }
+        public int RegistrationPeriodId { get; set; }
         public string TopicTitle { get; set; } = string.Empty;
         public string LecturerName { get; set; } = string.Empty;
         public string PeriodName { get; set; } = string.Empty;

@@ -1,4 +1,4 @@
-@model List<SE_Academic_Affairs_Support_System.Models.Device>
+@model List<SE_Academic_Affairs_Support_System.Models.DeviceInventoryRow>
 @{
     ViewData["Title"] = "Danh sách Thiết bị";
     var categories = ViewBag.Categories as List<string> ?? new List<string>();
@@ -62,14 +62,14 @@
                 <th>Tên thiết bị</th>
                 <th>Phân loại</th>
                 <th>Mô tả</th>
-                <th>Tình trạng</th>
-                <th>Trạng thái</th>
+                <th>Còn lại</th>
                 <th>Thao tác</th>
             </tr>
         </thead>
         <tbody id="deviceTable">
-            @foreach (var d in Model)
+            @foreach (var r in Model)
             {
+                var d = r.Device;
                 <tr data-name="@d.DeviceName.ToLower()" data-cat="@(d.Category ?? "")">
                     <td data-label="Tên thiết bị">
                         <span class="fw-semibold">@d.DeviceName</span>
@@ -80,30 +80,23 @@
                     <td data-label="Mô tả">
                         <span class="text-muted" style="font-size:13px;">@(string.IsNullOrEmpty(d.Description) ? "—" : d.Description)</span>
                     </td>
-                    <td data-label="Tình trạng">
-                        <span class="sb @(d.Condition == "Good" ? "sb-green" : "sb-red")">
-                            @(d.Condition == "Good" ? "Tốt" : "Hỏng")
-                        </span>
-                    </td>
-                    <td data-label="Trạng thái">
-                        <span class="sb @(d.Status == "Available" ? "sb-green" : "sb-blue")">
-                            @(d.Status == "Available" ? "Sẵn sàng" : "Đang mượn")
-                        </span>
+                    <td data-label="Còn lại">
+                        <span class="sb sb-green">Còn @r.Available</span>
                     </td>
                     <td data-label="Thao tác">
-                        @if (d.Status == "Available" && d.Condition == "Good")
+                        @if (r.Available > 0)
                         {
                             <a href="/Device/BorrowForm?deviceId=@d.DeviceId" class="btn-borrow">Mượn</a>
                         }
                         else
                         {
-                            <span class="btn-borrow-disabled">Không có sẵn</span>
+                            <span class="btn-borrow-disabled">Hết hàng</span>
                         }
                     </td>
                 </tr>
             }
             <tr id="emptyRow" class="hidden">
-                <td colspan="6" style="text-align:center; padding:48px 16px; color:#9ca3af; font-size:14px;">
+                <td colspan="5" style="text-align:center; padding:48px 16px; color:#9ca3af; font-size:14px;">
                     Không tìm thấy thiết bị phù hợp.
                 </td>
             </tr>

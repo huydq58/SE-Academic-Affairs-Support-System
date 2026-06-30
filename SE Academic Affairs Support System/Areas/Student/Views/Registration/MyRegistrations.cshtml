@@ -85,6 +85,11 @@ else
                         <a asp-action="ReviseProposal" asp-route-id="@reg.RegistrationId"
                            class="btn-revise">Chỉnh sửa đề xuất</a>
                     }
+                    @if (reg.Status == RegistrationStatus.APPROVED)
+                    {
+                        <a asp-area="" asp-controller="Report" asp-action="Index" asp-route-periodId="@reg.RegistrationPeriodId"
+                           class="btn-revise"><i class="bi bi-cloud-upload me-1"></i>Nộp báo cáo</a>
+                    }
                     @if (reg.CanCancel)
                     {
                         <form asp-action="Cancel" method="post" style="margin:0" hx-boost="false">

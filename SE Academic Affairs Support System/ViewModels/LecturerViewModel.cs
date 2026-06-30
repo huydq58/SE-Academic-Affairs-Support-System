@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using SE_Academic_Affairs_Support_System.Models;
 
 namespace SE_Academic_Affairs_Support_System.ViewModels
@@ -72,6 +73,24 @@ namespace SE_Academic_Affairs_Support_System.ViewModels
         public string Name { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+    }
+
+    // ── Lecturer: Import Topics from Excel ────────────────────────────────────
+    public class ImportLecturerTopicsViewModel
+    {
+        [Display(Name = "Đợt đăng ký")]
+        public int PeriodId { get; set; }
+
+        [Display(Name = "File Excel (.xlsx)")]
+        public IFormFile? File { get; set; }
+
+        public List<PeriodSelectItem> AvailablePeriods { get; set; } = new();
+
+        // Kết quả sau khi xử lý (POST)
+        public bool IsProcessed { get; set; }
+        public int Created { get; set; }
+        public int Skipped { get; set; }
+        public List<string> Errors { get; set; } = new();
     }
 
     public class CreateTopicViewModel

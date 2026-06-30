@@ -13,6 +13,8 @@ namespace SE_Academic_Affairs_Support_System.Data
         public DbSet<RoomBooking> RoomBookings { get; set; }
         public DbSet<Device> Devices { get; set; }
         public DbSet<DeviceRequest> DeviceRequests { get; set; }
+        public DbSet<DeviceRequestItem> DeviceRequestItems { get; set; }
+        public DbSet<DeviceDamageReport> DeviceDamageReports { get; set; }
         public DbSet<AppRegistrationRequest> AppRegistrationRequests { get; set; }
 
         public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
@@ -26,6 +28,7 @@ namespace SE_Academic_Affairs_Support_System.Data
         public DbSet<TopicSyncRecord> TopicSyncRecords { get; set; }
         public DbSet<RegistrationPeriodStudent> RegistrationPeriodStudents => Set<RegistrationPeriodStudent>();
         public DbSet<EmailConfiguration> EmailConfigurations => Set<EmailConfiguration>();
+        public DbSet<ReportSubmission> ReportSubmissions => Set<ReportSubmission>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -39,6 +42,54 @@ namespace SE_Academic_Affairs_Support_System.Data
                 .IsUnique()
                 .HasFilter("[Mssv] IS NOT NULL");
 
+
+            // DeviceCode unique nhưng chỉ khi không null (thiết bị tạo thủ công có thể chưa có mã)
+            modelBuilder.Entity<Device>()
+                .HasIndex(d => d.DeviceCode)
+                .IsUnique()
+                .HasFilter("[DeviceCode] IS NOT NULL");
+
+            // Phiếu mượn 1-nhiều chi tiết mượn
+            modelBuilder.Entity<DeviceRequestItem>(e =>
+            {
+                e.HasOne(i => i.Request)
+                    .WithMany(r => r.Items)
+                    .HasForeignKey(i => i.RequestId)
+                    .OnDelete(DeleteBehavior.Cascade);   // xóa phiếu → xóa chi tiết
+
+                e.HasOne(i => i.Device)
+                    .WithMany()
+                    .HasForeignKey(i => i.DeviceId)
+                    .OnDelete(DeleteBehavior.Restrict);  // không cho xóa thiết bị đang nằm trong phiếu
+            });
+
+            // Bài nộp báo cáo — 1 SV ↔ 1 bài / đợt; NoAction tránh cascade cycle
+            modelBuilder.Entity<ReportSubmission>(e =>
+            {
+                e.HasIndex(s => new { s.StudentProfileId, s.RegistrationPeriodId }).IsUnique();
+                e.HasOne(s => s.Student)
+                    .WithMany()
+                    .HasForeignKey(s => s.StudentProfileId)
+                    .OnDelete(DeleteBehavior.NoAction);
+                e.HasOne(s => s.Period)
+                    .WithMany()
+                    .HasForeignKey(s => s.RegistrationPeriodId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            // Báo cáo hư hỏng — NoAction để tránh cascade cycle
+            modelBuilder.Entity<DeviceDamageReport>(e =>
+            {
+                e.HasOne(r => r.Request)
+                    .WithMany()
+                    .HasForeignKey(r => r.RequestId)
+                    .OnDelete(DeleteBehavior.NoAction);
+
+                e.HasOne(r => r.Device)
+                    .WithMany()
+                    .HasForeignKey(r => r.DeviceId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
 
             // Unique student code
             modelBuilder.Entity<StudentProfile>()

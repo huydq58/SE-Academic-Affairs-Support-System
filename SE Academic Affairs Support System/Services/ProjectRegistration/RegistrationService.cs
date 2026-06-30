@@ -6,6 +6,7 @@ using SE_Academic_Affairs_Support_System.Helper;
 using SE_Academic_Affairs_Support_System.Models;
 using SE_Academic_Affairs_Support_System.Services.Email;
 using SE_Academic_Affairs_Support_System.Services.EmailNotification;
+using SE_Academic_Affairs_Support_System.Services.Excel;
 using SE_Academic_Affairs_Support_System.Services.NotificationSevices;
 using SE_Academic_Affairs_Support_System.ViewModels;
 
@@ -20,6 +21,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
         private readonly IEmailNotificationService _emailNotif;
         private readonly ILogger<RegistrationService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IExcelService _excel;
 
         public RegistrationService(
             AppDbContext db,
@@ -28,7 +30,8 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             IEmailService email,
             IEmailNotificationService emailNotif,
             ILogger<RegistrationService> logger,
-            IServiceScopeFactory scopeFactory)
+            IServiceScopeFactory scopeFactory,
+            IExcelService excel)
         {
             _db = db;
             _notif = notif;
@@ -37,6 +40,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
             _emailNotif = emailNotif;
             _logger = logger;
             _scopeFactory = scopeFactory;
+            _excel = excel;
         }
 
         // ── Periods ───────────────────────────────────────────────────────────
@@ -65,7 +69,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
 
         public async Task CreatePeriodAsync(PeriodFormViewModel vm)
         {
-            _db.RegistrationPeriods.Add(new RegistrationPeriod
+            var period = new RegistrationPeriod
             {
                 Name = vm.Name,
                 CourseName = vm.CourseName,
@@ -73,22 +77,74 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                 StartDate = vm.StartDate,
                 EndDate = vm.EndDate,
                 IsActive = vm.IsActive,
-                RestrictToAllowedStudents = vm.RestrictToAllowedStudents
-            });
+                RestrictToAllowedStudents = vm.RestrictToAllowedStudents,
+                ReportDeadline = vm.ReportDeadline
+            };
+            _db.RegistrationPeriods.Add(period);
             await _db.SaveChangesAsync();
+
+            // Có hạn nộp ngay khi tạo → thông báo SV đã được duyệt (nếu có)
+            if (period.ReportDeadline.HasValue)
+                QueueReportDeadlineAnnouncement(period.Id);
         }
 
         public async Task UpdatePeriodAsync(PeriodFormViewModel vm)
         {
             var period = await _db.RegistrationPeriods.FindAsync(vm.Id)
                          ?? throw new InvalidOperationException("Không tìm thấy đợt đăng ký");
+
+            var oldDeadline = period.ReportDeadline;
+
             period.Name = vm.Name;
             period.CourseName = vm.CourseName;
             period.StartDate = vm.StartDate;
             period.EndDate = vm.EndDate;
             period.IsActive = vm.IsActive;
             period.RestrictToAllowedStudents = vm.RestrictToAllowedStudents;
+            period.ReportDeadline = vm.ReportDeadline;
+
+            // Đổi hạn nộp → reset trạng thái nhắc nhở để chu kỳ nhắc tính lại
+            if (vm.ReportDeadline != oldDeadline)
+                period.LastReminderSentDate = null;
+
             await _db.SaveChangesAsync();
+
+            // Đặt mới / thay đổi hạn nộp → thông báo SV
+            if (vm.ReportDeadline.HasValue && vm.ReportDeadline != oldDeadline)
+                QueueReportDeadlineAnnouncement(period.Id);
+        }
+
+        // Gửi nền (fire-and-forget) thông báo hạn nộp cho SV đã APPROVED — scope riêng, không chặn request.
+        public void QueueReportDeadlineAnnouncement(int periodId)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    var emailNotif = scope.ServiceProvider.GetRequiredService<IEmailNotificationService>();
+
+                    var period = await db.RegistrationPeriods.FindAsync(periodId);
+                    if (period?.ReportDeadline == null) return;
+
+                    var students = await db.Registrations
+                        .Where(r => r.RegistrationPeriodId == periodId && r.Status == RegistrationStatus.APPROVED)
+                        .Select(r => new { r.Student.User.Email, r.Student.User.FullName, r.Student.StudentCode })
+                        .Distinct()
+                        .ToListAsync();
+
+                    foreach (var s in students)
+                        if (!string.IsNullOrWhiteSpace(s.Email))
+                            await emailNotif.NotifyReportDeadlineAsync(
+                                s.Email!, s.FullName ?? s.StudentCode, period.Name,
+                                period.ReportDeadline.Value, isReminder: false, daysLeft: null);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Gửi thông báo hạn nộp báo cáo thất bại cho period {PeriodId}", periodId);
+                }
+            });
         }
 
         public async Task SetPeriodActiveAsync(int periodId)
@@ -627,6 +683,7 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
                 Registrations = regs.Select(r => new RegistrationRowViewModel
                 {
                     RegistrationId = r.Id,
+                    RegistrationPeriodId = r.RegistrationPeriodId,
                     TopicTitle = r.ProposedTitle ?? r.Topic.Title,
                     LecturerName = r.Lecturer.User.FullName,
                     PeriodName = r.RegistrationPeriod.Name,
@@ -992,6 +1049,146 @@ namespace SE_Academic_Affairs_Support_System.Services.ProjectRegistration
 
             return (rows, null);
         }
+
+        // ── Lecturer: Bulk Import Own Topics from Excel ───────────────────────
+        // Cột file: 1=Title*, 2=Description, 3=Requirements, 4=Technologies, 5=MaxStudents, 6=Note
+        // Tự gán giảng viên đang đăng nhập + đợt được chọn. Toàn bộ dòng hợp lệ lưu trong 1 transaction.
+        public async Task<(int Created, int Skipped, List<string> Errors)> ImportLecturerTopicsAsync(
+            int lecturerProfileId, int periodId, IFormFile file)
+        {
+            var errors = new List<string>();
+
+            var now = DateTime.UtcNow;
+            var period = await _db.RegistrationPeriods.FindAsync(periodId);
+            if (period == null || !(period.IsActive && period.StartDate <= now && period.EndDate >= now))
+                return (0, 0, new List<string> { "Đợt đăng ký không tồn tại hoặc đã đóng — không thể import." });
+
+            var lecturer = await _db.LecturerProfiles
+                .Include(l => l.User)
+                .FirstOrDefaultAsync(l => l.Id == lecturerProfileId);
+            if (lecturer == null)
+                return (0, 0, new List<string> { "Không tìm thấy hồ sơ giảng viên." });
+
+            List<ExcelRow> rows;
+            try
+            {
+                rows = _excel.ReadRows(file, 6);
+            }
+            catch (ExcelReadException ex)
+            {
+                return (0, 0, new List<string> { ex.Message });
+            }
+
+            if (rows.Count == 0)
+                return (0, 0, new List<string> { "File không có dòng dữ liệu nào (chỉ có tiêu đề)." });
+
+            // ReadCommitted + UPDLOCK/HOLDLOCK trên phạm vi đề tài của đợt:
+            // serialize các lần import đồng thời cho CÙNG một đợt → tránh trùng tên do race,
+            // mà không khóa toàn bảng Topics của các đợt khác.
+            using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
+            try
+            {
+                var existingTitles = (await _db.Topics
+                        .FromSqlRaw("SELECT * FROM Topics WITH (UPDLOCK, HOLDLOCK) WHERE RegistrationPeriodId = {0}", periodId)
+                        .ToListAsync())
+                    .Select(t => t.Title.Trim().ToLowerInvariant())
+                    .ToHashSet();
+
+                var toCreate = new List<Topic>();
+                var seenInFile = new HashSet<string>();
+
+                foreach (var row in rows)
+                {
+                    var title = row.Get(0).Trim();
+                    if (string.IsNullOrWhiteSpace(title))
+                    {
+                        errors.Add($"Dòng {row.RowNumber}: thiếu Tên đề tài, bỏ qua.");
+                        continue;
+                    }
+                    if (title.Length > 300)
+                    {
+                        errors.Add($"Dòng {row.RowNumber}: Tên đề tài vượt quá 300 ký tự, bỏ qua.");
+                        continue;
+                    }
+
+                    var key = title.ToLowerInvariant();
+                    if (existingTitles.Contains(key))
+                    {
+                        errors.Add($"Dòng {row.RowNumber}: đề tài \"{title}\" đã tồn tại trong đợt này, bỏ qua.");
+                        continue;
+                    }
+                    if (!seenInFile.Add(key))
+                    {
+                        errors.Add($"Dòng {row.RowNumber}: đề tài \"{title}\" bị lặp lại trong file, bỏ qua.");
+                        continue;
+                    }
+
+                    var maxRaw = row.Get(4).Trim();
+                    int maxStudents = 1;
+                    if (!string.IsNullOrWhiteSpace(maxRaw) &&
+                        (!int.TryParse(maxRaw, out maxStudents) || maxStudents < 1 || maxStudents > 10))
+                    {
+                        errors.Add($"Dòng {row.RowNumber}: Số SV tối đa \"{maxRaw}\" không hợp lệ (1–10), bỏ qua.");
+                        continue;
+                    }
+
+                    var description = row.Get(1).Trim();
+                    var requirements = Truncate(row.Get(2).Trim(), 500);
+                    var technologies = Truncate(row.Get(3).Trim(), 300);
+                    var note = Truncate(row.Get(5).Trim(), 500);
+
+                    toCreate.Add(new Topic
+                    {
+                        Title = title,
+                        Description = string.IsNullOrWhiteSpace(description) ? title : description,
+                        Requirements = string.IsNullOrWhiteSpace(requirements) ? null : requirements,
+                        Technologies = string.IsNullOrWhiteSpace(technologies) ? null : technologies,
+                        MaxStudents = maxStudents,
+                        Status = TopicStatus.Open,
+                        LecturerProfileId = lecturerProfileId,
+                        RegistrationPeriodId = periodId,
+                        Note = string.IsNullOrWhiteSpace(note) ? null : note
+                    });
+                }
+
+                int skipped = rows.Count - toCreate.Count;
+                if (toCreate.Count == 0)
+                {
+                    await tx.RollbackAsync();
+                    return (0, skipped, errors);
+                }
+
+                _db.Topics.AddRange(toCreate);
+                await _db.SaveChangesAsync();
+
+                // Outbox: queue đề tài lên Google Sheets giống CreateTopicAsync
+                _db.TopicSyncRecords.AddRange(toCreate.Select(t => new TopicSyncRecord
+                {
+                    TopicId = t.Id,
+                    PeriodId = periodId,
+                    TopicTitle = t.Title,
+                    TopicDescription = t.Description,
+                    Technologies = t.Technologies,
+                    Requirements = t.Requirements,
+                    MaxStudents = t.MaxStudents,
+                    LecturerName = lecturer.User?.FullName ?? string.Empty,
+                    LecturerCode = lecturer.LecturerCode,
+                    Note = t.Note
+                }));
+                await _db.SaveChangesAsync();
+
+                await tx.CommitAsync();
+                return (toCreate.Count, skipped, errors);
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
+
+        private static string Truncate(string value, int max) =>
+            value.Length > max ? value[..max] : value;
 
         private static string GetCsvCell(string[] parts, int idx) =>
             idx < parts.Length ? parts[idx].Trim().Trim('"') : string.Empty;

@@ -49,7 +49,21 @@
 
         <div class="info-row">
             <div class="info-lbl">Thiết bị</div>
-            <div class="info-val fw-semibold">@(Model.Device?.DeviceName ?? "—")</div>
+            <div class="info-val fw-semibold">
+                @if (Model.Items.Any())
+                {
+                    <ul style="margin:0; padding-left:18px;">
+                        @foreach (var it in Model.Items)
+                        {
+                            <li>@(it.Device?.DeviceName ?? "—") <span style="color:#6b7280;">× @it.Quantity</span></li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <span>—</span>
+                }
+            </div>
         </div>
         <div class="info-row">
             <div class="info-lbl">Người mượn</div>

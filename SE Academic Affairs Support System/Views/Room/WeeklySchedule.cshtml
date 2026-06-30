@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Lịch Đặt Phòng";
     var currentRoom = Model.Rooms.FirstOrDefault();
+    var isAdmin = User.IsInRole("Admin");
 }
 
 <style>
@@ -98,6 +99,8 @@
     </div>
 </div>
 
+@Html.AntiForgeryToken()
+
 <!-- Modal: Chi tiết đơn đặt phòng -->
 <div class="modal fade" id="eventDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -123,8 +126,25 @@
                     <div class="modal-info-lbl">Mục đích</div>
                     <div class="modal-info-val" id="modalPurpose" style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:10px; font-size:13px;"></div>
                 </div>
+                @if (isAdmin)
+                {
+                    <div id="cancelReasonBox" style="display:none; margin-top:16px; border-top:1px solid #f1f5f9; padding-top:14px;">
+                        <label class="form-label" style="font-size:13px; font-weight:600;">Lý do hủy lịch</label>
+                        <textarea id="cancelReasonInput" class="form-control" rows="2" placeholder="Nhập lý do hủy (tùy chọn)..."></textarea>
+                        <div class="d-flex gap-2 justify-content-end mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCancelAbort">Bỏ qua</button>
+                            <button type="button" class="btn btn-sm btn-danger" id="btnConfirmCancel">Xác nhận hủy &amp; gửi mail</button>
+                        </div>
+                    </div>
+                }
             </div>
             <div class="modal-footer justify-content-center">
+                @if (isAdmin)
+                {
+                    <button type="button" class="btn btn-outline-danger px-4" id="btnShowCancel">
+                        <i class="bi bi-calendar-x me-1"></i>Hủy lịch
+                    </button>
+                }
                 <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
@@ -254,6 +274,12 @@
                     },
 
                     eventClick: function (info) {
+                        window.__currentBookingId = info.event.id;
+                        var cancelBox = document.getElementById('cancelReasonBox');
+                        if (cancelBox) { cancelBox.style.display = 'none'; var ci = document.getElementById('cancelReasonInput'); if (ci) ci.value = ''; }
+                        var showBtn = document.getElementById('btnShowCancel');
+                        if (showBtn) showBtn.style.display = '';
+
                         var status    = info.event.extendedProps.status;
                         var purpose   = info.event.extendedProps.purpose || 'Không có ghi chú';
                         var startTime = info.event.start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -281,6 +307,53 @@
                 });
 
                 calendar.render();
+
+                // ── Admin: hủy lịch ngay trên calendar ──
+                var btnShowCancel = document.getElementById('btnShowCancel');
+                var btnCancelAbort = document.getElementById('btnCancelAbort');
+                var btnConfirmCancel = document.getElementById('btnConfirmCancel');
+
+                if (btnShowCancel) {
+                    btnShowCancel.addEventListener('click', function () {
+                        document.getElementById('cancelReasonBox').style.display = 'block';
+                        btnShowCancel.style.display = 'none';
+                    });
+                }
+                if (btnCancelAbort) {
+                    btnCancelAbort.addEventListener('click', function () {
+                        document.getElementById('cancelReasonBox').style.display = 'none';
+                        if (btnShowCancel) btnShowCancel.style.display = '';
+                    });
+                }
+                if (btnConfirmCancel) {
+                    btnConfirmCancel.addEventListener('click', function () {
+                        var id = window.__currentBookingId;
+                        if (!id) return;
+                        var reason = (document.getElementById('cancelReasonInput') || {}).value || '';
+                        var tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+                        var token = tokenEl ? tokenEl.value : '';
+                        btnConfirmCancel.disabled = true;
+
+                        fetch('/Room/CancelBookingAjax', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams({ id: id, cancelReason: reason, __RequestVerificationToken: token })
+                        })
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            btnConfirmCancel.disabled = false;
+                            var modalEl = document.getElementById('eventDetailModal');
+                            var inst = bootstrap.Modal.getInstance(modalEl);
+                            if (inst) inst.hide();
+                            if (data.success) calendar.refetchEvents();
+                            alert(data.message || (data.success ? 'Đã hủy lịch.' : 'Hủy thất bại.'));
+                        })
+                        .catch(function () {
+                            btnConfirmCancel.disabled = false;
+                            alert('Có lỗi xảy ra khi hủy lịch. Vui lòng thử lại.');
+                        });
+                    });
+                }
             }
         })();
     </script>

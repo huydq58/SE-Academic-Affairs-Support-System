@@ -1,0 +1,95 @@
+@model SE_Academic_Affairs_Support_System.ViewModels.ReportSubmissionViewModel
+@{
+    ViewData["Title"] = "Nộp báo cáo đồ án";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div style="max-width:720px; margin:0 auto;">
+    <div class="rg-page-title mb-3">
+        <h2>Nộp báo cáo đồ án</h2>
+        <p>Đợt: <strong>@Model.PeriodName</strong>@(string.IsNullOrEmpty(Model.TopicTitle) ? "" : " — " + Model.TopicTitle)</p>
+    </div>
+
+    <partial name="_Alerts" />
+
+    @if (!Model.HasApprovedTopic)
+    {
+        <div class="alert alert-warning">Bạn chưa được duyệt đề tài trong đợt này nên chưa thể nộp báo cáo.</div>
+    }
+    else if (Model.Deadline == null)
+    {
+        <div class="alert alert-info">Đợt này chưa có hạn nộp báo cáo. Vui lòng chờ thông báo từ Khoa.</div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center">
+                    <div>
+                        <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#9ca3af;">Hạn nộp</div>
+                        <div style="font-size:18px; font-weight:700; color:@(Model.DeadlinePassed ? "#991b1b" : "#1e3a8a");">
+                            @Model.Deadline!.Value.ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                    </div>
+                    @if (Model.DeadlinePassed)
+                    {
+                        <span class="sb sb-red">Đã quá hạn</span>
+                    }
+                    else
+                    {
+                        <span class="sb sb-green">Còn @((int)Math.Ceiling((Model.Deadline.Value - DateTime.Now).TotalDays)) ngày</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Current != null)
+        {
+            <div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
+                <div class="card-body p-4">
+                    <h6 style="font-weight:700; color:#166534;"><i class="bi bi-check-circle-fill me-1"></i>Bài đã nộp</h6>
+                    <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mt-2">
+                        <div>
+                            <div style="font-weight:600;">@Model.Current.FileName</div>
+                            <div style="font-size:12px; color:#6b7280;">
+                                @($"{Model.Current.FileSize / 1024.0 / 1024.0:0.##} MB") — nộp lúc @Model.Current.SubmittedAt.ToString("dd/MM/yyyy HH:mm")
+                            </div>
+                        </div>
+                        <a asp-action="Download" asp-route-id="@Model.Current.Id" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-download me-1"></i>Tải xuống
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.CanSubmit)
+        {
+            <div class="card border-0 shadow-sm" style="border-radius:12px;">
+                <div class="card-body p-4">
+                    <h6 style="font-weight:700; color:#1e3a8a;">
+                        @(Model.Current == null ? "Nộp báo cáo" : "Nộp lại (thay thế bài cũ)")
+                    </h6>
+                    <form asp-action="Upload" method="post" enctype="multipart/form-data" hx-boost="false">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="periodId" value="@Model.PeriodId" />
+                        <div class="my-3">
+                            <input type="file" name="file" class="form-control"
+                                   accept=".doc,.docx,.pdf,.zip,.rar" required />
+                            <div class="form-text" style="font-size:12px;">
+                                Định dạng cho phép: .doc, .docx, .pdf, .zip, .rar — tối đa 500MB.
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-cloud-upload me-1"></i>Nộp báo cáo
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+        else if (Model.DeadlinePassed)
+        {
+            <div class="alert alert-danger">Đã quá hạn nộp — không thể nộp hoặc nộp lại báo cáo.</div>
+        }
+    }
+</div>

@@ -1,0 +1,82 @@
+@model SE_Academic_Affairs_Support_System.Models.ReturnFormViewModel
+@{
+    ViewData["Title"] = "Nhận trả thiết bị";
+}
+
+<style>
+    .rt-wrap { max-width:760px; margin:0 auto; }
+    .rt-card { border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+    .rt-head { background:#eff6ff; border-bottom:1px solid #bfdbfe; padding:12px 18px; font-size:13px; font-weight:700; color:#1d4ed8; }
+    .rt-item { border:1px solid #e5e7eb; border-radius:10px; padding:14px 16px; margin-bottom:14px; }
+    .rt-item .dev-name { font-weight:700; color:#1e3a8a; font-size:15px; }
+    .rt-item .borrowed { font-size:12px; color:#6b7280; }
+    .rt-grid { display:grid; grid-template-columns:120px 1fr; gap:12px; margin-top:10px; }
+    .rt-wrap label { font-size:12px; font-weight:600; color:#374151; margin-bottom:3px; display:block; }
+    .rt-wrap input, .rt-wrap textarea { font-size:13px; border:1px solid #d1d5db; border-radius:7px; padding:7px 10px; width:100%; }
+    @@media (max-width:575px){ .rt-grid{ grid-template-columns:1fr; } }
+</style>
+
+<div class="rt-wrap">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+        <div class="dv-page-title mb-0">
+            <h2>Nhận trả thiết bị</h2>
+            <p>Người mượn: <strong>@Model.BorrowerName</strong> — đánh dấu hư hỏng (nếu có) trước khi xác nhận trả</p>
+        </div>
+        <a asp-action="BorrowRequests" class="btn btn-outline-secondary btn-sm">Quay lại</a>
+    </div>
+
+    <partial name="_Alerts" />
+
+    <form asp-action="ReturnRequest" method="post" hx-boost="false">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="RequestId" />
+        <input type="hidden" asp-for="BorrowerName" />
+
+        <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+        <div class="rt-card mb-3">
+            <div class="rt-head">Thiết bị trong phiếu — ghi nhận số lượng hư hỏng</div>
+            <div style="padding:16px;">
+                @for (int i = 0; i < Model.Items.Count; i++)
+                {
+                    <div class="rt-item">
+                        <input type="hidden" asp-for="Items[i].DeviceId" />
+                        <input type="hidden" asp-for="Items[i].DeviceName" />
+                        <input type="hidden" asp-for="Items[i].BorrowedQuantity" />
+
+                        <div class="dev-name">@Model.Items[i].DeviceName</div>
+                        <div class="borrowed">Đã mượn: @Model.Items[i].BorrowedQuantity</div>
+
+                        <div class="rt-grid">
+                            <div>
+                                <label>Số lượng hỏng</label>
+                                <input type="number" asp-for="Items[i].DamagedQuantity"
+                                       min="0" max="@Model.Items[i].BorrowedQuantity" value="0" />
+                            </div>
+                            <div>
+                                <label>Người làm hư hỏng</label>
+                                <input type="text" asp-for="Items[i].DamagedByName" placeholder="Mặc định: người mượn" />
+                            </div>
+                            <div style="grid-column:1/-1;">
+                                <label>Lý do hư hỏng (bắt buộc nếu có hỏng)</label>
+                                <textarea asp-for="Items[i].Reason" rows="2" placeholder="Mô tả tình trạng / nguyên nhân..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a asp-action="BorrowRequests" class="btn btn-outline-secondary px-4">Hủy</a>
+            <button type="submit" class="btn btn-primary px-5"
+                    onclick="return confirm('Xác nhận đã nhận trả phiếu này?')">
+                Xác nhận đã trả
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

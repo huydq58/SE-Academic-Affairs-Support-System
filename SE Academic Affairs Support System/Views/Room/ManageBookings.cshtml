@@ -1,0 +1,59 @@
+@model List<SE_Academic_Affairs_Support_System.Models.RoomBooking>
+@{
+    ViewData["Title"] = "Quản lý đặt phòng";
+}
+
+<style>
+    .mb-row-actions { display:flex; gap:6px; align-items:center; }
+    .cancel-reason { width:200px; font-size:12px; border:1px solid #d1d5db; border-radius:6px; padding:5px 8px; }
+</style>
+
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+    <div class="dv-page-title mb-0">
+        <h2>Quản lý đặt phòng</h2>
+        <p>Hủy lịch đặt phòng của sinh viên khi Khoa có việc cần — hệ thống sẽ gửi email thông báo</p>
+    </div>
+</div>
+
+@await Html.PartialAsync("_Alerts")
+
+<div class="dt-wrap">
+    <table class="dt">
+        <thead>
+            <tr>
+                <th>Phòng</th>
+                <th>Người đặt</th>
+                <th>Email</th>
+                <th>Ngày</th>
+                <th>Thời gian</th>
+                <th>Mục đích</th>
+                <th>Hủy lịch</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="7" class="text-center py-5 text-muted">Không có lịch đặt phòng sắp tới.</td></tr>
+            }
+            @foreach (var b in Model)
+            {
+                <tr>
+                    <td data-label="Phòng"><span class="fw-semibold">@(b.Room?.RoomName ?? "—")</span></td>
+                    <td data-label="Người đặt">@b.UserName</td>
+                    <td data-label="Email">@b.UserEmail</td>
+                    <td data-label="Ngày">@b.BookingDate.ToString("dd/MM/yyyy")</td>
+                    <td data-label="Thời gian">@b.StartTime.ToString(@"hh\:mm") - @b.EndTime.ToString(@"hh\:mm")</td>
+                    <td data-label="Mục đích"><span class="text-muted" style="font-size:13px;">@(string.IsNullOrEmpty(b.Purpose) ? "—" : b.Purpose)</span></td>
+                    <td data-label="Hủy lịch">
+                        <form method="post" action="/Room/CancelBooking/@b.BookingId" class="mb-row-actions" hx-boost="false"
+                              onsubmit="return confirm('Xác nhận hủy lịch đặt phòng của @b.UserName?');">
+                            @Html.AntiForgeryToken()
+                            <input type="text" name="cancelReason" class="cancel-reason" placeholder="Lý do hủy (tùy chọn)" />
+                            <button type="submit" class="btn-act btn-act-danger">Hủy</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

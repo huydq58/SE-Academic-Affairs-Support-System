@@ -168,5 +168,103 @@ namespace SE_Academic_Affairs_Support_System.Services.EmailNotification
                 _logger.LogWarning(ex, "Không thể gửi email duyệt app tới {Email}", toEmail);
             }
         }
+
+        public async Task NotifyAppRejectedAsync(
+            string toEmail, string studentName, string appName, string? reason)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail))
+            {
+                _logger.LogWarning("NotifyAppRejected: email sinh viên null, bỏ qua.");
+                return;
+            }
+            try
+            {
+                var (subject, body) = EmailTemplates.AppRejected(studentName, appName, reason);
+                await _email.SendAsync(toEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không thể gửi email từ chối app tới {Email}", toEmail);
+            }
+        }
+
+        public async Task NotifyRoomBookingCancelledAsync(
+            string toEmail, string userName, string roomName,
+            DateTime bookingDate, TimeSpan startTime, TimeSpan endTime, string? reason)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail))
+            {
+                _logger.LogWarning("NotifyRoomBookingCancelled: email người dùng null, bỏ qua.");
+                return;
+            }
+            try
+            {
+                var (subject, body) = EmailTemplates.RoomBookingCancelled(
+                    userName, roomName, bookingDate, startTime, endTime, reason);
+                await _email.SendAsync(toEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không thể gửi email hủy đặt phòng tới {Email}", toEmail);
+            }
+        }
+
+        public async Task NotifyDeviceDamagedAsync(
+            string toEmail, string borrowerName, string damageSummary)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail))
+            {
+                _logger.LogWarning("NotifyDeviceDamaged: email người mượn null, bỏ qua.");
+                return;
+            }
+            try
+            {
+                var (subject, body) = EmailTemplates.DeviceDamaged(borrowerName, damageSummary);
+                await _email.SendAsync(toEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không thể gửi email báo hư hỏng thiết bị tới {Email}", toEmail);
+            }
+        }
+
+        public async Task NotifyReportDeadlineAsync(
+            string toEmail, string studentName, string periodName,
+            DateTime deadline, bool isReminder, int? daysLeft)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail))
+            {
+                _logger.LogWarning("NotifyReportDeadline: email sinh viên null, bỏ qua.");
+                return;
+            }
+            try
+            {
+                var (subject, body) = EmailTemplates.ReportDeadline(studentName, periodName, deadline, isReminder, daysLeft);
+                await _email.SendAsync(toEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không thể gửi email hạn nộp báo cáo tới {Email}", toEmail);
+            }
+        }
+
+        public async Task NotifyAppAssignedToLecturerAsync(
+            string toEmail, string lecturerName, string appName, string studentInfo, string requestId)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail))
+            {
+                _logger.LogWarning("NotifyAppAssignedToLecturer: email giảng viên null, bỏ qua.");
+                return;
+            }
+            try
+            {
+                var (subject, body) = EmailTemplates.AppAssignedToLecturer(lecturerName, appName, studentInfo, requestId);
+                await _email.SendAsync(toEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không thể gửi email giao app cho giảng viên {Email}", toEmail);
+            }
+        }
     }
 }

@@ -185,5 +185,125 @@ namespace SE_Academic_Affairs_Support_System.Services.EmailNotification
 <p>Tran trong,<br/><strong>Bo phan Quan ly Hoc vu - UIT</strong></p>";
             return (subject, Layout(subject, content));
         }
+
+        public static (string Subject, string Body) AppRejected(
+            string studentName, string appName, string? reason)
+        {
+            var subject = $"[Tu choi] Ung dung {appName} khong duoc chap thuan";
+            var reasonHtml = string.IsNullOrWhiteSpace(reason)
+                ? ""
+                : $@"<p><strong>Ly do:</strong></p>
+<div style=""background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:12px;color:#374151;"">{reason}</div>";
+            var content = $@"
+<p>Xin chao <strong>{studentName}</strong>,</p>
+<p>Rat tiec, yeu cau dang ky ung dung <strong>{appName}</strong> cua ban da bi <strong style=""color:#991b1b;"">tu choi</strong>.</p>
+{reasonHtml}
+<p>Ban co the chinh sua va gui lai yeu cau, hoac lien he Van phong Khoa de duoc ho tro.</p>
+<p>Tran trong,<br/><strong>Bo phan Quan ly Hoc vu - UIT</strong></p>";
+            return (subject, Layout(subject, content));
+        }
+
+        public static (string Subject, string Body) RoomBookingCancelled(
+            string userName, string roomName,
+            DateTime bookingDate, TimeSpan startTime, TimeSpan endTime, string? reason)
+        {
+            var subject = $"[Huy lich dat phong] {roomName} ngay {bookingDate:dd/MM/yyyy}";
+            var reasonHtml = string.IsNullOrWhiteSpace(reason)
+                ? ""
+                : $@"<p><strong>Ly do huy:</strong></p>
+<div style=""background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:12px;color:#374151;"">{reason}</div>";
+            var content = $@"
+<p>Xin chao <strong>{userName}</strong>,</p>
+<p>Rat tiec, lich dat phong cua ban da bi <strong style=""color:#991b1b;"">huy</strong> do Khoa co cong viec dot xuat.</p>
+<table style=""border-collapse:collapse;width:100%;margin:16px 0;"">
+  <tr style=""background:#f8fafc;"">
+    <td style=""padding:8px 12px;font-weight:700;width:140px;"">Phong</td>
+    <td style=""padding:8px 12px;color:#1e3a8a;font-weight:600;"">{roomName}</td>
+  </tr>
+  <tr>
+    <td style=""padding:8px 12px;font-weight:700;"">Ngay</td>
+    <td style=""padding:8px 12px;"">{bookingDate:dd/MM/yyyy}</td>
+  </tr>
+  <tr style=""background:#f8fafc;"">
+    <td style=""padding:8px 12px;font-weight:700;"">Thoi gian</td>
+    <td style=""padding:8px 12px;"">{TimeStr(startTime)} - {TimeStr(endTime)}</td>
+  </tr>
+</table>
+{reasonHtml}
+<p>Mong ban thong cam. Vui long dat lai khung gio khac hoac lien he Van phong Khoa de duoc ho tro.</p>
+<p>Tran trong,<br/><strong>Bo phan Quan ly Hoc vu - UIT</strong></p>";
+            return (subject, Layout(subject, content));
+        }
+
+        public static (string Subject, string Body) AppAssignedToLecturer(
+            string lecturerName, string appName, string studentInfo, string requestId)
+        {
+            var subject = $"[Phan cong] Yeu cau dang tai app {appName} can xu ly";
+            var content = $@"
+<p>Xin chao <strong>{lecturerName}</strong>,</p>
+<p>Ban vua duoc phan cong xu ly mot yeu cau dang tai ung dung (CH Play).</p>
+<table style=""border-collapse:collapse;width:100%;margin:16px 0;"">
+  <tr style=""background:#f8fafc;"">
+    <td style=""padding:8px 12px;font-weight:700;width:150px;"">Ung dung</td>
+    <td style=""padding:8px 12px;color:#1e3a8a;font-weight:600;"">{appName}</td>
+  </tr>
+  <tr>
+    <td style=""padding:8px 12px;font-weight:700;"">Sinh vien</td>
+    <td style=""padding:8px 12px;"">{studentInfo}</td>
+  </tr>
+  <tr style=""background:#f8fafc;"">
+    <td style=""padding:8px 12px;font-weight:700;"">Ma yeu cau</td>
+    <td style=""padding:8px 12px;font-family:monospace;"">{requestId}</td>
+  </tr>
+</table>
+<p>Vui long dang nhap he thong, vao muc <strong>Yeu cau dang tai App</strong> de xem chi tiet va duyet/tu choi.</p>
+<p>Tran trong,<br/><strong>Bo phan Quan ly Hoc vu - UIT</strong></p>";
+            return (subject, Layout(subject, content));
+        }
+
+        public static (string Subject, string Body) ReportDeadline(
+            string studentName, string periodName, DateTime deadline, bool isReminder, int? daysLeft)
+        {
+            var subject = isReminder
+                ? $"[Nhac nho] Con {daysLeft} ngay den han nop bao cao - {periodName}"
+                : $"[Thong bao] Han nop bao cao do an - {periodName}";
+
+            var headline = isReminder
+                ? $@"<div style=""background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:14px 18px;margin:16px 0;color:#92400e;"">
+  <strong>Chi con {daysLeft} ngay</strong> den han nop bao cao. Vui long hoan tat va nop dung han.
+</div>"
+                : $@"<div style=""background:#dbeafe;border:1px solid #bfdbfe;border-radius:8px;padding:14px 18px;margin:16px 0;color:#1e40af;"">
+  He thong vua cap nhat <strong>han nop bao cao</strong> cho dot dang ky cua ban.
+</div>";
+
+            var content = $@"
+<p>Xin chao <strong>{studentName}</strong>,</p>
+<p>Dot: <strong>{periodName}</strong></p>
+{headline}
+<table style=""border-collapse:collapse;width:100%;margin:16px 0;"">
+  <tr style=""background:#f8fafc;"">
+    <td style=""padding:8px 12px;font-weight:700;width:160px;"">Han nop bao cao</td>
+    <td style=""padding:8px 12px;color:#991b1b;font-weight:700;"">{deadline:dd/MM/yyyy HH:mm}</td>
+  </tr>
+</table>
+<p>Vui long dang nhap he thong va nop file bao cao (.doc/.docx/.pdf/.zip/.rar, toi da 500MB) truoc thoi han tren.</p>
+<p>Tran trong,<br/><strong>Bo phan Quan ly Hoc vu - UIT</strong></p>";
+            return (subject, Layout(subject, content));
+        }
+
+        public static (string Subject, string Body) DeviceDamaged(
+            string borrowerName, string damageSummary)
+        {
+            var subject = "[Thong bao] Thiet bi ban giao bi hu hong";
+            var content = $@"
+<p>Xin chao <strong>{borrowerName}</strong>,</p>
+<p>Khi nhan tra, he thong ghi nhan mot so thiet bi ban da muon bi <strong style=""color:#991b1b;"">hu hong</strong>:</p>
+<div style=""background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:14px 18px;margin:16px 0;color:#7f1d1d;"">
+  {damageSummary}
+</div>
+<p>Vui long lien he Van phong Khoa de phoi hop xu ly (sua chua / den bu) theo quy dinh.</p>
+<p>Tran trong,<br/><strong>Bo phan Quan ly Thiet bi - UIT</strong></p>";
+            return (subject, Layout(subject, content));
+        }
     }
 }

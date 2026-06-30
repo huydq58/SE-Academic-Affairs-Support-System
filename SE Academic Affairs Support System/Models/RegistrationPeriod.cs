@@ -29,6 +29,11 @@ namespace SE_Academic_Affairs_Support_System.Models
         // Nếu true: chỉ sinh viên trong AllowedStudents mới được đăng ký
         public bool RestrictToAllowedStudents { get; set; } = false;
 
+        // Hạn nộp báo cáo đồ án (admin đặt). Null = chưa có hạn.
+        public DateTime? ReportDeadline { get; set; }
+        // Ngày gần nhất đã gửi nhắc nhở (để nhắc tối đa 1 lần/ngày)
+        public DateTime? LastReminderSentDate { get; set; }
+
         public ICollection<Topic> Topics { get; set; } = new List<Topic>();
         public ICollection<Registration> Registrations { get; set; } = new List<Registration>();
         public ICollection<RegistrationPeriodStudent> AllowedStudents { get; set; } = new List<RegistrationPeriodStudent>();

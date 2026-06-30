@@ -1,4 +1,4 @@
-@model List<SE_Academic_Affairs_Support_System.Models.Device>
+@model List<SE_Academic_Affairs_Support_System.Models.DeviceInventoryRow>
 @{
     ViewData["Title"] = "Quản lý Thiết bị";
 }
@@ -12,18 +12,20 @@
     .pending-badge { display:inline-block; background:#fef3c7; border:1px solid #fde68a; color:#92400e; border-radius:20px; padding:5px 12px; font-size:13px; font-weight:600; text-decoration:none; }
     .pending-badge:hover { background:#fde68a; color:#78350f; }
 
-    .cond-btn    { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid; transition:all .15s; background:none; }
-    .cond-good   { background:#dcfce7; color:#166534; border-color:#bbf7d0; }
-    .cond-good:hover { background:#bbf7d0; }
-    .cond-broken { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
-    .cond-broken:hover { background:#fecaca; }
+    .qty-pill { display:inline-block; min-width:28px; text-align:center; font-weight:700; font-size:13px; padding:2px 8px; border-radius:8px; }
+    .qty-avail-ok { background:#dcfce7; color:#166534; }
+    .qty-avail-no { background:#fee2e2; color:#991b1b; }
+    .broken-form { display:flex; align-items:center; gap:5px; }
+    .broken-form input { width:62px; font-size:12px; padding:3px 6px; border:1px solid #d1d5db; border-radius:6px; }
+    .broken-form button { font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid #fca5a5; background:#fff; color:#b91c1c; cursor:pointer; }
+    .broken-form button:hover { background:#fee2e2; }
 </style>
 
 <!-- Header -->
 <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
     <div class="dv-page-title mb-0">
         <h2>Quản lý Thiết bị</h2>
-        <p>Kiểm soát kho, theo dõi tình trạng và cập nhật thiết bị</p>
+        <p>Kiểm soát tồn kho theo số lượng, theo dõi đang mượn và hư hỏng</p>
     </div>
     <div class="d-flex gap-2 align-items-center flex-wrap">
         @if ((int)(ViewBag.PendingCount ?? 0) > 0)
@@ -33,6 +35,9 @@
             </a>
         }
         <a href="/Device/BorrowRequests" class="btn btn-outline-secondary btn-sm px-3">Yêu cầu mượn</a>
+        <a href="/Device/ImportDevices" class="btn btn-outline-success btn-sm px-3">
+            <i class="bi bi-file-earmark-excel me-1"></i>Import Excel
+        </a>
         <a href="/Device/Create" class="btn btn-primary btn-sm px-3">Thêm thiết bị</a>
     </div>
 </div>
@@ -42,19 +47,19 @@
 <!-- Stats -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-sm-4 col-md">
-        <div class="stat-box"><div class="stat-num sn-green">@Model.Count(d => d.Status == "Available")</div><div class="stat-lbl">Sẵn sàng</div></div>
+        <div class="stat-box"><div class="stat-num">@Model.Count</div><div class="stat-lbl">Loại thiết bị</div></div>
     </div>
     <div class="col-6 col-sm-4 col-md">
-        <div class="stat-box"><div class="stat-num sn-blue">@Model.Count(d => d.Status == "Borrowing")</div><div class="stat-lbl">Đang mượn</div></div>
+        <div class="stat-box"><div class="stat-num">@Model.Sum(r => r.Device.TotalQuantity)</div><div class="stat-lbl">Tổng số lượng</div></div>
     </div>
     <div class="col-6 col-sm-4 col-md">
-        <div class="stat-box"><div class="stat-num sn-amber">@Model.Count(d => d.Status == "Returned")</div><div class="stat-lbl">Đã trả</div></div>
+        <div class="stat-box"><div class="stat-num sn-green">@Model.Sum(r => r.Available)</div><div class="stat-lbl">Còn lại</div></div>
     </div>
     <div class="col-6 col-sm-6 col-md">
-        <div class="stat-box"><div class="stat-num sn-red">@Model.Count(d => d.Condition == "Broken")</div><div class="stat-lbl">Đang hỏng</div></div>
+        <div class="stat-box"><div class="stat-num sn-blue">@Model.Sum(r => r.Borrowed)</div><div class="stat-lbl">Đang mượn</div></div>
     </div>
     <div class="col-6 col-sm-6 col-md">
-        <div class="stat-box"><div class="stat-num">@Model.Count</div><div class="stat-lbl">Tổng cộng</div></div>
+        <div class="stat-box"><div class="stat-num sn-red">@Model.Sum(r => r.Device.BrokenQuantity)</div><div class="stat-lbl">Hỏng</div></div>
     </div>
 </div>
 
@@ -62,33 +67,24 @@
 <form method="get" action="/Device/Index">
     <div class="filter-card d-flex flex-wrap gap-3 align-items-end">
         <div>
-            <span class="filter-lbl">Trạng thái</span>
-            <select name="filterStatus" class="form-select form-select-sm" aria-label="Lọc theo trạng thái" onchange="this.form.submit()">
+            <span class="filter-lbl">Tồn kho</span>
+            <select name="availability" class="form-select form-select-sm" onchange="this.form.submit()">
                 <option value="">Tất cả</option>
-                <option value="Available"  selected="@(ViewBag.FilterStatus == "Available")">Sẵn sàng</option>
-                <option value="Borrowing"  selected="@(ViewBag.FilterStatus == "Borrowing")">Đang mượn</option>
-                <option value="Returned"   selected="@(ViewBag.FilterStatus == "Returned")">Đã trả</option>
-            </select>
-        </div>
-        <div>
-            <span class="filter-lbl">Tình trạng</span>
-            <select name="filterCondition" class="form-select form-select-sm" aria-label="Lọc theo tình trạng" onchange="this.form.submit()">
-                <option value="">Tất cả</option>
-                <option value="Good"   selected="@(ViewBag.FilterCondition == "Good")">Tốt</option>
-                <option value="Broken" selected="@(ViewBag.FilterCondition == "Broken")">Hỏng</option>
+                <option value="Available" selected="@(ViewBag.Availability as string == "Available")">Còn hàng</option>
+                <option value="Out" selected="@(ViewBag.Availability as string == "Out")">Hết hàng</option>
             </select>
         </div>
         <div>
             <span class="filter-lbl">Loại thiết bị</span>
-            <select name="filterCategory" class="form-select form-select-sm" aria-label="Lọc theo loại thiết bị" onchange="this.form.submit()">
+            <select name="filterCategory" class="form-select form-select-sm" onchange="this.form.submit()">
                 <option value="">Tất cả</option>
                 @foreach (var cat in (List<string>)ViewBag.Categories)
                 {
-                    <option value="@cat" selected="@(ViewBag.FilterCategory == cat)">@cat</option>
+                    <option value="@cat" selected="@(ViewBag.FilterCategory as string == cat)">@cat</option>
                 }
             </select>
         </div>
-        @if (ViewBag.FilterStatus != null || ViewBag.FilterCategory != null || ViewBag.FilterCondition != null)
+        @if (ViewBag.Availability != null || ViewBag.FilterCategory != null)
         {
             <a href="/Device/Index" class="btn btn-outline-secondary btn-sm">Bỏ lọc</a>
         }
@@ -103,62 +99,50 @@
                 <th>Mã TB</th>
                 <th>Tên thiết bị</th>
                 <th>Phân loại</th>
-                <th>Trạng thái</th>
-                <th>Tình trạng</th>
+                <th>Tổng</th>
+                <th>Đang mượn</th>
+                <th>Hỏng</th>
+                <th>Còn lại</th>
                 <th>Thao tác</th>
             </tr>
         </thead>
         <tbody>
             @if (!Model.Any())
             {
-                <tr><td colspan="6" class="text-center py-5 text-muted">Chưa có thiết bị nào trong kho.</td></tr>
+                <tr><td colspan="8" class="text-center py-5 text-muted">Chưa có thiết bị nào trong kho.</td></tr>
             }
-            @foreach (var d in Model)
+            @foreach (var r in Model)
             {
+                var d = r.Device;
                 <tr>
                     <td data-label="Mã TB">
-                        <span style="font-family:monospace;font-size:13px;color:#6b7280;">#@d.DeviceId</span>
+                        @if (!string.IsNullOrEmpty(d.DeviceCode))
+                        {
+                            <span style="font-family:monospace;font-size:13px;color:#1f2937;font-weight:600;">@d.DeviceCode</span>
+                        }
+                        else
+                        {
+                            <span style="font-family:monospace;font-size:12px;color:#9ca3af;">#@d.DeviceId</span>
+                        }
                     </td>
-                    <td data-label="Tên thiết bị">
-                        <span class="fw-semibold">@d.DeviceName</span>
-                    </td>
-                    <td data-label="Phân loại">
-                        <span class="cat-tag">@(string.IsNullOrEmpty(d.Category) ? "Khác" : d.Category)</span>
-                    </td>
-                    <td data-label="Trạng thái">
-                        <span class="sb @(d.Status == "Available" ? "sb-green" : d.Status == "Borrowing" ? "sb-blue" : "sb-amber")">
-                            @(d.Status == "Available" ? "Sẵn sàng" : d.Status == "Borrowing" ? "Đang mượn" : "Đã trả")
-                        </span>
-                    </td>
-                    <td data-label="Tình trạng">
-                        <form method="post" action="/Device/ChangeCondition/@d.DeviceId" style="margin:0" hx-boost="false">
+                    <td data-label="Tên thiết bị"><span class="fw-semibold">@d.DeviceName</span></td>
+                    <td data-label="Phân loại"><span class="cat-tag">@(string.IsNullOrEmpty(d.Category) ? "Khác" : d.Category)</span></td>
+                    <td data-label="Tổng"><span class="qty-pill" style="background:#eef2ff;color:#3730a3;">@d.TotalQuantity</span></td>
+                    <td data-label="Đang mượn"><span class="qty-pill" style="background:#dbeafe;color:#1e40af;">@r.Borrowed</span></td>
+                    <td data-label="Hỏng">
+                        <form method="post" action="/Device/SetBroken/@d.DeviceId" class="broken-form" hx-boost="false">
                             @Html.AntiForgeryToken()
-                            <input type="hidden" name="condition" value="@(d.Condition == "Good" ? "Broken" : "Good")" />
-                            <button type="submit" class="cond-btn @(d.Condition == "Good" ? "cond-good" : "cond-broken")"
-                                    title="Click để đổi tình trạng">
-                                @(d.Condition == "Good" ? "Tốt" : "Hỏng")
-                            </button>
+                            <input type="number" name="brokenQuantity" value="@d.BrokenQuantity" min="0" max="@(d.TotalQuantity - r.Borrowed)" />
+                            <button type="submit" title="Cập nhật số hỏng">Lưu</button>
                         </form>
+                    </td>
+                    <td data-label="Còn lại">
+                        <span class="qty-pill @(r.Available > 0 ? "qty-avail-ok" : "qty-avail-no")">@r.Available</span>
                     </td>
                     <td data-label="Thao tác">
                         <div class="d-flex gap-2 flex-wrap">
                             <a href="/Device/Edit/@d.DeviceId" class="btn-act">Sửa</a>
-
-                            @if (d.Status == "Borrowing")
-                            {
-                                <form method="post" action="/Device/MarkReturned/@d.DeviceId" style="margin:0" hx-boost="false">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-act btn-act-primary">Nhận trả</button>
-                                </form>
-                            }
-                            @if (d.Status == "Returned")
-                            {
-                                <form method="post" action="/Device/MarkAvailable/@d.DeviceId" style="margin:0" hx-boost="false">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-act btn-act-primary">Nhập kho</button>
-                                </form>
-                            }
-                            @if (d.Status != "Borrowing")
+                            @if (r.Borrowed == 0)
                             {
                                 <button type="button" class="btn-act btn-act-danger"
                                         onclick="confirmDelete(@d.DeviceId, '@d.DeviceName.Replace("'", "\\'")' )">
@@ -179,9 +163,10 @@
 
 <script>
     function confirmDelete(id, name) {
-        if (confirm('Xác nhận XÓA thiết bị: ' + name + '\n\nHành động này không thể hoàn tác.')) {
-            document.getElementById('deleteForm').action = '/Device/Delete/' + id;
-            document.getElementById('deleteForm').submit();
+        if (confirm('Xác nhận xóa thiết bị "' + name + '"?')) {
+            var f = document.getElementById('deleteForm');
+            f.action = '/Device/Delete/' + id;
+            f.submit();
         }
     }
 </script>

@@ -1,0 +1,84 @@
+@model SE_Academic_Affairs_Support_System.ViewModels.AdminSubmissionsViewModel
+@{
+    ViewData["Title"] = "Bài nộp báo cáo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
+    <div class="dv-page-title mb-0">
+        <h2>Bài nộp báo cáo</h2>
+        <p>
+            Danh sách sinh viên đã nộp báo cáo@(Model.PeriodId.HasValue ? $" — {Model.PeriodName}" : " (tất cả đợt)")
+            @if (Model.PeriodId.HasValue)
+            {
+                <text> · Đã nộp <strong>@Model.Rows.Count</strong>/@Model.ApprovedCount SV được duyệt</text>
+            }
+        </p>
+    </div>
+    <div class="d-flex gap-2 align-items-end flex-wrap">
+        <form method="get" action="/Report/Submissions" class="d-flex align-items-end gap-2">
+            <div>
+                <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#6b7280; display:block; margin-bottom:3px;">Đợt</span>
+                <select name="periodId" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Tất cả đợt</option>
+                    @foreach (var p in Model.Periods)
+                    {
+                        <option value="@p.Id" selected="@(Model.PeriodId == p.Id)">@p.Name (@p.Count)</option>
+                    }
+                </select>
+            </div>
+        </form>
+        @if (Model.PeriodId.HasValue && Model.Rows.Any())
+        {
+            <a href="/Report/DownloadAll?periodId=@Model.PeriodId" hx-boost="false" class="btn btn-success btn-sm px-3">
+                <i class="bi bi-file-earmark-zip me-1"></i>Tải tất cả (ZIP)
+            </a>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_Alerts")
+
+<div class="dt-wrap">
+    <table class="dt">
+        <thead>
+            <tr>
+                <th>MSSV</th>
+                <th>Họ tên</th>
+                @if (!Model.PeriodId.HasValue)
+                {
+                    <th>Đợt</th>
+                }
+                <th>File</th>
+                <th>Dung lượng</th>
+                <th>Thời gian nộp</th>
+                <th>Tải về</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Rows.Any())
+            {
+                <tr><td colspan="7" class="text-center py-5 text-muted">Chưa có bài nộp nào.</td></tr>
+            }
+            @foreach (var r in Model.Rows)
+            {
+                <tr>
+                    <td data-label="MSSV"><span style="font-family:monospace; font-size:13px;">@r.StudentCode</span></td>
+                    <td data-label="Họ tên" class="fw-semibold">@r.StudentName</td>
+                    @if (!Model.PeriodId.HasValue)
+                    {
+                        <td data-label="Đợt">@r.PeriodName</td>
+                    }
+                    <td data-label="File">@r.FileName</td>
+                    <td data-label="Dung lượng">@($"{r.FileSize / 1024.0 / 1024.0:0.##} MB")</td>
+                    <td data-label="Thời gian nộp">@r.SubmittedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td data-label="Tải về">
+                        <a asp-action="Download" asp-route-id="@r.Id" hx-boost="false" class="btn-act btn-act-primary">
+                            <i class="bi bi-download me-1"></i>Tải
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

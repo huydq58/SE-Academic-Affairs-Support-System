@@ -1,0 +1,51 @@
+@model List<SE_Academic_Affairs_Support_System.Models.DeviceDamageReport>
+@{
+    ViewData["Title"] = "Báo cáo hư hỏng";
+}
+
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+    <div class="dv-page-title mb-0">
+        <h2>Báo cáo hư hỏng thiết bị</h2>
+        <p>Các thiết bị bị hư hỏng được ghi nhận khi nhận trả</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <a href="/Device/ExportDamageReports" hx-boost="false" class="btn btn-outline-success btn-sm px-3">
+            <i class="bi bi-file-earmark-excel me-1"></i>Xuất Excel
+        </a>
+        <a href="/Device/BorrowRequests" class="btn btn-outline-secondary btn-sm px-3">Yêu cầu mượn</a>
+    </div>
+</div>
+
+@await Html.PartialAsync("_Alerts")
+
+<div class="dt-wrap">
+    <table class="dt">
+        <thead>
+            <tr>
+                <th>Thiết bị</th>
+                <th>Người mượn</th>
+                <th>Người làm hư hỏng</th>
+                <th>SL hỏng</th>
+                <th>Lý do</th>
+                <th>Ngày ghi nhận</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="6" class="text-center py-5 text-muted">Chưa có báo cáo hư hỏng nào.</td></tr>
+            }
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td data-label="Thiết bị"><span class="fw-semibold">@r.DeviceName</span></td>
+                    <td data-label="Người mượn">@r.BorrowerName</td>
+                    <td data-label="Người làm hư hỏng">@r.DamagedByName</td>
+                    <td data-label="SL hỏng"><span class="sb sb-red">@r.Quantity</span></td>
+                    <td data-label="Lý do"><span class="text-muted" style="font-size:13px;">@(string.IsNullOrEmpty(r.Reason) ? "—" : r.Reason)</span></td>
+                    <td data-label="Ngày ghi nhận">@r.ReportedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

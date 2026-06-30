@@ -103,6 +103,15 @@
                     </div>
                 </div>
 
+                <div>
+                    <label asp-for="ReportDeadline" class="form-label fw-semibold">Hạn nộp báo cáo</label>
+                    <input asp-for="ReportDeadline" type="datetime-local" class="form-control" />
+                    <div class="form-text" style="font-size:12px;">
+                        Đặt/đổi hạn nộp sẽ tự động gửi email thông báo cho SV đã được duyệt đề tài. Để trống nếu chưa áp dụng.
+                    </div>
+                    <span asp-validation-for="ReportDeadline" class="text-danger small"></span>
+                </div>
+
                 <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:14px 16px;">
                     <div class="form-check">
                         <input asp-for="IsActive" class="form-check-input" type="checkbox" />

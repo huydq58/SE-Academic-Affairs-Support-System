@@ -9,6 +9,9 @@ using SE_Academic_Affairs_Support_System.Models;
 using SE_Academic_Affairs_Support_System.Services;
 using SE_Academic_Affairs_Support_System.Services.AppRegistration;
 using SE_Academic_Affairs_Support_System.Services.EmailNotification;
+using SE_Academic_Affairs_Support_System.Services.Excel;
+using SE_Academic_Affairs_Support_System.Services.NotificationSevices;
+using SE_Academic_Affairs_Support_System.ViewModels;
 
 
 namespace SE_Academic_Affairs_Support_System.Controllers
@@ -19,15 +22,29 @@ namespace SE_Academic_Affairs_Support_System.Controllers
         private readonly AppDbContext _context;
         private readonly UserManager<User> _userManager;
         private readonly IEmailNotificationService _emailNotif;
+        private readonly IExcelService _excel;
+        private readonly INotificationService _notif;
 
         public AppRegistrationController(IAppRegistrationService service, AppDbContext context,
-            UserManager<User> userManager, IEmailNotificationService emailNotif)
+            UserManager<User> userManager, IEmailNotificationService emailNotif, IExcelService excel,
+            INotificationService notif)
         {
             _service = service;
             _context = context;
             _userManager = userManager;
             _emailNotif = emailNotif;
+            _excel = excel;
+            _notif = notif;
         }
+
+        private static string StatusToVietnamese(RequestStatus status) => status switch
+        {
+            RequestStatus.Pending => "Chờ xử lý",
+            RequestStatus.Processing => "Đang xử lý",
+            RequestStatus.Approved => "Đã duyệt",
+            RequestStatus.Rejected => "Từ chối",
+            _ => status.ToString()
+        };
 
         // GET: /AppRegistration
         [HttpGet]
@@ -60,6 +77,7 @@ namespace SE_Academic_Affairs_Support_System.Controllers
                 return View("Create", model);
             }
 
+            model.CreatedAt = DateTime.Now;
             await _service.CreateRequestAsync(model);
 
             await _emailNotif.NotifyAppSubmittedAsync(
@@ -132,11 +150,26 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             if (request != null && !string.IsNullOrEmpty(lecturerId))
             {
                 request.AssignedLecturerId = lecturerId;
-
                 request.Status = RequestStatus.Processing;
-
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Đã gán Lecturer thành công!";
+
+                // Thông báo cho giảng viên được phân công: in-app + email (fail-safe)
+                var lecturer = await _userManager.FindByIdAsync(lecturerId);
+                if (lecturer != null)
+                {
+                    await _notif.SendAsync(lecturer.Id,
+                        $"Bạn được phân công xử lý yêu cầu đăng tải app \"{request.AppName}\".",
+                        "/AppRegistration/PendingRequests");
+
+                    await _emailNotif.NotifyAppAssignedToLecturerAsync(
+                        lecturer.Email ?? string.Empty,
+                        lecturer.FullName ?? lecturer.UserName ?? "Giảng viên",
+                        request.AppName ?? "(không tên)",
+                        request.StudentInfo ?? string.Empty,
+                        request.RequestId);
+                }
+
+                TempData["SuccessMessage"] = "Đã gán Giảng viên và gửi thông báo!";
             }
 
             return RedirectToAction(nameof(PendingRequests));
@@ -173,7 +206,96 @@ namespace SE_Academic_Affairs_Support_System.Controllers
             return RedirectToAction(nameof(PendingRequests));
         }
 
+        // Từ chối yêu cầu đăng tải app + gửi mail từ chối (fail-safe)
+        [Authorize(Roles = "Admin,Lecturer")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectRequest(string requestId, string rejectReason)
+        {
+            var request = await _context.AppRegistrationRequests.FindAsync(requestId);
 
+            if (request != null)
+            {
+                request.Status = RequestStatus.Rejected;
+                await _context.SaveChangesAsync();
 
+                await _emailNotif.NotifyAppRejectedAsync(
+                    request.StudentEmail, request.StudentInfo ?? string.Empty, request.AppName,
+                    string.IsNullOrWhiteSpace(rejectReason) ? null : rejectReason.Trim());
+
+                TempData["SuccessMessage"] = $"Đã từ chối ứng dụng {request.AppName}.";
+            }
+
+            return RedirectToAction(nameof(PendingRequests));
+        }
+
+        // GET /AppRegistration/ExportExcel?TimeMode=&FromDate=&ToDate=&Status=
+        // Xuất danh sách yêu cầu đăng tải app (CH Play) ra .xlsx theo bộ lọc thời gian + trạng thái.
+        // Lọc thời gian áp lên CreatedAt (ngày gửi yêu cầu).
+        [Authorize(Roles = "Admin,Lecturer")]
+        public async Task<IActionResult> ExportExcel(ExportFilterViewModel filter)
+        {
+            var (start, end, error) = filter.ResolveRange();
+            if (error != null)
+            {
+                TempData["Error"] = error;
+                return RedirectToAction(nameof(PendingRequests));
+            }
+
+            var query = _context.AppRegistrationRequests
+                .Include(r => r.AssignedLecturer)
+                .AsQueryable();
+
+            // Lecturer chỉ xuất các yêu cầu được gán cho mình (giống PendingRequests)
+            if (User.IsInRole("Lecturer") && !User.IsInRole("Admin"))
+            {
+                var currentUserId = _userManager.GetUserId(User);
+                query = query.Where(r => r.AssignedLecturerId == currentUserId);
+            }
+
+            var statusSlug = "TatCa";
+            if (!string.IsNullOrWhiteSpace(filter.Status) &&
+                Enum.TryParse<RequestStatus>(filter.Status, true, out var statusEnum))
+            {
+                query = query.Where(r => r.Status == statusEnum);
+                statusSlug = statusEnum.ToString();
+            }
+
+            if (start.HasValue) query = query.Where(r => r.CreatedAt >= start.Value);
+            if (end.HasValue) query = query.Where(r => r.CreatedAt <= end.Value);
+
+            var requests = await query
+                .OrderBy(r => r.Status)
+                .ThenByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            var headers = new[]
+            {
+                "Mã yêu cầu", "Tên app", "Mô tả", "Mục đích",
+                "Người yêu cầu", "Email", "Giảng viên phụ trách",
+                "Demo link", "APK link", "Trạng thái", "Ngày yêu cầu"
+            };
+
+            var rows = requests.Select(r => new List<object?>
+            {
+                r.RequestId,
+                r.AppName,
+                r.AppDescription,
+                r.Purpose,
+                r.StudentInfo,
+                r.StudentEmail,
+                r.AssignedLecturer?.FullName ?? "Chưa gán",
+                r.DemoLink,
+                r.ApkLink,
+                StatusToVietnamese(r.Status),
+                r.CreatedAt
+            } as IReadOnlyList<object?>).ToList();
+
+            var bytes = _excel.BuildWorkbook("YeuCauApp", headers, rows);
+            var fileName = $"yeu-cau-app_{statusSlug}_{filter.TimeModeSlug()}_{DateTime.Now:yyyyMMdd-HHmmss}.xlsx";
+            return File(bytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                fileName);
+        }
     }
 }

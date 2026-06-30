@@ -1,0 +1,77 @@
+@model List<SE_Academic_Affairs_Support_System.ViewModels.MyReportRow>
+@{
+    ViewData["Title"] = "Nộp báo cáo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="rg-page-title mb-3">
+    <h2>Nộp báo cáo đồ án</h2>
+    <p>Danh sách các đợt bạn đã được duyệt đề tài và hạn nộp báo cáo</p>
+</div>
+
+<partial name="_Alerts" />
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Bạn chưa được duyệt đề tài trong đợt nào nên chưa có báo cáo cần nộp.</div>
+}
+else
+{
+    <div class="dt-wrap">
+        <table class="dt">
+            <thead>
+                <tr>
+                    <th>Đợt</th>
+                    <th>Đề tài</th>
+                    <th>Hạn nộp</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td data-label="Đợt"><span class="fw-semibold">@r.PeriodName</span></td>
+                        <td data-label="Đề tài">@(string.IsNullOrEmpty(r.TopicTitle) ? "—" : r.TopicTitle)</td>
+                        <td data-label="Hạn nộp">
+                            @if (r.Deadline.HasValue)
+                            {
+                                <span style="color:@(r.DeadlinePassed ? "#991b1b" : "#1e3a8a"); font-weight:600;">
+                                    @r.Deadline.Value.ToString("dd/MM/yyyy HH:mm")
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Chưa có hạn</span>
+                            }
+                        </td>
+                        <td data-label="Trạng thái">
+                            @if (r.Submission != null)
+                            {
+                                <span class="sb sb-green">Đã nộp</span>
+                            }
+                            else if (r.Deadline == null)
+                            {
+                                <span class="sb sb-gray">Chờ thông báo</span>
+                            }
+                            else if (r.DeadlinePassed)
+                            {
+                                <span class="sb sb-red">Quá hạn — chưa nộp</span>
+                            }
+                            else
+                            {
+                                <span class="sb sb-amber">Chưa nộp</span>
+                            }
+                        </td>
+                        <td data-label="Thao tác">
+                            <a asp-action="Index" asp-route-periodId="@r.PeriodId" class="btn-act btn-act-primary">
+                                @(r.Submission != null ? "Xem / Nộp lại" : "Nộp báo cáo")
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
