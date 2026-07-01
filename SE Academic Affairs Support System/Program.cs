@@ -98,7 +98,26 @@ namespace SE_Academic_Affairs_Support_System
 
             var app = builder.Build();
 
-
+            // Tự động chạy migration khi khởi động: tạo DB lần đầu + áp dụng migration đang chờ.
+            // Chỉ chạy khi đã cấu hình connection string "AzureConnection". Idempotent (không có migration chờ → no-op).
+            var autoConn = builder.Configuration.GetConnectionString("AzureConnection");
+            if (!string.IsNullOrWhiteSpace(autoConn))
+            {
+                using var migScope = app.Services.CreateScope();
+                var migLogger = migScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                try
+                {
+                    var migDb = migScope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    // MigrateAsync: tạo DB nếu chưa tồn tại + áp dụng mọi migration đang chờ. Idempotent.
+                    await migDb.Database.MigrateAsync();
+                    migLogger.LogInformation("Kiểm tra & áp dụng migration khi khởi động hoàn tất.");
+                }
+                catch (Exception ex)
+                {
+                    // Không chặn app khởi động; ghi log để xử lý (sai connection string / chưa scaffold migration / thiếu quyền DB)
+                    migLogger.LogError(ex, "Tự động chạy migration thất bại — kiểm tra connection string, quyền DB và đã có migration chưa.");
+                }
+            }
 
             if (app.Environment.IsDevelopment())
             {
